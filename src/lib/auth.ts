@@ -16,5 +16,5 @@ export const auth = betterAuth({
 			clientId: GITHUB_CLIENT_ID,
 			clientSecret: GITHUB_CLIENT_SECRET
 		}
-	},
+	}
 });

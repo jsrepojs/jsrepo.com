@@ -5,6 +5,6 @@
 </script>
 
 <Header />
-<main class="h-[calc(100svh-64px)] relative">
+<main class="relative h-[calc(100svh-64px)]">
 	{@render children()}
 </main>

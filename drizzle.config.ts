@@ -3,8 +3,8 @@ import 'dotenv/config';
 
 export default defineConfig({
 	dialect: 'postgresql',
-    schema: './src/lib/backend/db/schema.ts',
+	schema: './src/lib/backend/db/schema.ts',
 	dbCredentials: {
-		url: process.env.DATABASE_URL!,
+		url: process.env.DATABASE_URL!
 	}
 });

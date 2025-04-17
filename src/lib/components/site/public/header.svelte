@@ -12,7 +12,7 @@
 	const sessionPromise = authClient.getSession();
 </script>
 
-<header class="sticky left-0 top-0 z-10 flex w-full items-center border-b bg-background h-16">
+<header class="sticky left-0 top-0 z-10 flex h-16 w-full items-center border-b bg-background">
 	<div class="container flex items-center justify-between">
 		<div class="flex place-items-center gap-6">
 			<a
@@ -36,13 +36,9 @@
 			<ThemeSelector class="hidden size-9 md:flex" />
 			{#await sessionPromise then session}
 				{#if session.data}
-					<Button href="/dashboard" variant="outline">
-						Dashboard
-					</Button>
+					<Button href="/dashboard" variant="outline">Dashboard</Button>
 				{:else}
-					<Button href="/login">
-						Sign In
-					</Button>
+					<Button href="/login">Sign In</Button>
 				{/if}
 			{/await}
 			<Dialog.Root bind:open={menuOpen}>

@@ -1,1 +1,1 @@
-export { default as GitHubButton } from './github-button.svelte'
+export { default as GitHubButton } from './github-button.svelte';

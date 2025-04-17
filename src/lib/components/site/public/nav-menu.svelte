@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { cn } from '$lib/utils/utils';
 	import { Button } from '$lib/components/ui/button';
-    import { ThemeSelector } from '$lib/components/ui/theme-selector';
+	import { ThemeSelector } from '$lib/components/ui/theme-selector';
 	import * as Icons from '$lib/components/icons';
 	import { Dialog } from 'bits-ui';
 	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
@@ -43,7 +43,6 @@
 					<Nav.Link href="/demos" title="Demos" onclick={closeMenu} />
 				</Nav.List>
 			</Nav.Group>
-
 		</div>
 	</div>
 	<div class="mx-8 flex place-items-center gap-2 border-t py-4">
