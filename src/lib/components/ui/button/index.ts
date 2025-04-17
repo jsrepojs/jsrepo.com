@@ -1,3 +1,7 @@
+/*
+	Installed from github/ieedan/shadcn-svelte-extras
+*/
+
 import Root, {
 	type ButtonProps,
 	type ButtonSize,
