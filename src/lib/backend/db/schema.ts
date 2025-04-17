@@ -1,4 +1,16 @@
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { sql, type InferSelectModel } from 'drizzle-orm';
+import {
+	pgTable,
+	text,
+	timestamp,
+	boolean,
+	varchar,
+	serial,
+	unique,
+	integer
+} from 'drizzle-orm/pg-core';
+
+/* Auth Schema */
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -9,6 +21,8 @@ export const user = pgTable('user', {
 	createdAt: timestamp('created_at').notNull(),
 	updatedAt: timestamp('updated_at').notNull()
 });
+
+export type User = InferSelectModel<typeof user>;
 
 export const session = pgTable('session', {
 	id: text('id').primaryKey(),
@@ -22,6 +36,8 @@ export const session = pgTable('session', {
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' })
 });
+
+export type Session = InferSelectModel<typeof session>;
 
 export const account = pgTable('account', {
 	id: text('id').primaryKey(),
@@ -41,6 +57,8 @@ export const account = pgTable('account', {
 	updatedAt: timestamp('updated_at').notNull()
 });
 
+export type Account = InferSelectModel<typeof account>;
+
 export const verification = pgTable('verification', {
 	id: text('id').primaryKey(),
 	identifier: text('identifier').notNull(),
@@ -49,3 +67,76 @@ export const verification = pgTable('verification', {
 	createdAt: timestamp('created_at'),
 	updatedAt: timestamp('updated_at')
 });
+
+export type Verification = InferSelectModel<typeof verification>;
+
+// ---
+
+export const org = pgTable('org', {
+	id: serial('id').primaryKey(),
+	name: varchar('name', { length: 25 }).notNull().unique(),
+	description: text('description'),
+	ownerId: text('user_id')
+		.notNull()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
+export type Org = InferSelectModel<typeof org>;
+
+export const scope = pgTable(
+	'scope',
+	{
+		id: serial('id').primaryKey(),
+		name: varchar('name', { length: 25 }).notNull().unique(),
+		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`
+		];
+	}
+);
+
+export type Scope = InferSelectModel<typeof scope>;
+
+export const registry = pgTable('registry', {
+	id: serial('id').primaryKey(),
+	name: varchar('name').notNull().unique(),
+	private: boolean().notNull().default(false),
+	scope_id: integer('scope_id')
+		.notNull()
+		.references(() => scope.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
+export type Registry = InferSelectModel<typeof registry>;
+
+export const version = pgTable(
+	'version',
+	{
+		id: serial('id').primaryKey(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		tag: text('tag').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => [unique().on(table.registryId, table.tag)]
+);
+
+export type Version = InferSelectModel<typeof version>;
+
+export const file = pgTable('file', {
+	id: serial('id').primaryKey(),
+	// We only need version.id since it's aware of the registry.id
+	versionId: integer('version_id')
+		.notNull()
+		.references(() => version.id, { onDelete: 'cascade' }),
+	content: text('content').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
+export type File = InferSelectModel<typeof file>;

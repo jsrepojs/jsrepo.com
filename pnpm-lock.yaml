@@ -63,6 +63,9 @@ importers:
       drizzle-orm:
         specifier: ^0.42.0
         version: 0.42.0(kysely@0.27.6)(postgres@3.4.5)
+      drizzle-valibot:
+        specifier: ^0.4.1
+        version: 0.4.1(drizzle-orm@0.42.0(kysely@0.27.6)(postgres@3.4.5))(valibot@1.0.0(typescript@5.8.3))
       eslint:
         specifier: ^9.18.0
         version: 9.24.0(jiti@1.21.7)
@@ -1385,6 +1388,12 @@ packages:
         optional: true
       sqlite3:
         optional: true
+
+  drizzle-valibot@0.4.1:
+    resolution: {integrity: sha512-6+EqybMKxLuQOMOXqeGZngrlbyjg4sboFGRk02ax0gn9i1/9BPK3JYT1J7aQNaelle6NGSd9Hz9fzTOOzMU6nA==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      valibot: '>=1.0.0-beta.7'
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -3554,6 +3563,11 @@ snapshots:
     optionalDependencies:
       kysely: 0.27.6
       postgres: 3.4.5
+
+  drizzle-valibot@0.4.1(drizzle-orm@0.42.0(kysely@0.27.6)(postgres@3.4.5))(valibot@1.0.0(typescript@5.8.3)):
+    dependencies:
+      drizzle-orm: 0.42.0(kysely@0.27.6)(postgres@3.4.5)
+      valibot: 1.0.0(typescript@5.8.3)
 
   eastasianwidth@0.2.0: {}
 
