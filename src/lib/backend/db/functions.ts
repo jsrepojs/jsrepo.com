@@ -115,7 +115,7 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; version: string; tag: string | null; },
+	record: { registryId: number; version: string; tag: string | null },
 	oldTaggedVersionId?: number
 ): Promise<number | null> {
 	if (record.tag && oldTaggedVersionId) {
@@ -161,6 +161,30 @@ export async function createFiles(
 	return result.map((v) => v.id);
 }
 
-export async function getFile(scope: string, name: string, version: string, fileName: string) {
+export async function getFileContents(
+	scopeName: string,
+	registryName: string,
+	version: string,
+	fileName: string
+): Promise<string | null> {
 	const isTag = !semver.valid(version);
+
+	const result = await db
+		.select({ content: tables.file.content })
+		.from(tables.scope)
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
+		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+				eq(tables.registry.name, registryName),
+				eq(isTag ? tables.version.tag : tables.version.version, version),
+				eq(tables.file.name, fileName)
+			)
+		);
+
+	if (result.length === 0) return null;
+
+	return result[0].content;
 }
