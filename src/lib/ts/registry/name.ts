@@ -1,13 +1,13 @@
-/** Regex for scopes and registry names. 
- * Names that don't match this regex will be rejected. 
- * 
+/** Regex for scopes and registry names.
+ * Names that don't match this regex will be rejected.
+ *
  * ### Valid
  * ```txt
  * console
  * console0
  * console-0
  * ```
- * 
+ *
  * ### Invalid
  * ```txt
  * Console

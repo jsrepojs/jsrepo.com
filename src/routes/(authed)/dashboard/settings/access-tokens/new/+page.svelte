@@ -12,7 +12,7 @@
 
 	let key = $state<string>();
 
-    $inspect($message)
+	$inspect($message);
 </script>
 
 <form method="POST" use:enhance class="flex flex-col gap-2">

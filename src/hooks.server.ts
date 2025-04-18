@@ -8,12 +8,12 @@ export async function handle({ event, resolve }) {
 }
 
 export async function handleError({ error, status }) {
-    if (status !== 404) {
-        if (dev) {
-            console.error(error);
-        }
+	if (status !== 404) {
+		if (dev) {
+			console.error(error);
+		}
 
-        postHogClient.captureException(error);
-        await postHogClient.shutdown();
-    }
-};
+		postHogClient.captureException(error);
+		await postHogClient.shutdown();
+	}
+}

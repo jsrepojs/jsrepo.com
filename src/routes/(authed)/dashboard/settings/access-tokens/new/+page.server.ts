@@ -19,9 +19,9 @@ export const actions = {
 	default: async ({ request }) => {
 		const session = await auth.api.getSession({
 			headers: request.headers
-		})
+		});
 
-		if (session === null) return fail(401)
+		if (session === null) return fail(401);
 
 		const form = await superValidate(request, valibot(schema));
 
@@ -32,7 +32,7 @@ export const actions = {
 		const apiKey = await getApiKey(form.data.name);
 
 		if (apiKey !== null) {
-			return fail(400, { form, message: `api key with name ${form.data.name} already exists!` })
+			return fail(400, { form, message: `api key with name ${form.data.name} already exists!` });
 		}
 
 		const result = await auth.api.createApiKey({
@@ -41,11 +41,11 @@ export const actions = {
 				permissions: {
 					packages: ['publish']
 				},
-				userId: session.user.id,
+				userId: session.user.id
 			},
 			headers: request.headers
 		});
-		
-		return message(form, result)
+
+		return message(form, result);
 	}
 };
