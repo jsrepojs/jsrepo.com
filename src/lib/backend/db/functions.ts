@@ -3,6 +3,7 @@ import { db } from '.';
 import * as tables from './schema';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
+import semver from 'semver';
 
 export async function canPublishToScope(userId: string, scope: tables.Scope): Promise<boolean> {
 	if (scope.userId === userId) return true;
@@ -64,7 +65,7 @@ export async function getRegistry(
 			createdAt: tables.registry.createdAt
 		})
 		.from(tables.scope)
-		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)));
 
 	if (registries.length === 0) return null;
@@ -72,17 +73,26 @@ export async function getRegistry(
 	return registries[0];
 }
 
-export async function getTags(scopeName: string, registryName: string): Promise<string[] | null> {
+export async function getVersions(
+	scopeName: string,
+	registryName: string
+): Promise<tables.Version[] | null> {
 	const versions = await db
-		.select({ version: tables.version.version })
+		.select({
+			id: tables.version.id,
+			version: tables.version.version,
+			tag: tables.version.tag,
+			registryId: tables.version.registryId,
+			createdAt: tables.version.createdAt
+		})
 		.from(tables.scope)
-		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.id))
-		.innerJoin(tables.version, eq(tables.registry.id, tables.version.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)));
 
 	if (versions.length === 0) return null;
 
-	return versions.map((v) => v.version);
+	return versions;
 }
 
 export async function createRegistry(
@@ -105,8 +115,17 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; version: string }
+	record: { registryId: number; version: string; tag: string | null; },
+	oldTaggedVersionId?: number
 ): Promise<number | null> {
+	if (record.tag && oldTaggedVersionId) {
+		// remove the tag from the old version
+		await tx
+			.update(tables.version)
+			.set({ tag: null })
+			.where(eq(tables.version.id, oldTaggedVersionId));
+	}
+
 	const result = await tx
 		.insert(tables.version)
 		.values(record)
@@ -142,8 +161,6 @@ export async function createFiles(
 	return result.map((v) => v.id);
 }
 
-// export async function getFile(scope: string, name: string, version: string, fileName: string) {
-// 	if (version === "latest") {
-		
-// 	}
-// }
+export async function getFile(scope: string, name: string, version: string, fileName: string) {
+	const isTag = !semver.valid(version);
+}

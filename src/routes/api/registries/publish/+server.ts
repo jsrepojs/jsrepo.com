@@ -6,7 +6,7 @@ import {
 	createVersion,
 	getRegistry,
 	getScope,
-	getTags
+	getVersions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { postHogClient } from '$lib/ts/posthog.js';
@@ -16,7 +16,9 @@ import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
 import assert from 'node:assert';
 import * as v from 'valibot';
-import semver from 'semver'
+import semver from 'semver';
+import { getPreReleaseTag } from '$lib/ts/versioning.js';
+import type { Version } from '$lib/backend/db/schema.js';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -37,7 +39,10 @@ export async function POST({ request }) {
 	if (!verifyResult.valid) {
 		let status = 401;
 
-		if (verifyResult.error?.code === "RATE_LIMITED" || verifyResult.error?.code === "USAGE_EXCEEDED") {
+		if (
+			verifyResult.error?.code === 'RATE_LIMITED' ||
+			verifyResult.error?.code === 'USAGE_EXCEEDED'
+		) {
 			status = 429;
 		}
 
@@ -73,6 +78,7 @@ export async function POST({ request }) {
 		error(400, `error parsing manifest ${err}`);
 	}
 
+	// eslint-disable-next-line prefer-const
 	let [scopeName, registryName] = manifest.name.split('/');
 
 	if (!scopeName.startsWith('@')) {
@@ -87,7 +93,7 @@ export async function POST({ request }) {
 		error(400, `invalid version ${manifest.version} is not semver compatible`);
 	}
 
-	// const versionTag = 
+	let releaseTag = getPreReleaseTag(manifest.version);
 
 	// trim @ character
 	scopeName = scopeName.slice(1);
@@ -109,6 +115,9 @@ export async function POST({ request }) {
 	let registryId = (await getRegistry(scopeName, registryName))?.id ?? null;
 
 	const result = await db.transaction(async (tx) => {
+		let oldTaggedVersion: Version | null = null;
+		let latestVersion: Version | null = null;
+
 		if (registryId === null) {
 			// create registry
 
@@ -123,18 +132,48 @@ export async function POST({ request }) {
 			}
 		} else {
 			// if the registry exists we need to check and see if the same tag has already been published
-			const tags = await getTags(scopeName, registryName);
+			const versions = await getVersions(scopeName, registryName);
 
-			// version has already been published
-			// this shouldn't be null unless we fail in the middle of a transaction
-			if (tags?.find((t) => t === manifest.version)) {
-				error(400, `cannot publish over an existing version ${manifest.version}`);
+			let isLatest = releaseTag === null;
+			if (versions) {
+				for (const version of versions) {
+					if (version.tag === releaseTag) {
+						// we only add the prerelease tag to the latest prerelease
+						if (semver.gt(version.version, manifest.version)) {
+							releaseTag = null;
+						}
+
+						oldTaggedVersion = version;
+					}
+
+					if (version.tag === 'latest') {
+						latestVersion = version;
+					}
+
+					if (version.version === manifest.version) {
+						error(400, `cannot publish over an existing version ${manifest.version}`);
+					}
+
+					// if there is a version higher than the current version don't apply latest tag
+					if (semver.gt(version.version, manifest.version)) {
+						isLatest = false;
+					}
+				}
+			}
+
+			if (isLatest) {
+				releaseTag = 'latest';
+				oldTaggedVersion = latestVersion;
 			}
 		}
 
 		// create version
 
-		const versionId = await createVersion(tx, { registryId, version: manifest.version });
+		const versionId = await createVersion(
+			tx,
+			{ registryId, version: manifest.version, tag: releaseTag },
+			oldTaggedVersion?.id
+		);
 
 		if (versionId === null) {
 			return tx.rollback();
