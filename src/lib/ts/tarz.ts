@@ -24,7 +24,9 @@ export async function extract(buffer: Buffer): Promise<Result<File[], string>> {
 				});
 
 				stream.on('end', () => {
-					files.push({ name: header.name, content });
+					if (header.type === 'file') {
+						files.push({ name: header.name, content });
+					}
 
 					next();
 				});

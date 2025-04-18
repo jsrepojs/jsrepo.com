@@ -7,10 +7,12 @@ import {
 	varchar,
 	serial,
 	unique,
-	integer
+	integer,
+	pgEnum,
+	index
 } from 'drizzle-orm/pg-core';
 
-/* Auth Schema */
+// Auth Schema
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -70,6 +72,34 @@ export const verification = pgTable('verification', {
 
 export type Verification = InferSelectModel<typeof verification>;
 
+export const apikey = pgTable('apikey', {
+	id: text('id').primaryKey(),
+	name: text('name'),
+	start: text('start'),
+	prefix: text('prefix'),
+	key: text('key').notNull(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	refillInterval: integer('refill_interval'),
+	refillAmount: integer('refill_amount'),
+	lastRefillAt: timestamp('last_refill_at'),
+	enabled: boolean('enabled'),
+	rateLimitEnabled: boolean('rate_limit_enabled'),
+	rateLimitTimeWindow: integer('rate_limit_time_window'),
+	rateLimitMax: integer('rate_limit_max'),
+	requestCount: integer('request_count'),
+	remaining: integer('remaining'),
+	lastRequest: timestamp('last_request'),
+	expiresAt: timestamp('expires_at'),
+	createdAt: timestamp('created_at').notNull(),
+	updatedAt: timestamp('updated_at').notNull(),
+	permissions: text('permissions'),
+	metadata: text('metadata')
+});
+
+export type APIKey = InferSelectModel<typeof apikey>;
+
 // ---
 
 export const org = pgTable('org', {
@@ -84,6 +114,22 @@ export const org = pgTable('org', {
 
 export type Org = InferSelectModel<typeof org>;
 
+export const org_member_role = pgEnum('role', ['member', 'publisher']);
+
+export const org_member = pgTable('org_members', {
+	id: serial('id').primaryKey(),
+	orgId: integer('org_id')
+		.notNull()
+		.references(() => org.id, { onDelete: 'cascade' }),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	role: org_member_role().notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
+export type OrgMember = InferSelectModel<typeof org_member>;
+
 export const scope = pgTable(
 	'scope',
 	{
@@ -95,22 +141,29 @@ export const scope = pgTable(
 	},
 	(table) => {
 		return [
-			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`
+			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
+			index('scope_name_idx').on(table.name)
 		];
 	}
 );
 
 export type Scope = InferSelectModel<typeof scope>;
 
-export const registry = pgTable('registry', {
-	id: serial('id').primaryKey(),
-	name: varchar('name').notNull().unique(),
-	private: boolean().notNull().default(false),
-	scope_id: integer('scope_id')
-		.notNull()
-		.references(() => scope.id, { onDelete: 'cascade' }),
-	createdAt: timestamp('created_at').notNull().defaultNow()
-});
+export const registry = pgTable(
+	'registry',
+	{
+		id: serial('id').primaryKey(),
+		name: varchar('name').notNull().unique(),
+		private: boolean().notNull().default(false),
+		scopeId: integer('scope_id')
+			.notNull()
+			.references(() => scope.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [index('registry_name_idx').on(table.name)];
+	}
+);
 
 export type Registry = InferSelectModel<typeof registry>;
 
@@ -124,19 +177,27 @@ export const version = pgTable(
 		tag: text('tag').notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
-	(table) => [unique().on(table.registryId, table.tag)]
+	(table) => {
+		return [unique().on(table.registryId, table.tag)];
+	}
 );
 
 export type Version = InferSelectModel<typeof version>;
 
-export const file = pgTable('file', {
-	id: serial('id').primaryKey(),
-	// We only need version.id since it's aware of the registry.id
-	versionId: integer('version_id')
-		.notNull()
-		.references(() => version.id, { onDelete: 'cascade' }),
-	content: text('content').notNull(),
-	createdAt: timestamp('created_at').notNull().defaultNow()
-});
+export const file = pgTable(
+	'file',
+	{
+		id: serial('id').primaryKey(),
+		name: text('name').notNull(),
+		versionId: integer('version_id')
+			.notNull()
+			.references(() => version.id, { onDelete: 'cascade' }),
+		content: text('content').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [index('file_name_idx').on(table.name)];
+	}
+);
 
 export type File = InferSelectModel<typeof file>;
