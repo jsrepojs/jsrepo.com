@@ -74,7 +74,7 @@ export async function getRegistry(
 
 export async function getTags(scopeName: string, registryName: string): Promise<string[] | null> {
 	const versions = await db
-		.select({ tag: tables.version.tag })
+		.select({ version: tables.version.version })
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.id))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.id))
@@ -82,7 +82,7 @@ export async function getTags(scopeName: string, registryName: string): Promise<
 
 	if (versions.length === 0) return null;
 
-	return versions.map((v) => v.tag);
+	return versions.map((v) => v.version);
 }
 
 export async function createRegistry(
@@ -105,7 +105,7 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; tag: string }
+	record: { registryId: number; version: string }
 ): Promise<number | null> {
 	const result = await tx
 		.insert(tables.version)
@@ -141,3 +141,9 @@ export async function createFiles(
 
 	return result.map((v) => v.id);
 }
+
+// export async function getFile(scope: string, name: string, version: string, fileName: string) {
+// 	if (version === "latest") {
+		
+// 	}
+// }

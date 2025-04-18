@@ -174,11 +174,12 @@ export const version = pgTable(
 		registryId: integer('registry_id')
 			.notNull()
 			.references(() => registry.id, { onDelete: 'cascade' }),
-		tag: text('tag').notNull(),
+		version: text('version').notNull(),
+		tag: text('tag'),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
-		return [unique().on(table.registryId, table.tag)];
+		return [unique().on(table.registryId, table.version), unique().on(table.registryId, table.tag)];
 	}
 );
 

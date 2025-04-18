@@ -15,6 +15,20 @@
       "when": 1744984530419,
       "tag": "0001_spicy_nightmare",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744989587296,
+      "tag": "0002_sloppy_union_jack",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744989741779,
+      "tag": "0003_tough_king_cobra",
+      "breakpoints": true
     }
   ]
 }

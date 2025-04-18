@@ -16,6 +16,7 @@ import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
 import assert from 'node:assert';
 import * as v from 'valibot';
+import semver from 'semver'
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -75,12 +76,18 @@ export async function POST({ request }) {
 	let [scopeName, registryName] = manifest.name.split('/');
 
 	if (!scopeName.startsWith('@')) {
-		error(400, 'invalid scope. scopes must start with `@`');
+		error(400, `invalid scope '${scopeName}' scopes must start with '@'`);
 	}
 
 	if (!registryName.match(NAME_REGEX)) {
 		error(400, `invalid name for registry ${registryName}`);
 	}
+
+	if (!semver.valid(manifest.version)) {
+		error(400, `invalid version ${manifest.version} is not semver compatible`);
+	}
+
+	// const versionTag = 
 
 	// trim @ character
 	scopeName = scopeName.slice(1);
@@ -127,7 +134,7 @@ export async function POST({ request }) {
 
 		// create version
 
-		const versionId = await createVersion(tx, { registryId, tag: manifest.version });
+		const versionId = await createVersion(tx, { registryId, version: manifest.version });
 
 		if (versionId === null) {
 			return tx.rollback();
