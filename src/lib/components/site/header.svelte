@@ -2,17 +2,15 @@
 	import { ThemeSelector } from '$lib/components/ui/theme-selector';
 	import NavMenu from './nav-menu.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Menu, X } from '@lucide/svelte';
+	import { ArrowUpRight, Menu, X } from '@lucide/svelte';
 	import { Dialog } from 'bits-ui';
 	import { active } from '$lib/actions/active.svelte';
-	import { authClient } from '$lib/auth/client';
+	import HeaderOptions from '$lib/auth/components/header-options.svelte';
 
 	let menuOpen = $state(false);
-
-	const sessionPromise = authClient.getSession();
 </script>
 
-<header class="sticky left-0 top-0 z-10 flex h-16 w-full items-center border-b bg-background">
+<header class="sticky left-0 top-0 z-10 flex h-[--header-height] w-full items-center border-b bg-background">
 	<div class="container flex items-center justify-between">
 		<div class="flex place-items-center gap-6">
 			<a
@@ -28,19 +26,14 @@
 					use:active={{ activeForSubdirectories: true }}
 				>
 					Docs
+					<ArrowUpRight class="size-4 inline"/>
 				</a>
 			</div>
 		</div>
 
 		<div class="flex place-items-center gap-2">
 			<ThemeSelector class="hidden size-9 md:flex" />
-			{#await sessionPromise then session}
-				{#if session.data}
-					<Button href="/dashboard" variant="outline">Dashboard</Button>
-				{:else}
-					<Button href="/login">Sign In</Button>
-				{/if}
-			{/await}
+			<HeaderOptions/>
 			<Dialog.Root bind:open={menuOpen}>
 				<Dialog.Trigger>
 					{#snippet child({ props })}

@@ -2,13 +2,11 @@ import { auth } from '$lib/auth.js';
 import { message, superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { getApiKey } from '$lib/backend/db/functions';
 
-export async function load({ url }) {
-	const name = url.searchParams.get('name');
-
-	const form = await superValidate({ name: name ?? undefined }, valibot(schema));
+export async function load() {
+	const form = await superValidate(valibot(schema));
 
 	return {
 		form
@@ -29,10 +27,10 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const apiKey = await getApiKey(form.data.name);
+		const apiKey = await getApiKey(session.user.id, form.data.name);
 
 		if (apiKey !== null) {
-			return fail(400, { form, message: `api key with name ${form.data.name} already exists!` });
+			return error(400, { message: `An access token with the name ${form.data.name} already exists!` });
 		}
 
 		const result = await auth.api.createApiKey({

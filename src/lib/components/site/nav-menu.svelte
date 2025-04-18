@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { cn } from '$lib/utils/utils';
 	import { Button } from '$lib/components/ui/button';
 	import { ThemeSelector } from '$lib/components/ui/theme-selector';
@@ -38,9 +37,7 @@
 			<Nav.Group title="General">
 				<Nav.List>
 					<Nav.Link href="/" title="Home" onclick={closeMenu} />
-					<Nav.Link href="/docs" title="Docs" onclick={closeMenu} />
-					<Nav.Link href="/registries" title="Registries" onclick={closeMenu} />
-					<Nav.Link href="/demos" title="Demos" onclick={closeMenu} />
+					<Nav.Link href="https://jsrepo.dev" title="Docs" onclick={closeMenu} />
 				</Nav.List>
 			</Nav.Group>
 		</div>

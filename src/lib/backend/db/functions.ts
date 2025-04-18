@@ -136,8 +136,11 @@ export async function createVersion(
 	return result[0].id;
 }
 
-export async function getApiKey(name: string): Promise<tables.APIKey | null> {
-	const apiKeys = await db.select().from(tables.apikey).where(eq(tables.apikey.name, name));
+export async function getApiKey(userId: string, name: string): Promise<tables.APIKey | null> {
+	const apiKeys = await db
+		.select()
+		.from(tables.apikey)
+		.where(and(eq(tables.apikey.name, name), eq(tables.apikey.userId, userId)));
 
 	if (apiKeys.length === 0) return null;
 
@@ -187,4 +190,19 @@ export async function getFileContents(
 	if (result.length === 0) return null;
 
 	return result[0].content;
+}
+
+export async function listApiKeys(userId: string) {
+	const keys = await db
+		.select({
+			id: tables.apikey.id,
+			name: tables.apikey.name,
+			expiresAt: tables.apikey.expiresAt,
+			createdAt: tables.apikey.createdAt
+		})
+		.from(tables.apikey)
+		.where(eq(tables.apikey.userId, userId))
+		.orderBy(tables.apikey.createdAt);
+
+	return keys ?? [];
 }
