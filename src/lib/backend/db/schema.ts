@@ -138,7 +138,8 @@ export const scope = pgTable(
 		name: varchar('name', { length: 25 }).notNull().unique(),
 		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		claimedAt: timestamp('claimed_at').defaultNow()
 	},
 	(table) => {
 		return [

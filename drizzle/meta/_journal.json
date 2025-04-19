@@ -36,6 +36,20 @@
       "when": 1745006718517,
       "tag": "0004_curious_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1745060222418,
+      "tag": "0005_powerful_swarm",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1745060252568,
+      "tag": "0006_keen_iron_lad",
+      "breakpoints": true
     }
   ]
 }

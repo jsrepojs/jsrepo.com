@@ -1,4 +1,4 @@
-import { and, eq, type TablesRelationalConfig } from 'drizzle-orm';
+import { and, eq, or, type TablesRelationalConfig } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
@@ -205,4 +205,21 @@ export async function listApiKeys(userId: string) {
 		.orderBy(tables.apikey.createdAt);
 
 	return keys ?? [];
+}
+
+export async function listMyScopes(userId: string) {
+	const [userScopes, orgScopes] = await Promise.all([
+		db.select().from(tables.scope).where(eq(tables.scope.userId, userId)),
+		db
+			.select()
+			.from(tables.org)
+			.leftJoin(tables.org_member, eq(tables.org.id, tables.org_member.orgId))
+			.innerJoin(tables.scope, eq(tables.org.id, tables.scope.orgId))
+			.where(or(eq(tables.org.ownerId, userId), eq(tables.org_member.userId, userId)))
+	]);
+
+	return {
+		userScopes,
+		orgScopes
+	};
 }

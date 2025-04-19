@@ -1,0 +1,1 @@
+ALTER TABLE "scope" ADD COLUMN "claimed_at" timestamp DEFAULT now() NOT NULL;

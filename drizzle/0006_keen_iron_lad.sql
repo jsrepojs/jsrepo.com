@@ -1,0 +1,1 @@
+ALTER TABLE "scope" ALTER COLUMN "claimed_at" DROP NOT NULL;
