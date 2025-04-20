@@ -103,31 +103,46 @@ export type APIKey = InferSelectModel<typeof apikey>;
 
 // ---
 
-export const org = pgTable('org', {
-	id: serial('id').primaryKey(),
-	name: varchar('name', { length: 20 }).notNull().unique(),
-	description: text('description'),
-	ownerId: text('user_id')
-		.notNull()
-		.references(() => user.id, { onDelete: 'cascade' }),
-	createdAt: timestamp('created_at').notNull().defaultNow()
-});
+export const org = pgTable(
+	'org',
+	{
+		id: serial('id').primaryKey(),
+		name: varchar('name', { length: 20 }).notNull().unique(),
+		description: text('description'),
+		ownerId: text('owner_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [index('org_name_idx').on(table.name), index('org_owner_id_idx').on(table.ownerId)];
+	}
+);
 
 export type Org = InferSelectModel<typeof org>;
 
 export const org_member_role = pgEnum('role', ['member', 'publisher']);
 
-export const org_member = pgTable('org_members', {
-	id: serial('id').primaryKey(),
-	orgId: integer('org_id')
-		.notNull()
-		.references(() => org.id, { onDelete: 'cascade' }),
-	userId: text('user_id')
-		.notNull()
-		.references(() => user.id, { onDelete: 'cascade' }),
-	role: org_member_role().notNull(),
-	createdAt: timestamp('created_at').notNull().defaultNow()
-});
+export const org_member = pgTable(
+	'org_members',
+	{
+		id: serial('id').primaryKey(),
+		orgId: integer('org_id')
+			.notNull()
+			.references(() => org.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		role: org_member_role().notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			index('org_member_org_id_idx').on(table.orgId),
+			index('org_member_user_id_idx').on(table.userId)
+		];
+	}
+);
 
 export type OrgMember = InferSelectModel<typeof org_member>;
 
@@ -144,7 +159,9 @@ export const scope = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
-			index('scope_name_idx').on(table.name)
+			index('scope_name_idx').on(table.name),
+			index('scope_org_id_idx').on(table.orgId),
+			index('scope_user_id_idx').on(table.userId)
 		];
 	}
 );
@@ -163,7 +180,10 @@ export const registry = pgTable(
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
-		return [index('registry_name_idx').on(table.name)];
+		return [
+			index('registry_name_idx').on(table.name),
+			index('registry_private_idx').on(table.private)
+		];
 	}
 );
 
@@ -178,11 +198,19 @@ export const version = pgTable(
 			.references(() => registry.id, { onDelete: 'cascade' }),
 		version: text('version').notNull(),
 		tag: text('tag'),
-		releasedById: text('released_by_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+		releasedById: text('released_by_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
-		return [unique().on(table.registryId, table.version), unique().on(table.registryId, table.tag)];
+		return [
+			unique().on(table.registryId, table.version),
+			unique().on(table.registryId, table.tag),
+			index('version_registry_id_idx').on(table.registryId),
+			index('version_version_idx').on(table.version),
+			index('version_tag_idx').on(table.tag)
+		];
 	}
 );
 
@@ -200,7 +228,10 @@ export const file = pgTable(
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
-		return [index('file_name_idx').on(table.name)];
+		return [
+			index('file_name_idx').on(table.name),
+			index('file_version_id_idx').on(table.versionId)
+		];
 	}
 );
 

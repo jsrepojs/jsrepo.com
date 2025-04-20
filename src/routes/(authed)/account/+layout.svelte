@@ -9,7 +9,7 @@
 	const joined = $derived(toRelative(user.createdAt));
 </script>
 
-<div class="container flex h-svh flex-col gap-4 pt-10">
+<div class="flex h-svh flex-col gap-4 pt-10">
 	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
 		<div
 			class="col-start-1 flex flex-row place-items-center justify-start gap-2 md:flex-col md:justify-center"

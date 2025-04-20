@@ -1,4 +1,4 @@
-import { and, eq, or, type TablesRelationalConfig } from 'drizzle-orm';
+import { and, eq, isNotNull, or, type TablesRelationalConfig } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
@@ -27,6 +27,8 @@ export async function getScope(scope: string): Promise<tables.Scope | null> {
 
 	return scopes[0] ?? null;
 }
+
+// export async function getScopePackages(userId: string, scope: string) {}
 
 export async function createScope(record: {
 	name: string;
@@ -176,6 +178,7 @@ export async function createFiles(
 }
 
 export async function getFileContents(
+	userId: string | null,
 	scopeName: string,
 	registryName: string,
 	version: string,
@@ -186,11 +189,19 @@ export async function getFileContents(
 	const result = await db
 		.select({ content: tables.file.content })
 		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.where(
 			and(
+				or(
+					eq(tables.registry.private, false),
+					and(isNotNull(tables.scope.userId), eq(tables.scope.userId, userId ?? '')),
+					eq(tables.org.ownerId, userId ?? ''),
+					eq(tables.org_member.userId, userId ?? '')
+				),
 				eq(tables.scope.name, scopeName),
 				eq(tables.registry.name, registryName),
 				eq(isTag ? tables.version.tag : tables.version.version, version),

@@ -1,7 +1,8 @@
+import { auth } from '$lib/auth.js';
 import { getFileContents } from '$lib/backend/db/functions.js';
 import { error, text } from '@sveltejs/kit';
 
-export async function GET({ params }) {
+export async function GET({ params, request }) {
 	// eslint-disable-next-line prefer-const
 	let { scope, name, version, fileName } = params;
 
@@ -11,7 +12,9 @@ export async function GET({ params }) {
 
 	scope = scope.slice(1);
 
-	const contents = await getFileContents(scope, name, version, fileName);
+	const session = await auth.api.getSession({ headers: request.headers });
+
+	const contents = await getFileContents(session?.user.id ?? null, scope, name, version, fileName);
 
 	if (contents === null) {
 		error(404);

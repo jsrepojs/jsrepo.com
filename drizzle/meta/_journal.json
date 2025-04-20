@@ -71,6 +71,13 @@
       "when": 1745148501787,
       "tag": "0009_purple_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745154049936,
+      "tag": "0010_lying_thunderball",
+      "breakpoints": true
     }
   ]
 }
