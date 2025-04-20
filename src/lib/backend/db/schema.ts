@@ -22,7 +22,8 @@ export const user = pgTable('user', {
 	image: text('image'),
 	createdAt: timestamp('created_at').notNull(),
 	updatedAt: timestamp('updated_at').notNull(),
-	stripeCustomerId: text('stripe_customer_id')
+	polarCustomerId: text('polar_customer_id'),
+	polarSubscriptionPlanId: text('polar_subscription_plan_id'),
 });
 
 export type User = InferSelectModel<typeof user>;

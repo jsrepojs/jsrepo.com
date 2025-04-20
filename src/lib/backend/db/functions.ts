@@ -28,6 +28,12 @@ export async function getScope(scope: string): Promise<tables.Scope | null> {
 	return scopes[0] ?? null;
 }
 
+export async function getUser(userId: string): Promise<tables.User | null> {
+	const user = await db.select().from(tables.user).where(eq(tables.user.id, userId));
+
+	return user[0] ?? null;
+}
+
 // export async function getScopePackages(userId: string, scope: string) {}
 
 export async function createScope(record: {

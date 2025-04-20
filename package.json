@@ -21,6 +21,7 @@
 		"@fontsource-variable/jetbrains-mono": "^5.2.5",
 		"@fontsource-variable/oxanium": "^5.2.5",
 		"@lucide/svelte": "^0.488.0",
+		"@polar-sh/sdk": "^0.32.11",
 		"@polar-sh/sveltekit": "^0.4.0",
 		"@shikijs/langs": "^3.2.1",
 		"@shikijs/themes": "^3.2.1",

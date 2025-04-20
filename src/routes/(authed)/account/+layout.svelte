@@ -2,6 +2,8 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 	import { toRelative } from '$lib/ts/dates.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { PRO_PRODUCT_ID } from '$lib/ts/polar/client.js';
 
 	let { data, children } = $props();
 
@@ -24,6 +26,11 @@
 				>
 				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
 			</div>
+			{#if data.polarProductId === null}
+				<Button href="/api/checkout?products={PRO_PRODUCT_ID}&customerId={data.polarCustomerId}">
+					Get Pro
+				</Button>
+			{/if}
 		</div>
 		<div class="w-full md:col-start-2">
 			{@render children()}
