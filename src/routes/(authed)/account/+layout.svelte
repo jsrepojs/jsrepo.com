@@ -10,7 +10,7 @@
 </script>
 
 <div class="container flex h-svh flex-col gap-4 pt-10">
-	<div class="grid place-items-start grid-cols-1 gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
+	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
 		<div
 			class="col-start-1 flex flex-row place-items-center justify-start gap-2 md:flex-col md:justify-center"
 		>
@@ -19,11 +19,13 @@
 				<Avatar.Fallback>{getInitials(user.name)}</Avatar.Fallback>
 			</Avatar.Root>
 			<div class="flex flex-col">
-				<span class="max-w-full text-start md:text-center truncate text-xl font-medium">{user.name}</span>
-				<span class="text-muted-foreground text-start md:text-center">Joined {joined}</span>
+				<span class="max-w-full truncate text-start text-xl font-medium md:text-center"
+					>{user.name}</span
+				>
+				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
 			</div>
 		</div>
-		<div class="md:col-start-2 w-full">
+		<div class="w-full md:col-start-2">
 			{@render children()}
 		</div>
 	</div>

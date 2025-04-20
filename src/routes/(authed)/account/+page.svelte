@@ -5,17 +5,17 @@
 </script>
 
 <svelte:head>
-    <title>Account - jsrepo</title>
+	<title>Account - jsrepo</title>
 </svelte:head>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 	{@render card({
 		title: 'Scopes',
 		description: 'Manage your scopes.',
 		href: '/account/scopes',
 		Icon: Telescope
 	})}
-    {@render card({
+	{@render card({
 		title: 'Access Tokens',
 		description: 'Manage your access tokens.',
 		href: '/account/access-tokens',

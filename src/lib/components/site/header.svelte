@@ -10,7 +10,9 @@
 	let menuOpen = $state(false);
 </script>
 
-<header class="sticky left-0 top-0 z-10 flex h-[--header-height] w-full items-center border-b bg-background">
+<header
+	class="sticky left-0 top-0 z-10 flex h-[--header-height] w-full items-center border-b bg-background"
+>
 	<div class="container flex items-center justify-between">
 		<div class="flex place-items-center gap-6">
 			<a
@@ -26,14 +28,14 @@
 					use:active={{ activeForSubdirectories: true }}
 				>
 					Docs
-					<ArrowUpRight class="size-4 inline"/>
+					<ArrowUpRight class="inline size-4" />
 				</a>
 			</div>
 		</div>
 
 		<div class="flex place-items-center gap-2">
 			<ThemeSelector class="hidden size-9 md:flex" />
-			<HeaderOptions/>
+			<HeaderOptions />
 			<Dialog.Root bind:open={menuOpen}>
 				<Dialog.Trigger>
 					{#snippet child({ props })}

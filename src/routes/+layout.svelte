@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Header from '$lib/components/site/header.svelte';
-	import { newTokenContext, UseString } from '$lib/context.svelte';
+	import { newTokenContext, UseReactive } from '$lib/context.svelte';
 	import '../app.css';
 	import '@fontsource-variable/oxanium';
 	import '@fontsource-variable/jetbrains-mono';
@@ -8,7 +8,7 @@
 
 	let { children } = $props();
 
-	newTokenContext.set(new UseString(null));
+	newTokenContext.set(new UseReactive(null));
 </script>
 
 <ModeWatcher />

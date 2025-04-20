@@ -1,19 +1,21 @@
-import { Context } from 'runed'
+import { Context } from 'runed';
 
-export class UseString {
-    #current = $state<string | null>(null)
+export class UseReactive<T> {
+	#current = $state<T>();
 
-    constructor(str: string | null) {
-        this.#current = str
-    }
+	constructor(str: T) {
+		this.#current = str;
+	}
 
-    set current(val) {
-        this.#current = val
-    }
+	set current(val) {
+		this.#current = val;
+	}
 
-    get current() {
-        return this.#current
-    }
+	get current() {
+		return this.#current;
+	}
 }
 
-export const newTokenContext = new Context<UseString>('new-token');
+export const newTokenContext = new Context<UseReactive<{ id: string; key: string } | null>>(
+	'new-token'
+);

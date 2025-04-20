@@ -105,7 +105,7 @@ export type APIKey = InferSelectModel<typeof apikey>;
 
 export const org = pgTable('org', {
 	id: serial('id').primaryKey(),
-	name: varchar('name', { length: 25 }).notNull().unique(),
+	name: varchar('name', { length: 20 }).notNull().unique(),
 	description: text('description'),
 	ownerId: text('user_id')
 		.notNull()
@@ -135,7 +135,7 @@ export const scope = pgTable(
 	'scope',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 25 }).notNull().unique(),
+		name: varchar('name', { length: 20 }).notNull().unique(),
 		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -155,7 +155,7 @@ export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name').notNull().unique(),
+		name: varchar('name', { length: 20 }).notNull().unique(),
 		private: boolean().notNull().default(false),
 		scopeId: integer('scope_id')
 			.notNull()
@@ -178,6 +178,7 @@ export const version = pgTable(
 			.references(() => registry.id, { onDelete: 'cascade' }),
 		version: text('version').notNull(),
 		tag: text('tag'),
+		releasedBy: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {

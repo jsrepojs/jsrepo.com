@@ -2,7 +2,6 @@
 	import { authClient } from '$lib/auth/client.js';
 	import * as Nav from '$lib/components/site/nav';
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
-	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { toRelative } from '$lib/ts/dates';
 	import { ChevronLeft, Plus, X } from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -24,7 +23,7 @@
 
 	const newKeyCtx = newTokenContext.get();
 
-	let newKey = $state.snapshot(newKeyCtx.current);
+	let newKey = $state($state.snapshot(newKeyCtx.current));
 
 	let deletingKey = $state(false);
 	let keyToDelete = $state<MinAPIKey>();
@@ -42,8 +41,11 @@
 			// fetch tokens
 			const keys = await authClient.apiKey.list();
 
-			if (keys.data) {
+			if (keys.data !== null) {
 				apiKeys = keys.data;
+				if (newKey?.id === keyToDelete.id) {
+					newKey = null;
+				}
 			}
 		}
 
@@ -78,7 +80,7 @@
 		</div>
 		<ul class="flex flex-col gap-2">
 			{#if newKey}
-				<Snippet text={newKey} variant="secondary" />
+				<Snippet text={newKey.key} variant="secondary" />
 			{/if}
 			{#each apiKeys as apiKey (apiKey.id)}
 				<li class="flex place-items-center justify-between rounded-lg border bg-card p-4">

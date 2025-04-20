@@ -31,7 +31,7 @@
 				<li
 					class="relative flex place-items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent"
 				>
-					<a href="/account/scopes/{scope.name}" class="text-lg font-medium">
+					<a href="/@{scope.name}" class="text-lg font-medium">
 						<span class="absolute inset-0"></span>
 						@{scope.name}
 					</a>
@@ -46,7 +46,7 @@
 				<li
 					class="relative flex place-items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent"
 				>
-					<a href="/account/scopes/{scope.scope.name}" class="text-lg font-medium">
+					<a href="/@{scope.scope.name}" class="text-lg font-medium">
 						<span class="absolute inset-0"></span>
 						@{scope.scope.name}
 					</a>

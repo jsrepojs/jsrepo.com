@@ -1,3 +1,3 @@
-import Meter from "./meter.svelte";
+import Meter from './meter.svelte';
 
-export { Meter }
+export { Meter };

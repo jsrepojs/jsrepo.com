@@ -18,7 +18,10 @@
 	const form = superForm(data.form, {
 		onResult: async ({ result }) => {
 			if (result.type === 'success') {
-				newKeyCtx.current = result.data?.form.message.key;
+				newKeyCtx.current = {
+					id: result.data?.form.message.id,
+					key: result.data?.form.message.key
+				};
 				await goto('/account/access-tokens');
 			}
 		},
@@ -30,6 +33,7 @@
 	const { enhance, submitting, form: formData } = form;
 
 	const hasName = $derived(apiKeys.has($formData.name));
+	const canSubmit = $derived(!hasName && $formData.name.length > 0);
 
 	onMount(async () => {
 		const keys = await authClient.apiKey.list();
@@ -70,7 +74,7 @@
 		<Form.Description>Name to identify the access token.</Form.Description>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button loading={$submitting}>Create</Form.Button>
+	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
 	{#if error}
 		<span class="text-sm text-destructive">{error}</span>
 	{/if}

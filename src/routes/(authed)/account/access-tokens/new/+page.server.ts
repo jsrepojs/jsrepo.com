@@ -30,7 +30,9 @@ export const actions = {
 		const apiKey = await getApiKey(session.user.id, form.data.name);
 
 		if (apiKey !== null) {
-			return error(400, { message: `An access token with the name ${form.data.name} already exists!` });
+			return error(400, {
+				message: `An access token with the name ${form.data.name} already exists!`
+			});
 		}
 
 		const result = await auth.api.createApiKey({
