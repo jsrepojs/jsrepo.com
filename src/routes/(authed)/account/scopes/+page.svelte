@@ -1,7 +1,8 @@
 <script lang="ts">
 	import * as Nav from '$lib/components/site/nav';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ChevronLeft } from '@lucide/svelte';
+	import { ChevronLeft, Plus } from '@lucide/svelte';
 
 	let { data } = $props();
 </script>
@@ -21,6 +22,11 @@
 	<div class="flex flex-col gap-2">
 		<div class="flex place-items-center justify-between">
 			<Nav.Title>Your Scopes</Nav.Title>
+			<Button href="/account/scopes/new">
+				<Plus /> New
+			</Button>
+		</div>
+		<div class="flex place-items-center justify-between">
 			<span class="text-sm text-muted-foreground">{data.scopes.userScopes.length} / 3</span>
 		</div>
 		<Meter min={0} max={3} value={data.scopes.userScopes.length} />
