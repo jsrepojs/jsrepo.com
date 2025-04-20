@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { ThemeSelector } from '$lib/components/ui/theme-selector';
 	import NavMenu from './nav-menu.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ArrowUpRight, Menu, X } from '@lucide/svelte';
@@ -34,7 +33,6 @@
 		</div>
 
 		<div class="flex place-items-center gap-2">
-			<ThemeSelector class="hidden size-9 md:flex" />
 			<HeaderOptions />
 			<Dialog.Root bind:open={menuOpen}>
 				<Dialog.Trigger>

@@ -28,6 +28,16 @@ export async function getScope(scope: string): Promise<tables.Scope | null> {
 	return scopes[0] ?? null;
 }
 
+export async function createScope(record: {
+	name: string;
+	orgId?: number | null;
+	userId?: string | null;
+}): Promise<number | null> {
+	const result = await db.insert(tables.scope).values(record).returning({ id: tables.scope.id });
+
+	return result[0]?.id ?? null;
+}
+
 export async function getOrgMemberIds(
 	orgId: number
 ): Promise<Map<string, tables.OrgMember['role']>> {
@@ -83,6 +93,7 @@ export async function getVersions(
 			version: tables.version.version,
 			tag: tables.version.tag,
 			registryId: tables.version.registryId,
+			releasedById: tables.version.releasedById,
 			createdAt: tables.version.createdAt
 		})
 		.from(tables.scope)
@@ -115,7 +126,7 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; version: string; tag: string | null, releasedById: string },
+	record: { registryId: number; version: string; tag: string | null; releasedById: string },
 	oldTaggedVersionId?: number
 ): Promise<number | null> {
 	if (record.tag && oldTaggedVersionId) {
