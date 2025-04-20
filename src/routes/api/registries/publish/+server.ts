@@ -171,7 +171,12 @@ export async function POST({ request }) {
 
 		const versionId = await createVersion(
 			tx,
-			{ registryId, version: manifest.version, tag: releaseTag },
+			{
+				registryId,
+				version: manifest.version,
+				tag: releaseTag,
+				releasedById: verifyResult.key?.userId ?? '' // we asserted this to be defined earlier
+			},
 			oldTaggedVersion?.id
 		);
 

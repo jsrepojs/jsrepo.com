@@ -1,0 +1,1 @@
+ALTER TABLE "version" ALTER COLUMN "released_by_id" SET NOT NULL;

@@ -178,7 +178,7 @@ export const version = pgTable(
 			.references(() => registry.id, { onDelete: 'cascade' }),
 		version: text('version').notNull(),
 		tag: text('tag'),
-		releasedBy: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		releasedById: text('released_by_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
