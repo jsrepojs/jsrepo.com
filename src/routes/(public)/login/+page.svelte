@@ -6,11 +6,15 @@
 	<title>Log in - jsrepo</title>
 </svelte:head>
 
-<div class="relative flex h-full justify-center">
-	<div class="mt-[25svh] flex w-full max-w-xs flex-col gap-4 sm:max-w-sm sm:gap-8">
-		<div class="flex flex-col">
-			<h1 class="text-center text-3xl font-bold sm:text-5xl">Log in to jsrepo</h1>
-		</div>
+<div class="flex flex-col place-items-center justify-center h-[calc(100svh-var(--header-height)]">
+	
+	<div class="max-w-sm w-full flex flex-col gap-4 mt-[25svh]">
+		<h1 class="font-mono font-bold text-5xl text-center">
+			jsrepo
+		</h1>
+		<span class="text-muted-foreground text-lg	 text-center">
+			Log in to start distributing your code.
+		</span>
 		<Auth.GitHubButton />
 	</div>
 </div>

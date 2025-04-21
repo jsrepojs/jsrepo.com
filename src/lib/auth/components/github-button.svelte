@@ -5,5 +5,5 @@
 </script>
 
 <Button onclick={() => signIn('github')}>
-	<Icons.GitHub />
+	<Icons.GitHub /> Continue with GitHub
 </Button>
