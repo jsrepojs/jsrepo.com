@@ -11,7 +11,7 @@
 <div class="flex flex-col place-items-center">
 	<div class="grid w-fit grid-cols-1 place-items-center gap-2 py-8 lg:grid-cols-3">
 		<div
-			class="lg:aspect-card flex max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-1"
+			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-1 lg:aspect-card"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Free</h4>
@@ -23,7 +23,7 @@
 			})}
 		</div>
 		<div
-			class="lg:aspect-card flex max-w-sm flex-col gap-4 rounded-xl border-2 border-primary p-6 lg:col-start-2"
+			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary p-6 lg:col-start-2 lg:aspect-card"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Pro</h4>
@@ -35,11 +35,11 @@
 			})}
 		</div>
 		<div
-			class="lg:aspect-card flex max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-3"
+			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-3 lg:aspect-card"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Team</h4>
-				<span class="text-center text-2xl font-medium"> $25 / month </span>
+				<span class="text-center text-2xl font-medium"> $25 / month* </span>
 			</div>
 			<Button href="/checkout?product={TEAM_PRODUCT_ID}">Get Stared</Button>
 			{@render feature_list({
@@ -51,6 +51,9 @@
 			})}
 		</div>
 	</div>
+	<span class="text-sm text-muted-foreground">
+		*As we are still getting started expect pricing to change.
+	</span>
 </div>
 
 {#snippet feature_list({ features }: { features: string[] })}

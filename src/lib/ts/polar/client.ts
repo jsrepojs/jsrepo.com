@@ -18,7 +18,7 @@ export function activeSubscription(
 ): Subscription | null {
 	if (productId === null) return null;
 
-	if (endsAt !== null && endsAt?.valueOf() < Date.now()) {
+	if (endsAt !== null && endsAt < new Date()) {
 		return null;
 	}
 
@@ -40,4 +40,11 @@ export function polarEnvironmentVariable<T>(production: T, sandbox: T): T {
 	if (environment === 'production') return production;
 
 	return sandbox;
+}
+
+export function checkUserSubscription(user: {
+	polarSubscriptionPlanId: string | null;
+	polarSubscriptionPlanEnd: Date | null;
+}): Subscription | null {
+	return activeSubscription(user.polarSubscriptionPlanId, user.polarSubscriptionPlanEnd);
 }

@@ -1,6 +1,7 @@
 import { auth } from '$lib/auth.js';
 import { redirectToLogin } from '$lib/auth/redirect.js';
 import { getUser } from '$lib/backend/db/functions.js';
+import { checkUserSubscription } from '$lib/ts/polar/client.js';
 import { polar } from '$lib/ts/polar/index.js';
 import { redirect } from '@sveltejs/kit';
 import assert from 'assert';
@@ -19,7 +20,7 @@ export async function GET({ url, request }) {
 
 	if (!productId) redirect(303, '/pricing');
 
-	if (user.polarSubscriptionPlanId !== null) {
+	if (checkUserSubscription(user) !== null) {
 		if (productId === user.polarSubscriptionPlanId) {
 			redirect(303, '/account');
 		}

@@ -46,7 +46,7 @@ export const POST = Webhooks({
 	},
 	onSubscriptionUpdated: async (payload) => {
 		// handle un-cancel
-		if (payload.data.status && !payload.data.cancelAtPeriodEnd) {
+		if (payload.data.status === 'active' && !payload.data.cancelAtPeriodEnd) {
 			const userId = payload.data.customer.externalId;
 
 			assert(

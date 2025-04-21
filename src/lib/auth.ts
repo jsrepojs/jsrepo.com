@@ -8,6 +8,7 @@ import { polar } from './ts/polar';
 import { getUser } from './backend/db/functions';
 import assert from 'assert';
 import { postHogClient } from './ts/posthog';
+import { eq } from 'drizzle-orm';
 
 export type Providers = 'github';
 
@@ -51,7 +52,10 @@ export const auth = betterAuth({
 								email: newSession.user.email
 							});
 
-							await db.update(schema.user).set({ polarCustomerId: result.id });
+							await db
+								.update(schema.user)
+								.set({ polarCustomerId: result.id })
+								.where(eq(schema.user.id, user.id));
 						} else {
 							// sync the current subscription with the database
 							// it should already by synced by the webhooks but this is a precautionary measure
@@ -65,7 +69,8 @@ export const auth = betterAuth({
 								if (subscription.productId === user.polarSubscriptionPlanId) {
 									await db
 										.update(schema.user)
-										.set({ polarSubscriptionPlanId: subscription.productId });
+										.set({ polarSubscriptionPlanId: subscription.productId })
+										.where(eq(schema.user.id, user.id));
 								}
 							} else if (
 								user.polarSubscriptionPlanId !== null ||
@@ -74,7 +79,8 @@ export const auth = betterAuth({
 								// remove the subscription plan id if the user isn't subscribed
 								await db
 									.update(schema.user)
-									.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null });
+									.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null })
+									.where(eq(schema.user.id, user.id));
 							}
 						}
 					} catch (err) {

@@ -26,14 +26,12 @@
 		href: '/account/access-tokens',
 		Icon: KeyRound
 	})}
-	<!-- {#if subscription === 'Team'}
-		{@render card({
-			title: 'Organizations',
-			description: 'Manage your organizations.',
-			href: '/account/organizations',
-			Icon: Building
-		})}
-	{/if} -->
+	{@render card({
+		title: 'Organizations',
+		description: 'Manage your organizations.',
+		href: '/account/organizations',
+		Icon: Building
+	})}
 	{@render card({
 		title: 'Settings',
 		description: 'Manage your subscription and preferences.',

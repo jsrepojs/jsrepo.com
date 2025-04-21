@@ -3,6 +3,7 @@ import {
 	and,
 	eq,
 	gt,
+	inArray,
 	isNotNull,
 	isNull,
 	or,
@@ -13,20 +14,53 @@ import * as tables from './schema';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
+import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
 
-export async function canPublishToScope(userId: string, scope: tables.Scope): Promise<boolean> {
-	if (scope.userId === userId) return true;
+export async function canPublishToScope(
+	user: tables.User,
+	scope: tables.Scope,
+	privateRegistry: boolean
+): Promise<boolean> {
+	if (scope.userId === user.id) {
+		if (!privateRegistry) return true;
+
+		// check the subscription status
+		if ([PRO_PRODUCT_ID, TEAM_PRODUCT_ID].includes(user.polarSubscriptionPlanId ?? '')) return true;
+
+		return false;
+	}
 
 	// scope is owned by a user but not you, sorry
-	if (scope.orgId === null) return true;
+	if (scope.orgId === null) return false;
 
-	const members = await getOrgMemberIds(scope.orgId);
+	const significantMembers = await db
+		.select({
+			id: tables.user.id,
+			ownerId: tables.org.ownerId,
+			polarSubscriptionPlanId: tables.user.polarSubscriptionPlanId,
+			polarSubscriptionPlanEnd: tables.user.polarSubscriptionPlanEnd
+		})
+		.from(tables.org)
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.innerJoin(
+			tables.user,
+			or(eq(tables.user.id, tables.org.ownerId), eq(tables.user.id, tables.org_member.userId))
+		)
+		.where(
+			and(
+				eq(tables.org.id, scope.orgId),
+				or(eq(tables.user.id, user.id), eq(tables.user.id, tables.org.ownerId))
+			)
+		);
 
-	const member = members.get(userId);
+	const orgUser = significantMembers.find((m) => m.id === user.id);
 
-	if (!member) return false;
+	// not a part of the org
+	if (!orgUser) return false;
 
-	if (member !== 'publisher') return false;
+	const owner = significantMembers.find((m) => m.id === m.ownerId)!;
+
+	if (checkUserSubscription(owner) !== 'Team') return false;
 
 	return true;
 }
@@ -53,30 +87,6 @@ export async function createScope(record: {
 	const result = await db.insert(tables.scope).values(record).returning({ id: tables.scope.id });
 
 	return result[0]?.id ?? null;
-}
-
-export async function getOrgMemberIds(
-	orgId: number
-): Promise<Map<string, tables.OrgMember['role']>> {
-	const orgMembers = await db
-		.select()
-		.from(tables.org)
-		.leftJoin(tables.org_member, eq(tables.org.id, tables.org_member.orgId))
-		.where(eq(tables.org.id, orgId));
-
-	const members = new Map<string, tables.OrgMember['role']>();
-
-	orgMembers.map((member, i) => {
-		if (i === 0) {
-			members.set(member.org.ownerId, 'publisher');
-		}
-
-		if (member.org_members) {
-			members.set(member.org_members.userId, member.org_members.role);
-		}
-	});
-
-	return members;
 }
 
 export async function getRegistry(
@@ -236,7 +246,7 @@ export async function getFileContents(
 
 							// check the status of the users subscription plan
 							and(
-								isNotNull(tables.user.polarSubscriptionPlanId),
+								inArray(tables.user.polarSubscriptionPlanId, [PRO_PRODUCT_ID, TEAM_PRODUCT_ID]),
 								or(
 									isNull(tables.user.polarSubscriptionPlanEnd),
 									gt(tables.user.polarSubscriptionPlanEnd, new Date())
@@ -254,7 +264,7 @@ export async function getFileContents(
 							// check the status of the owners subscription plan
 							and(
 								isNotNull(owner.id),
-								isNotNull(owner.polarSubscriptionPlanId),
+								eq(owner.polarSubscriptionPlanId, TEAM_PRODUCT_ID),
 								or(
 									isNull(owner.polarSubscriptionPlanEnd),
 									gt(owner.polarSubscriptionPlanEnd, new Date())
@@ -310,4 +320,14 @@ export async function revokeSubscription(userId: string, productId: string) {
 		// we check to make sure the plan we are canceling is active
 		// to handle cases where webhooks may come out of order
 		.where(and(eq(tables.user.id, userId), eq(tables.user.polarSubscriptionPlanId, productId)));
+}
+
+export async function listMyOrganizations(userId: string) {
+	const result = await db
+		.select()
+		.from(tables.org)
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.where(or(eq(tables.org.ownerId, userId), eq(tables.org_member.userId, userId)));
+
+	return result;
 }

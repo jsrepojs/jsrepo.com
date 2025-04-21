@@ -6,6 +6,7 @@ import {
 	createVersion,
 	getRegistry,
 	getScope,
+	getUser,
 	getVersions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
@@ -50,6 +51,8 @@ export async function POST({ request }) {
 	}
 
 	assert(verifyResult.key !== null);
+
+	const userPromise = getUser(verifyResult.key.userId);
 
 	if (request.body === null) {
 		error(400, 'body is required');
@@ -108,7 +111,11 @@ export async function POST({ request }) {
 		);
 	}
 
-	if (!canPublishToScope(verifyResult.key.userId, scope)) {
+	const user = await userPromise;
+
+	assert(user !== null, 'User should be defined!');
+
+	if (!canPublishToScope(user, scope, manifest.private)) {
 		error(401, `you don't have permission to publish to the scope \`@${scopeName}\``);
 	}
 
