@@ -22,9 +22,6 @@ export function activeSubscription(
 		return null;
 	}
 
-	console.log(productId);
-	console.log(PRO_PRODUCT_ID);
-
 	if (productId === PRO_PRODUCT_ID) return 'Pro';
 
 	if (productId === TEAM_PRODUCT_ID) return 'Team';
