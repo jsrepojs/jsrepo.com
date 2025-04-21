@@ -9,6 +9,7 @@
 	import { onMount } from 'svelte';
 	import { newTokenContext } from '$lib/context.svelte.js';
 	import { Snippet } from '$lib/components/ui/snippet/index.js';
+	import * as List from '$lib/components/site/list';
 
 	let { data } = $props();
 
@@ -72,36 +73,37 @@
 			<ChevronLeft />
 			Back to Account
 		</a>
-		<div class="flex place-items-center justify-between">
-			<Nav.Title class="font-medium">Your Access Tokens</Nav.Title>
-			<Button href="/account/access-tokens/new">
-				<Plus /> New
-			</Button>
-		</div>
-		<ul class="flex flex-col gap-2">
+		<List.Root title="Your Access Tokens">
+			{#snippet actions()}
+				<Button href="/account/access-tokens/new">
+					<Plus /> New
+				</Button>
+			{/snippet}
 			{#if newKey}
 				<Snippet text={newKey.key} variant="secondary" />
 			{/if}
-			{#each apiKeys as apiKey (apiKey.id)}
-				<li class="flex place-items-center justify-between rounded-lg border bg-card p-4">
-					<span class="text-lg font-medium">{apiKey.name}</span>
-					<div class="flex place-items-center gap-2">
-						<span class="text-sm text-muted-foreground">
-							Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
-						</span>
-						<Dialog.Trigger
-							onclick={() => (keyToDelete = apiKey)}
-							class={cn(
-								buttonVariants({ variant: 'outline', size: 'icon' }),
-								'size-5 text-destructive hover:text-destructive'
-							)}
-						>
-							<X />
-						</Dialog.Trigger>
-					</div>
-				</li>
-			{/each}
-		</ul>
+			<List.List>
+				{#each apiKeys as apiKey (apiKey.id)}
+					<List.Item class="flex place-items-center justify-between">
+						<span class="text-lg font-medium">{apiKey.name}</span>
+						<div class="flex place-items-center gap-2">
+							<span class="text-sm text-muted-foreground">
+								Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
+							</span>
+							<Dialog.Trigger
+								onclick={() => (keyToDelete = apiKey)}
+								class={cn(
+									buttonVariants({ variant: 'outline', size: 'icon' }),
+									'size-5 text-destructive hover:text-destructive'
+								)}
+							>
+								<X />
+							</Dialog.Trigger>
+						</div>
+					</List.Item>
+				{/each}
+			</List.List>
+		</List.Root>
 	</div>
 
 	<Dialog.Content hideClose>

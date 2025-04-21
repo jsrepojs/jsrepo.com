@@ -324,7 +324,7 @@ export async function revokeSubscription(userId: string, productId: string) {
 
 export async function listMyOrganizations(userId: string) {
 	const result = await db
-		.select()
+		.selectDistinctOn([tables.org.id])
 		.from(tables.org)
 		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
 		.where(or(eq(tables.org.ownerId, userId), eq(tables.org_member.userId, userId)));

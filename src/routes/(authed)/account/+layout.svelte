@@ -3,16 +3,14 @@
 	import { getInitials } from '$lib/ts/initials';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { activeSubscription, PRO_PRODUCT_ID } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription, PRO_PRODUCT_ID } from '$lib/ts/polar/client.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 
 	let { data, children } = $props();
 
 	const user = $derived(data.session.user);
 	const joined = $derived(toRelative(user.createdAt));
-	const subscription = $derived(
-		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
-	);
+	const subscription = $derived(checkUserSubscription(data.user));
 </script>
 
 <div class="flex h-[calc(100svh-var(--header-height))] flex-col gap-4 pt-10">

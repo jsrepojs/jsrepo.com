@@ -12,7 +12,7 @@
 		base: 'flex h-fit w-full flex-col rounded-lg border border-border',
 		variants: {
 			variant: {
-				default: 'border-border',
+				default: 'border-border bg-card',
 				primary: 'border-primary',
 				destructive: 'border-destructive'
 			}

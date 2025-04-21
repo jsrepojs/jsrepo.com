@@ -4,15 +4,13 @@
 	import { Meter } from '$lib/components/ui/meter';
 	import { ChevronLeft } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
-	import { activeSubscription } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 
 	let { data } = $props();
 
-	const subscription = $derived(
-		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
-	);
+	const subscription = $derived(checkUserSubscription(data.user));
 	const endsAt = $derived(
 		data.user.polarSubscriptionPlanEnd ? toRelative(data.user.polarSubscriptionPlanEnd) : null
 	);

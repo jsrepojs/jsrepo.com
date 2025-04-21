@@ -2,14 +2,13 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { activeSubscription } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { ChevronLeft, Plus } from '@lucide/svelte';
+	import * as List from '$lib/components/site/list';
 
 	let { data } = $props();
 
-	const subscription = $derived(
-		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
-	);
+	const subscription = $derived(checkUserSubscription(data.user));
 </script>
 
 <svelte:head>
@@ -24,8 +23,8 @@
 		<ChevronLeft />
 		Back to Account
 	</a>
-	<div class="flex flex-col gap-2">
-		{#if subscription === null}
+	{#if subscription === null}
+		<div class="flex flex-col gap-2">
 			<div class="flex place-items-center justify-between">
 				<Nav.Title>Scope Usage</Nav.Title>
 				<span class="text-sm text-muted-foreground">
@@ -36,44 +35,36 @@
 			<span class="text-xs text-muted-foreground">
 				Free users are limited to 5 scopes per account.
 			</span>
-		{/if}
-	</div>
-	<div class="flex flex-col gap-2">
-		<div class="flex place-items-end justify-between">
-			<Nav.Title>Your Scopes</Nav.Title>
+		</div>
+	{/if}
+	<List.Root title="Your Scopes">
+		{#snippet actions()}
 			<Button
 				href="/account/scopes/new"
 				disabled={subscription === null && data.scopes.userScopes.length >= data.user.scopeLimit}
 			>
 				<Plus /> New
 			</Button>
-		</div>
-		<ul class="flex flex-col gap-2">
+		{/snippet}
+		<List.List>
 			{#each data.scopes.userScopes as scope (scope.id)}
-				<li
-					class="relative flex place-items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent"
-				>
-					<a href="/@{scope.name}" class="text-lg font-medium">
-						<span class="absolute inset-0"></span>
+				<List.Item>
+					<List.Link href="/@{scope.name}">
 						@{scope.name}
-					</a>
-				</li>
+					</List.Link>
+				</List.Item>
 			{/each}
-		</ul>
-	</div>
-	<div class="flex flex-col gap-2">
-		<Nav.Title>Organization Scopes</Nav.Title>
-		<ul class="flex flex-col gap-2">
+		</List.List>
+	</List.Root>
+	<List.Root title="Organization Scopes">
+		<List.List>
 			{#each data.scopes.orgScopes as scope (scope.scope.id)}
-				<li
-					class="relative flex place-items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent"
-				>
-					<a href="/@{scope.scope.name}" class="text-lg font-medium">
-						<span class="absolute inset-0"></span>
+				<List.Item>
+					<List.Link href="/@{scope.scope.name}">
 						@{scope.scope.name}
-					</a>
-				</li>
+					</List.Link>
+				</List.Item>
 			{/each}
-		</ul>
-	</div>
+		</List.List>
+	</List.Root>
 </div>
