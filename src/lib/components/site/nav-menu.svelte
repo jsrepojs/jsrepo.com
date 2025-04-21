@@ -37,7 +37,8 @@
 			<Nav.Group title="General">
 				<Nav.List>
 					<Nav.Link href="/" title="Home" onclick={closeMenu} />
-					<Nav.Link href="https://jsrepo.dev" title="Docs" onclick={closeMenu} />
+					<Nav.Link href="/pricing" title="Pricing" onclick={closeMenu} />
+					<Nav.Link href="https://jsrepo.dev/docs" title="Docs" onclick={closeMenu} />
 				</Nav.List>
 			</Nav.Group>
 		</div>

@@ -22,6 +22,7 @@ export const user = pgTable('user', {
 	image: text('image'),
 	createdAt: timestamp('created_at').notNull(),
 	updatedAt: timestamp('updated_at').notNull(),
+	scopeLimit: integer().notNull().default(5),
 	polarCustomerId: text('polar_customer_id'),
 	polarSubscriptionPlanId: text('polar_subscription_plan_id'),
 	polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end')

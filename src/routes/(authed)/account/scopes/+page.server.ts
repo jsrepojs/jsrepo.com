@@ -1,15 +1,22 @@
 import { auth } from '$lib/auth';
 import { redirectToLogin } from '$lib/auth/redirect';
-import { listMyScopes } from '$lib/backend/db/functions.js';
+import { getUser, listMyScopes } from '$lib/backend/db/functions.js';
+import assert from 'assert';
 
 export async function load({ request, url }) {
 	const session = await auth.api.getSession({ headers: request.headers });
 
 	if (!session) redirectToLogin(url);
 
-	const scopes = await listMyScopes(session.user.id);
+	const [user, scopes] = await Promise.all([
+		getUser(session.user.id),
+		listMyScopes(session.user.id)
+	]);
+
+	assert(user !== null, 'User should exist!');
 
 	return {
-		scopes
+		scopes,
+		user
 	};
 }

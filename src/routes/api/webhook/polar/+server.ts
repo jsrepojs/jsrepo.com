@@ -2,8 +2,9 @@ import { POLAR_WEBHOOK_SECRET } from '$env/static/private';
 import { db } from '$lib/backend/db';
 import { Webhooks } from '@polar-sh/sveltekit';
 import * as tables from '$lib/backend/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import assert from 'assert';
+import { revokeSubscription } from '$lib/backend/db/functions';
 
 export const POST = Webhooks({
 	webhookSecret: POLAR_WEBHOOK_SECRET,
@@ -43,6 +44,24 @@ export const POST = Webhooks({
 				.where(eq(tables.user.id, userId));
 		}
 	},
+	onSubscriptionUpdated: async (payload) => {
+		// handle un-cancel
+		if (payload.data.status && !payload.data.cancelAtPeriodEnd) {
+			const userId = payload.data.customer.externalId;
+
+			assert(
+				userId !== null,
+				`ExternalId was not defined for customer ${payload.data.customer.email}`
+			);
+
+			const productId = payload.data.productId;
+
+			await db
+				.update(tables.user)
+				.set({ polarSubscriptionPlanId: productId, polarSubscriptionPlanEnd: payload.data.endsAt })
+				.where(eq(tables.user.id, userId));
+		}
+	},
 	onSubscriptionCanceled: async (payload) => {
 		const userId = payload.data.customer.externalId;
 
@@ -73,12 +92,3 @@ export const POST = Webhooks({
 		await revokeSubscription(userId, productId);
 	}
 });
-
-async function revokeSubscription(userId: string, productId: string) {
-	await db
-		.update(tables.user)
-		.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null })
-		// we check to make sure the plan we are canceling is active
-		// to handle cases where webhooks may come out of order
-		.where(and(eq(tables.user.id, userId), eq(tables.user.polarSubscriptionPlanId, productId)));
-}

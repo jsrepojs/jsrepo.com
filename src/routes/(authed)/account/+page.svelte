@@ -1,7 +1,12 @@
 <script lang="ts">
-	import { ArrowRight, KeyRound, Settings, Telescope } from '@lucide/svelte';
+	import { activeSubscription } from '$lib/ts/polar/client';
+	import { ArrowRight, Building, KeyRound, Settings, Telescope } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	const subscription = $derived(
+		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
+	);
 </script>
 
 <svelte:head>
@@ -21,6 +26,14 @@
 		href: '/account/access-tokens',
 		Icon: KeyRound
 	})}
+	<!-- {#if subscription === 'Team'}
+		{@render card({
+			title: 'Organizations',
+			description: 'Manage your organizations.',
+			href: '/account/organizations',
+			Icon: Building
+		})}
+	{/if} -->
 	{@render card({
 		title: 'Settings',
 		description: 'Manage your subscription and preferences.',

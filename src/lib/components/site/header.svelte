@@ -22,9 +22,15 @@
 			</a>
 			<div class="hidden place-content-center gap-4 md:flex">
 				<a
-					href="https://docs.jsrepo.dev/docs"
+					href="/pricing"
 					class="text-sm text-muted-foreground transition-all hover:text-foreground data-[active=true]:text-foreground"
 					use:active={{ activeForSubdirectories: true }}
+				>
+					Pricing
+				</a>
+				<a
+					href="https://jsrepo.dev/docs"
+					class="text-sm text-muted-foreground transition-all hover:text-foreground data-[active=true]:text-foreground"
 				>
 					Docs
 					<ArrowUpRight class="inline size-4" />

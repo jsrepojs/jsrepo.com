@@ -302,3 +302,12 @@ export async function listMyScopes(userId: string) {
 		orgScopes
 	};
 }
+
+export async function revokeSubscription(userId: string, productId: string) {
+	await db
+		.update(tables.user)
+		.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null })
+		// we check to make sure the plan we are canceling is active
+		// to handle cases where webhooks may come out of order
+		.where(and(eq(tables.user.id, userId), eq(tables.user.polarSubscriptionPlanId, productId)));
+}

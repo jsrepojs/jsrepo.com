@@ -2,6 +2,10 @@
 	import * as Auth from '$lib/auth/components';
 </script>
 
+<svelte:head>
+	<title>Log in - jsrepo</title>
+</svelte:head>
+
 <div class="relative flex h-full justify-center">
 	<div class="mt-[25svh] flex w-full max-w-xs flex-col gap-4 sm:max-w-sm sm:gap-8">
 		<div class="flex flex-col">

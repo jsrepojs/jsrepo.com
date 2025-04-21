@@ -99,6 +99,13 @@
 			"when": 1745234786433,
 			"tag": "0013_wooden_spencer_smythe",
 			"breakpoints": true
+		},
+		{
+			"idx": 14,
+			"version": "7",
+			"when": 1745245891660,
+			"tag": "0014_lucky_gargoyle",
+			"breakpoints": true
 		}
 	]
 }

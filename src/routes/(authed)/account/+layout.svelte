@@ -11,11 +11,11 @@
 	const user = $derived(data.session.user);
 	const joined = $derived(toRelative(user.createdAt));
 	const subscription = $derived(
-		activeSubscription(data.polarProductId, data.polarSubscriptionPlanEnd)
+		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
 	);
 </script>
 
-<div class="flex h-svh flex-col gap-4 pt-10">
+<div class="flex h-[calc(100svh-var(--header-height))] flex-col gap-4 pt-10">
 	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
 		<div
 			class="col-start-1 flex flex-row place-items-center justify-start gap-2 md:flex-col md:justify-center"
@@ -33,7 +33,9 @@
 			{#if subscription !== null}
 				<Badge>{subscription}</Badge>
 			{:else}
-				<Button href="/api/checkout?products={PRO_PRODUCT_ID}&customerId={data.polarCustomerId}">
+				<Button
+					href="/api/checkout?products={PRO_PRODUCT_ID}&customerId={data.user.polarCustomerId}"
+				>
 					Get Pro
 				</Button>
 			{/if}
