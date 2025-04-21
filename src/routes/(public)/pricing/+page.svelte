@@ -8,10 +8,11 @@
 	<title>Pricing - jsrepo</title>
 </svelte:head>
 
-<div class="flex flex-col place-items-center">
-	<div class="grid w-fit grid-cols-1 place-items-center gap-2 py-8 lg:grid-cols-3">
+<div class="min-h-[calc(100svh-var(--header-height))] py-[--header-height] flex flex-col place-items-center justify-center">
+	<h1 class="text-6xl font-bold">Pricing</h1>
+	<div class="grid w-fit max-w-4xl grid-cols-1 place-items-center gap-2 py-8 md:grid-cols-3">
 		<div
-			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-1 lg:aspect-card"
+			class="flex w-full h-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 md:col-start-1"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Free</h4>
@@ -23,7 +24,7 @@
 			})}
 		</div>
 		<div
-			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary p-6 lg:col-start-2 lg:aspect-card"
+			class="flex w-full h-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary p-6 md:col-start-2"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Pro</h4>
@@ -35,7 +36,7 @@
 			})}
 		</div>
 		<div
-			class="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-3 lg:aspect-card"
+			class="flex w-full h-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 md:col-start-3"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Team</h4>

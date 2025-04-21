@@ -39,7 +39,9 @@
 		</div>
 
 		<div class="flex place-items-center gap-2">
-			<HeaderOptions />
+			<div class="hidden md:contents">
+				<HeaderOptions />
+			</div>
 			<Dialog.Root bind:open={menuOpen}>
 				<Dialog.Trigger>
 					{#snippet child({ props })}
