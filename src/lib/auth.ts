@@ -67,9 +67,14 @@ export const auth = betterAuth({
 										.update(schema.user)
 										.set({ polarSubscriptionPlanId: subscription.productId });
 								}
-							} else if (user.polarSubscriptionPlanId !== null) {
+							} else if (
+								user.polarSubscriptionPlanId !== null ||
+								user.polarSubscriptionPlanEnd !== null
+							) {
 								// remove the subscription plan id if the user isn't subscribed
-								await db.update(schema.user).set({ polarSubscriptionPlanId: null });
+								await db
+									.update(schema.user)
+									.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null });
 							}
 						}
 					} catch (err) {
