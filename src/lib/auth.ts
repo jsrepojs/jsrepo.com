@@ -7,6 +7,7 @@ import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '$env/static/private';
 import { polar } from './ts/polar';
 import { getUser } from './backend/db/functions';
 import assert from 'assert';
+import { postHogClient } from './ts/posthog';
 
 export type Providers = 'github';
 
@@ -18,9 +19,7 @@ export const auth = betterAuth({
 	plugins: [
 		apiKey({
 			rateLimit: {
-				enabled: false,
-				timeWindow: 1000 * 60 * 60 * 24, // 1 day
-				maxRequests: 10 // 10 requests per day
+				enabled: false
 			}
 		})
 	],
@@ -32,16 +31,19 @@ export const auth = betterAuth({
 	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {
+			// create polar customer id and sync subscription on sign in
 			if (ctx.path.startsWith('/callback')) {
-				// create polar customer id on sign in
 				const newSession = ctx.context.newSession;
 
 				if (newSession) {
+					let user: schema.User | null = null;
+
 					try {
-						const user = await getUser(newSession.user.id);
+						user = await getUser(newSession.user.id);
 
 						assert(user !== null, 'User must be defined');
 
+						// create a new polar customer id on the first sign in
 						if (user.polarCustomerId === null) {
 							const result = await polar.customers.create({
 								externalId: newSession.user.id,
@@ -50,9 +52,28 @@ export const auth = betterAuth({
 							});
 
 							await db.update(schema.user).set({ polarCustomerId: result.id });
+						} else {
+							// sync the current subscription with the database
+							// it should already by synced by the webhooks but this is a precautionary measure
+							const result = await polar.customers.getState({ id: user.polarCustomerId });
+
+							// we should only ever have 1 active subscription
+							if (result.activeSubscriptions.length > 0) {
+								const subscription = result.activeSubscriptions[0];
+
+								// if the active subscription doesn't match the polar db then update it
+								if (subscription.productId === user.polarSubscriptionPlanId) {
+									await db
+										.update(schema.user)
+										.set({ polarSubscriptionPlanId: subscription.productId });
+								}
+							} else if (user.polarSubscriptionPlanId !== null) {
+								// remove the subscription plan id if the user isn't subscribed
+								await db.update(schema.user).set({ polarSubscriptionPlanId: null });
+							}
 						}
 					} catch (err) {
-						console.log(err);
+						postHogClient.captureException(err, user?.id, { path: ctx.path });
 					}
 				}
 			}

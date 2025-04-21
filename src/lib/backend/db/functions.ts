@@ -1,4 +1,13 @@
-import { and, eq, isNotNull, or, type TablesRelationalConfig } from 'drizzle-orm';
+import {
+	aliasedTable,
+	and,
+	eq,
+	gt,
+	isNotNull,
+	isNull,
+	or,
+	type TablesRelationalConfig
+} from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
@@ -192,6 +201,8 @@ export async function getFileContents(
 ): Promise<string | null> {
 	const isTag = !semver.valid(version);
 
+	const owner = aliasedTable(tables.user, 'owner');
+
 	const result = await db
 		.select({ content: tables.file.content })
 		.from(tables.scope)
@@ -200,18 +211,58 @@ export async function getFileContents(
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
 		.where(
 			and(
-				or(
-					eq(tables.registry.private, false),
-					and(isNotNull(tables.scope.userId), eq(tables.scope.userId, userId ?? '')),
-					eq(tables.org.ownerId, userId ?? ''),
-					eq(tables.org_member.userId, userId ?? '')
-				),
 				eq(tables.scope.name, scopeName),
 				eq(tables.registry.name, registryName),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
-				eq(tables.file.name, fileName)
+				eq(tables.file.name, fileName),
+
+				// access check
+				or(
+					// registry is not private
+					eq(tables.registry.private, false),
+
+					// registry is private but they have access and have paid their subscription
+					or(
+						// Pro
+						and(
+							isNotNull(tables.scope.userId),
+
+							// check if we own the scope
+							eq(tables.scope.userId, userId ?? ''),
+
+							// check the status of the users subscription plan
+							and(
+								isNotNull(tables.user.polarSubscriptionPlanId),
+								or(
+									isNull(tables.user.polarSubscriptionPlanEnd),
+									gt(tables.user.polarSubscriptionPlanEnd, new Date())
+								)
+							)
+						),
+
+						// Team
+						and(
+							isNotNull(tables.scope.orgId),
+
+							// check if we are part of the organization
+							or(eq(tables.org.ownerId, userId ?? ''), eq(tables.org_member.userId, userId ?? '')),
+
+							// check the status of the owners subscription plan
+							and(
+								isNotNull(owner.id),
+								isNotNull(owner.polarSubscriptionPlanId),
+								or(
+									isNull(owner.polarSubscriptionPlanEnd),
+									gt(owner.polarSubscriptionPlanEnd, new Date())
+								)
+							)
+						)
+					)
+				)
 			)
 		);
 

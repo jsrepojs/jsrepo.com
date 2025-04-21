@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight, KeyRound, Telescope } from '@lucide/svelte';
+	import { ArrowRight, KeyRound, Settings, Telescope } from '@lucide/svelte';
 
 	let { data } = $props();
 </script>
@@ -20,6 +20,12 @@
 		description: 'Manage your access tokens.',
 		href: '/account/access-tokens',
 		Icon: KeyRound
+	})}
+	{@render card({
+		title: 'Settings',
+		description: 'Manage your subscription and preferences.',
+		href: '/account/settings',
+		Icon: Settings
 	})}
 </div>
 

@@ -15,6 +15,7 @@ export async function load({ url, request }) {
 	return {
 		session,
 		polarCustomerId: user.polarCustomerId,
-		polarProductId: user.polarSubscriptionPlanId
+		polarProductId: user.polarSubscriptionPlanId,
+		polarSubscriptionPlanEnd: user.polarSubscriptionPlanEnd
 	};
 }

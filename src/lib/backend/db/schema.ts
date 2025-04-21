@@ -24,6 +24,7 @@ export const user = pgTable('user', {
 	updatedAt: timestamp('updated_at').notNull(),
 	polarCustomerId: text('polar_customer_id'),
 	polarSubscriptionPlanId: text('polar_subscription_plan_id'),
+	polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end'),
 });
 
 export type User = InferSelectModel<typeof user>;
