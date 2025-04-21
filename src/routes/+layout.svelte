@@ -15,7 +15,7 @@
 
 <div style="display: contents; --header-height: 4rem;">
 	<Header />
-	<main class="relative h-[calc(100svh-64px)] container">
+	<main class="container relative h-[calc(100svh-64px)]">
 		{@render children()}
 	</main>
 </div>
