@@ -5,6 +5,7 @@
 	import '@fontsource-variable/oxanium';
 	import '@fontsource-variable/jetbrains-mono';
 	import { ModeWatcher } from 'mode-watcher';
+	import Footer from '$lib/components/site/footer.svelte';
 
 	let { children } = $props();
 
@@ -15,7 +16,8 @@
 
 <div style="display: contents; --header-height: 4rem;">
 	<Header />
-	<main class="container relative h-[calc(100svh-64px)]">
+	<main class="container relative min-h-[calc(100svh-var(--header-height))]">
 		{@render children()}
 	</main>
+	<Footer />
 </div>
