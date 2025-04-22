@@ -23,6 +23,7 @@ export async function load({ params, request }) {
 	return {
 		scopeName,
 		registryName,
+		versionParam: version,
 		...info
 	};
 }

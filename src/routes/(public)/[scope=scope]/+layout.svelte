@@ -8,7 +8,7 @@
 	<title>@{data.scope.name} - Scopes - jsrepo</title>
 </svelte:head>
 
-<div class="flex flex-col gap-2 py-8">
+<div class="flex flex-col gap-2 py-6">
 	<h1 class="text-4xl font-bold">@{data.scope.name}</h1>
 	<Tabs.Root>
 		<Tabs.Tab href="/@{data.scope.name}">Packages</Tabs.Tab>

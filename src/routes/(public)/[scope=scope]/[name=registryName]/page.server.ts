@@ -2,6 +2,8 @@ import { getFiles, getRegistry, getVersions } from '$lib/backend/db/functions';
 import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
 import * as v from 'valibot';
+import DOMPurify from 'isomorphic-dompurify';
+import { rehype } from '$lib/ts/markdown';
 
 export type Options = {
 	scopeName: string;
@@ -37,11 +39,17 @@ export async function getInfo({
 
 	const [versions, files] = await promises;
 
-	const readme = files.find((f) => f.name === 'README.md')?.content ?? null;
+	let readme = files.find((f) => f.name === 'README.md')?.content ?? null;
 	const manifestContent = files.find((f) => f.name === 'jsrepo-manifest.json')?.content;
 
 	if (manifestContent === undefined) return null;
 	if (!versions || versions.length === 0) return null;
+
+	if (readme !== null) {
+		const html = (await rehype(readme)).toString();
+
+		readme = DOMPurify.sanitize(html);
+	}
 
 	return {
 		readme,
