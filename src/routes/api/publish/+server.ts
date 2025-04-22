@@ -1,6 +1,7 @@
 import { auth } from '$lib/auth.js';
 import {
 	canPublishToScope,
+	isBanned,
 	createFiles,
 	createRegistry,
 	createVersion,
@@ -125,6 +126,13 @@ export async function POST({ request }) {
 
 	let registryId = registry?.id ?? null;
 
+	if (registryId === null) {
+		// ensure name is not banned only check on first time publish if we missed it that's on us
+		if (await isBanned(registryName)) {
+			error(400, `We'd appreciate if you didn't use ${registryName} as the name of your registry.`);
+		}
+	}
+
 	if (dryRun) {
 		// check if the version exists
 		if (registryId !== null) {
@@ -144,7 +152,6 @@ export async function POST({ request }) {
 
 		if (registryId === null) {
 			// create registry
-
 			registryId = await createRegistry(tx, {
 				name: registryName,
 				scopeId: scope.id,
@@ -225,7 +232,7 @@ export async function POST({ request }) {
 	}
 
 	// if the registry already existed we use it's setting else we use the setting provided
-	const isPrivate = registry ? registry.private : publishPrivate
+	const isPrivate = registry ? registry.private : publishPrivate;
 
 	postHogClient.capture({
 		event: 'publish-registry',

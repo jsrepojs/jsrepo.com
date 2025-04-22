@@ -240,3 +240,16 @@ export const file = pgTable(
 ).enableRLS();
 
 export type File = InferSelectModel<typeof file>;
+
+export const commonNameBan = pgTable(
+	'common_name_ban',
+	{
+		id: serial('id').primaryKey(),
+		name: text('name').notNull()
+	},
+	(table) => {
+		return [index('common_name_ban_name_idx').on(table.name)];
+	}
+).enableRLS();
+
+export type CommonNameBan = InferSelectModel<typeof commonNameBan>;

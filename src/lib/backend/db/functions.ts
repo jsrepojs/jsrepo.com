@@ -3,6 +3,7 @@ import {
 	and,
 	eq,
 	gt,
+	ilike,
 	inArray,
 	isNotNull,
 	isNull,
@@ -154,7 +155,13 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; version: string; tag: string | null; releasedById: string, hasReadme: boolean },
+	record: {
+		registryId: number;
+		version: string;
+		tag: string | null;
+		releasedById: string;
+		hasReadme: boolean;
+	},
 	oldTaggedVersionId?: number
 ): Promise<number | null> {
 	if (record.tag && oldTaggedVersionId) {
@@ -385,4 +392,13 @@ export async function getScopePackages(userId: string | null, scopeName: string)
 		);
 
 	return result;
+}
+
+export async function isBanned(name: string) {
+	const banned = await db
+		.select({ id: tables.commonNameBan.id })
+		.from(tables.commonNameBan)
+		.where(ilike(tables.commonNameBan.name, name));
+
+	return banned.length > 0
 }
