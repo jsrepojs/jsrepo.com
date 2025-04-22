@@ -9,6 +9,7 @@ import { getUser } from './backend/db/functions';
 import assert from 'assert';
 import { postHogClient } from './ts/posthog';
 import { eq } from 'drizzle-orm';
+import { resend, welcomeEmail } from './ts/resend';
 
 export type Providers = 'github';
 
@@ -46,6 +47,8 @@ export const auth = betterAuth({
 
 						// create a new polar customer id on the first sign in
 						if (user.polarCustomerId === null) {
+							const res = resend.emails.send(welcomeEmail(user));
+
 							const result = await polar.customers.create({
 								externalId: newSession.user.id,
 								name: newSession.user.name,
@@ -56,6 +59,8 @@ export const auth = betterAuth({
 								.update(schema.user)
 								.set({ polarCustomerId: result.id })
 								.where(eq(schema.user.id, user.id));
+
+							await res;
 						} else {
 							// sync the current subscription with the database
 							// it should already by synced by the webhooks but this is a precautionary measure
