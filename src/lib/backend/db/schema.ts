@@ -26,7 +26,7 @@ export const user = pgTable('user', {
 	polarCustomerId: text('polar_customer_id'),
 	polarSubscriptionPlanId: text('polar_subscription_plan_id'),
 	polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end')
-});
+}).enableRLS();
 
 export type User = InferSelectModel<typeof user>;
 
@@ -41,7 +41,7 @@ export const session = pgTable('session', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' })
-});
+}).enableRLS();
 
 export type Session = InferSelectModel<typeof session>;
 
@@ -61,7 +61,7 @@ export const account = pgTable('account', {
 	password: text('password'),
 	createdAt: timestamp('created_at').notNull(),
 	updatedAt: timestamp('updated_at').notNull()
-});
+}).enableRLS();
 
 export type Account = InferSelectModel<typeof account>;
 
@@ -72,7 +72,7 @@ export const verification = pgTable('verification', {
 	expiresAt: timestamp('expires_at').notNull(),
 	createdAt: timestamp('created_at'),
 	updatedAt: timestamp('updated_at')
-});
+}).enableRLS();
 
 export type Verification = InferSelectModel<typeof verification>;
 
@@ -100,7 +100,7 @@ export const apikey = pgTable('apikey', {
 	updatedAt: timestamp('updated_at').notNull(),
 	permissions: text('permissions'),
 	metadata: text('metadata')
-});
+}).enableRLS();
 
 export type APIKey = InferSelectModel<typeof apikey>;
 
@@ -120,7 +120,7 @@ export const org = pgTable(
 	(table) => {
 		return [index('org_name_idx').on(table.name), index('org_owner_id_idx').on(table.ownerId)];
 	}
-);
+).enableRLS();
 
 export type Org = InferSelectModel<typeof org>;
 
@@ -145,7 +145,7 @@ export const org_member = pgTable(
 			index('org_member_user_id_idx').on(table.userId)
 		];
 	}
-);
+).enableRLS();
 
 export type OrgMember = InferSelectModel<typeof org_member>;
 
@@ -167,7 +167,7 @@ export const scope = pgTable(
 			index('scope_user_id_idx').on(table.userId)
 		];
 	}
-);
+).enableRLS();
 
 export type Scope = InferSelectModel<typeof scope>;
 
@@ -188,7 +188,7 @@ export const registry = pgTable(
 			index('registry_private_idx').on(table.private)
 		];
 	}
-);
+).enableRLS();
 
 export type Registry = InferSelectModel<typeof registry>;
 
@@ -216,7 +216,7 @@ export const version = pgTable(
 			index('version_tag_idx').on(table.tag)
 		];
 	}
-);
+).enableRLS();
 
 export type Version = InferSelectModel<typeof version>;
 
@@ -237,6 +237,6 @@ export const file = pgTable(
 			index('file_version_id_idx').on(table.versionId)
 		];
 	}
-);
+).enableRLS();
 
 export type File = InferSelectModel<typeof file>;

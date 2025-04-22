@@ -120,6 +120,13 @@
       "when": 1745329441732,
       "tag": "0016_shallow_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1745332798853,
+      "tag": "0017_smart_masque",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint ."
+		"lint": "prettier --check . && eslint .",
+		"migrations:generate": "drizzle-kit generate",
+		"migrations:migrate": "drizzle-kit migrate"
 	},
 	"devDependencies": {
 		"@better-auth/stripe": "^1.2.7",
