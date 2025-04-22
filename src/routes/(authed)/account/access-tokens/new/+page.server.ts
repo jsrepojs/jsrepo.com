@@ -4,6 +4,7 @@ import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail } from '@sveltejs/kit';
 import { getApiKey } from '$lib/backend/db/functions';
+import { accessTokenCreatedEmail, resend } from '$lib/ts/resend';
 
 export async function load() {
 	const form = await superValidate(valibot(schema));
@@ -41,10 +42,13 @@ export const actions = {
 				permissions: {
 					packages: ['publish']
 				},
-				userId: session.user.id
+				userId: session.user.id,
+				expiresIn: form.data.expiresIn
 			},
 			headers: request.headers
 		});
+
+		await resend.emails.send(accessTokenCreatedEmail(session.user, result));
 
 		return message(form, result);
 	}

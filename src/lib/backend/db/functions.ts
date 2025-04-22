@@ -400,5 +400,5 @@ export async function isBanned(name: string) {
 		.from(tables.commonNameBan)
 		.where(ilike(tables.commonNameBan.name, name));
 
-	return banned.length > 0
+	return banned.length > 0;
 }

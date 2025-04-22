@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth/client.js';
-	import * as Nav from '$lib/components/site/nav';
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import { toRelative } from '$lib/ts/dates';
 	import { ChevronLeft, Plus, X } from '@lucide/svelte';
@@ -43,7 +42,7 @@
 			const keys = await authClient.apiKey.list();
 
 			if (keys.data !== null) {
-				apiKeys = keys.data;
+				apiKeys = keys.data.sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
 				if (newKey?.id === keyToDelete.id) {
 					newKey = null;
 				}

@@ -21,7 +21,7 @@ import * as v from 'valibot';
 import semver from 'semver';
 import { getPreReleaseTag } from '$lib/ts/versioning.js';
 import type { Version } from '$lib/backend/db/schema.js';
-import { resend } from '$lib/ts/resend.js';
+import { newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -246,12 +246,7 @@ export async function POST({ request }) {
 		}
 	});
 
-	await resend.emails.send({
-		from: 'jsrepo.com <updates@updates.jsrepo.com>',
-		to: [user.email],
-		subject: `Successfully published ${manifest.name}@${manifest.version}`,
-		html: `A new version of ${manifest.name} (${manifest.version}) was just published at ${new Date().toISOString()}!`
-	});
+	await resend.emails.send(newVersionPublishedEmail(user, manifest.name, manifest.version));
 
 	return json({
 		status: 'published',

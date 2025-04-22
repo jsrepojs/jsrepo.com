@@ -7,6 +7,43 @@
 	import { authClient } from '$lib/auth/client.js';
 	import { onMount } from 'svelte';
 	import { Check, ChevronLeft, X } from '@lucide/svelte';
+	import * as Select from '$lib/components/ui/select';
+	import { DAY, getSeconds } from '$lib/ts/time.js';
+
+	const expiresInOptions = [
+		{
+			label: '1 Day',
+			value: getSeconds(DAY).toString()
+		},
+		{
+			label: '7 Days',
+			value: getSeconds(DAY * 7).toString()
+		},
+		{
+			label: '30 Days',
+			value: getSeconds(DAY * 30).toString()
+		},
+		{
+			label: '60 Days',
+			value: getSeconds(DAY * 60).toString()
+		},
+		{
+			label: '90 Days',
+			value: getSeconds(DAY * 90).toString()
+		},
+		{
+			label: '180 Days',
+			value: getSeconds(DAY * 180).toString()
+		},
+		{
+			label: '365 Days',
+			value: getSeconds(DAY * 365).toString()
+		},
+		{
+			label: 'Never',
+			value: 'never'
+		}
+	];
 
 	let { data } = $props();
 
@@ -72,6 +109,41 @@
 			{/snippet}
 		</Form.Control>
 		<Form.Description>Name to identify the access token.</Form.Description>
+		<Form.FieldErrors />
+	</Form.Field>
+	<Form.Field {form} name="expiresIn">
+		<Form.Control>
+			{#snippet children({ props })}
+				<Form.Label>Expires In</Form.Label>
+				<Select.Root
+					{...props}
+					type="single"
+					bind:value={
+						() => $formData.expiresIn?.toString() ?? 'never',
+						(v) => {
+							if (v === 'never') {
+								$formData.expiresIn = null;
+							} else {
+								$formData.expiresIn = parseInt(v);
+							}
+						}
+					}
+				>
+					<Select.Trigger class="max-w-56">
+						{expiresInOptions.find((o) => o.value === ($formData.expiresIn?.toString() ?? 'never'))
+							?.label}
+					</Select.Trigger>
+					<Select.Content>
+						{#each expiresInOptions as option (option.label)}
+							<Select.Item value={option.value}>
+								{option.label}
+							</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			{/snippet}
+		</Form.Control>
+		<Form.Description>Time before the access token expires.</Form.Description>
 		<Form.FieldErrors />
 	</Form.Field>
 	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
