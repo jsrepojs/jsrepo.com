@@ -8,6 +8,7 @@ import {
 	isNotNull,
 	isNull,
 	or,
+	desc,
 	type TablesRelationalConfig
 } from 'drizzle-orm';
 import { db } from '.';
@@ -92,8 +93,11 @@ export async function createScope(record: {
 
 export async function getRegistry(
 	scopeName: string,
-	registryName: string
+	registryName: string,
+	userId: string | null
 ): Promise<tables.Registry | null> {
+	const owner = aliasedTable(tables.user, 'owner');
+
 	const registries = await db
 		.select({
 			id: tables.registry.id,
@@ -104,7 +108,18 @@ export async function getRegistry(
 		})
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
-		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)));
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+				eq(tables.registry.name, registryName),
+
+				checkAccessQuery(userId, owner)
+			)
+		);
 
 	if (registries.length === 0) return null;
 
@@ -128,11 +143,34 @@ export async function getVersions(
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)));
+		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)))
+		.orderBy(desc(tables.version.createdAt));
 
 	if (versions.length === 0) return null;
 
 	return versions;
+}
+
+export async function getVersion(scopeName: string, registryName: string, version: string) {
+	const isTag = !semver.valid(version);
+
+	const result = await db
+		.select()
+		.from(tables.version)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.version.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.user, eq(tables.user.id, tables.version.releasedById))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+				eq(tables.registry.name, registryName),
+				eq(isTag ? tables.version.tag : tables.version.version, version)
+			)
+		);
+
+	if (result.length === 0) return null;
+
+	return result[0];
 }
 
 export async function createRegistry(
@@ -238,55 +276,54 @@ export async function getFileContents(
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				// access check
-				or(
-					// registry is not private
-					eq(tables.registry.private, false),
-
-					// registry is private but they have access and have paid their subscription
-					or(
-						// Pro
-						and(
-							isNotNull(tables.scope.userId),
-
-							// check if we own the scope
-							eq(tables.scope.userId, userId ?? ''),
-
-							// check the status of the users subscription plan
-							and(
-								inArray(tables.user.polarSubscriptionPlanId, [PRO_PRODUCT_ID, TEAM_PRODUCT_ID]),
-								or(
-									isNull(tables.user.polarSubscriptionPlanEnd),
-									gt(tables.user.polarSubscriptionPlanEnd, new Date())
-								)
-							)
-						),
-
-						// Team
-						and(
-							isNotNull(tables.scope.orgId),
-
-							// check if we are part of the organization
-							or(eq(tables.org.ownerId, userId ?? ''), eq(tables.org_member.userId, userId ?? '')),
-
-							// check the status of the owners subscription plan
-							and(
-								isNotNull(owner.id),
-								eq(owner.polarSubscriptionPlanId, TEAM_PRODUCT_ID),
-								or(
-									isNull(owner.polarSubscriptionPlanEnd),
-									gt(owner.polarSubscriptionPlanEnd, new Date())
-								)
-							)
-						)
-					)
-				)
+				checkAccessQuery(userId, owner)
 			)
 		);
 
 	if (result.length === 0) return null;
 
 	return result[0].content;
+}
+
+export async function getFiles(
+	userId: string | null,
+	scopeName: string,
+	registryName: string,
+	version: string,
+	filesNames: string[]
+): Promise<tables.File[]> {
+	const isTag = !semver.valid(version);
+
+	const owner = aliasedTable(tables.user, 'owner');
+
+	const result = await db
+		.select({
+			id: tables.file.id,
+			name: tables.file.name,
+			content: tables.file.content,
+			versionId: tables.file.versionId,
+			createdAt: tables.file.createdAt
+		})
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
+		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+				eq(tables.registry.name, registryName),
+				eq(isTag ? tables.version.tag : tables.version.version, version),
+				inArray(tables.file.name, filesNames),
+
+				checkAccessQuery(userId, owner)
+			)
+		);
+
+	return result;
 }
 
 export async function listApiKeys(userId: string) {
@@ -367,27 +404,7 @@ export async function getScopePackages(userId: string | null, scopeName: string)
 				eq(tables.scope.name, scopeName),
 
 				// access check
-				or(
-					// registry is not private
-					eq(tables.registry.private, false),
-
-					or(
-						and(
-							isNotNull(tables.scope.userId),
-
-							// check if we own the scope
-							eq(tables.scope.userId, userId ?? '')
-						),
-
-						// Team
-						and(
-							isNotNull(tables.scope.orgId),
-
-							// check if we are part of the organization
-							or(eq(tables.org.ownerId, userId ?? ''), eq(tables.org_member.userId, userId ?? ''))
-						)
-					)
-				)
+				checkAccessQuery(userId, owner, false)
 			)
 		);
 
@@ -401,4 +418,60 @@ export async function isBanned(name: string) {
 		.where(ilike(tables.commonNameBan.name, name));
 
 	return banned.length > 0;
+}
+
+/** Checks if the user has access to the registry
+ *
+ * You will need to join tables.scope, tables.user, tables.registry and have an aliased table of tables.user for the owner */
+function checkAccessQuery(
+	userId: string | null,
+	owner: typeof tables.user,
+	checkSubscription = true
+) {
+	return or(
+		// registry is not private
+		eq(tables.registry.private, false),
+
+		// registry is private but they have access and have paid their subscription
+		or(
+			// Pro
+			and(
+				isNotNull(tables.scope.userId),
+
+				// check if we own the scope
+				eq(tables.scope.userId, userId ?? ''),
+
+				// check the status of the users subscription plan
+				checkSubscription
+					? and(
+							inArray(tables.user.polarSubscriptionPlanId, [PRO_PRODUCT_ID, TEAM_PRODUCT_ID]),
+							or(
+								isNull(tables.user.polarSubscriptionPlanEnd),
+								gt(tables.user.polarSubscriptionPlanEnd, new Date())
+							)
+						)
+					: undefined
+			),
+
+			// Team
+			and(
+				isNotNull(tables.scope.orgId),
+
+				// check if we are part of the organization
+				or(eq(tables.org.ownerId, userId ?? ''), eq(tables.org_member.userId, userId ?? '')),
+
+				// check the status of the owners subscription plan
+				checkSubscription
+					? and(
+							isNotNull(owner.id),
+							eq(owner.polarSubscriptionPlanId, TEAM_PRODUCT_ID),
+							or(
+								isNull(owner.polarSubscriptionPlanEnd),
+								gt(owner.polarSubscriptionPlanEnd, new Date())
+							)
+						)
+					: undefined
+			)
+		)
+	);
 }

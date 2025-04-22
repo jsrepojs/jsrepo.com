@@ -13,7 +13,7 @@ export type MinUser = {
 
 export function welcomeEmail(user: MinUser): CreateEmailOptions {
 	return {
-		from: 'Aidan <aidan@jsrepo.com>',
+		from: 'Aidan <support@jsrepo.com>',
 		to: [user.email],
 		subject: 'Welcome to jsrepo.com',
 		html: `<p>Hey ${user.name}!</p>

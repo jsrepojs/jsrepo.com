@@ -1,14 +1,21 @@
 <script lang="ts">
-	import { active } from '$lib/actions/active.svelte';
+	import { active, type Options } from '$lib/actions/active.svelte';
 	import { cn } from '$lib/utils/utils';
 	import type { HTMLAnchorAttributes } from 'svelte/elements';
 
-	let { class: className, children, ...rest }: HTMLAnchorAttributes = $props();
+	let {
+		isHash = false,
+		isSearch = false,
+		activeForSubdirectories = true,
+		class: className,
+		children,
+		...rest
+	}: HTMLAnchorAttributes & Partial<Options> = $props();
 </script>
 
 <a
 	{...rest}
-	use:active={{ activeForSubdirectories: false }}
+	use:active={{ activeForSubdirectories, isHash, isSearch }}
 	class={cn(
 		'flex w-fit flex-row rounded-t-lg border-x border-t px-3 py-2 text-muted-foreground transition-all hover:text-foreground data-[active=false]:border-transparent data-[active=true]:bg-accent data-[active=true]:text-foreground',
 		className

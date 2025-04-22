@@ -123,7 +123,7 @@ export async function POST({ request }) {
 		error(401, `you don't have permission to publish to the scope \`@${scopeName}\``);
 	}
 
-	const registry = await getRegistry(scopeName, registryName);
+	const registry = await getRegistry(scopeName, registryName, user.id);
 
 	let registryId = registry?.id ?? null;
 
