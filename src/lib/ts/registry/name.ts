@@ -17,4 +17,4 @@
  * console--0
  * ```
  */
-export const NAME_REGEX = /^(?!-)[a-z](?!.*--)([0a-z](?!-))*[0a-z]$/g;
+export const NAME_REGEX = /^(?![-0-9])(?!.*--)[a-z0-9]*(?:-[a-z0-9]+)*$/gi;

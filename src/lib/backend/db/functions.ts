@@ -121,6 +121,7 @@ export async function getVersions(
 			tag: tables.version.tag,
 			registryId: tables.version.registryId,
 			releasedById: tables.version.releasedById,
+			hasReadme: tables.version.hasReadme,
 			createdAt: tables.version.createdAt
 		})
 		.from(tables.scope)
@@ -153,7 +154,7 @@ export async function createRegistry(
 
 export async function createVersion(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: { registryId: number; version: string; tag: string | null; releasedById: string },
+	record: { registryId: number; version: string; tag: string | null; releasedById: string, hasReadme: boolean },
 	oldTaggedVersionId?: number
 ): Promise<number | null> {
 	if (record.tag && oldTaggedVersionId) {

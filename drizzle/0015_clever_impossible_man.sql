@@ -1,0 +1,1 @@
+ALTER TABLE "version" ADD COLUMN "hasReadme" boolean DEFAULT false NOT NULL;

@@ -23,6 +23,8 @@ import type { Version } from '$lib/backend/db/schema.js';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
+	const dryRun = request.headers.get('x-dry-run') === '1';
+	const publishPrivate = request.headers.get('x-private') === '1';
 
 	if (apiKey === null) {
 		error(401, 'generate an api key to publish to the jsrepo.com registry');
@@ -115,11 +117,26 @@ export async function POST({ request }) {
 
 	assert(user !== null, 'User should be defined!');
 
-	if (!canPublishToScope(user, scope, manifest.private)) {
+	if (!canPublishToScope(user, scope, publishPrivate)) {
 		error(401, `you don't have permission to publish to the scope \`@${scopeName}\``);
 	}
 
-	let registryId = (await getRegistry(scopeName, registryName))?.id ?? null;
+	const registry = await getRegistry(scopeName, registryName);
+
+	let registryId = registry?.id ?? null;
+
+	if (dryRun) {
+		// check if the version exists
+		if (registryId !== null) {
+			const versions = await getVersions(scopeName, registryName);
+
+			if (versions && versions.find((v) => v.version === manifest.version)) {
+				error(400, `cannot publish over an existing version ${manifest.version}`);
+			}
+		}
+
+		return json({ status: 'dry-run' });
+	}
 
 	const result = await db.transaction(async (tx) => {
 		let oldTaggedVersion: Version | null = null;
@@ -131,7 +148,7 @@ export async function POST({ request }) {
 			registryId = await createRegistry(tx, {
 				name: registryName,
 				scopeId: scope.id,
-				private: manifest.private
+				private: publishPrivate
 			});
 
 			if (registryId === null) {
@@ -182,6 +199,7 @@ export async function POST({ request }) {
 				registryId,
 				version: manifest.version,
 				tag: releaseTag,
+				hasReadme: files.find((f) => f.name === 'README.md') !== undefined,
 				releasedById: verifyResult.key?.userId ?? '' // we asserted this to be defined earlier
 			},
 			oldTaggedVersion?.id
@@ -206,15 +224,26 @@ export async function POST({ request }) {
 		error(500, 'error publishing to jsrepo.com');
 	}
 
+	// if the registry already existed we use it's setting else we use the setting provided
+	const isPrivate = registry ? registry.private : publishPrivate
+
 	postHogClient.capture({
 		event: 'publish-registry',
 		distinctId: verifyResult.key.userId,
 		properties: {
 			scope: scopeName,
 			registry: registryName,
-			version: manifest.version
+			version: manifest.version,
+			private: isPrivate
 		}
 	});
 
-	return json({});
+	return json({
+		status: 'published',
+		scope: scopeName,
+		registry: registryName,
+		version: manifest.version,
+		tag: releaseTag,
+		private: isPrivate
+	});
 }

@@ -204,6 +204,7 @@ export const version = pgTable(
 		releasedById: text('released_by_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
+		hasReadme: boolean('has_readme').notNull().default(false),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
