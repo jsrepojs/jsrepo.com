@@ -331,3 +331,57 @@ export async function listMyOrganizations(userId: string) {
 
 	return result;
 }
+
+/** Gets the registries belonging to the scope regardless of the subscription status
+ *
+ * @param userId
+ * @param scopeName
+ */
+export async function getScopePackages(userId: string | null, scopeName: string) {
+	const owner = aliasedTable(tables.user, 'owner');
+
+	const result = await db
+		.select({
+			id: tables.registry.id,
+			name: tables.registry.name,
+			private: tables.registry.private,
+			scopeId: tables.registry.scopeId,
+			createdAt: tables.registry.createdAt
+		})
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+
+				// access check
+				or(
+					// registry is not private
+					eq(tables.registry.private, false),
+
+					or(
+						and(
+							isNotNull(tables.scope.userId),
+
+							// check if we own the scope
+							eq(tables.scope.userId, userId ?? '')
+						),
+
+						// Team
+						and(
+							isNotNull(tables.scope.orgId),
+
+							// check if we are part of the organization
+							or(eq(tables.org.ownerId, userId ?? ''), eq(tables.org_member.userId, userId ?? ''))
+						)
+					)
+				)
+			)
+		);
+
+	return result;
+}
