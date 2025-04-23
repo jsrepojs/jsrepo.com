@@ -198,7 +198,7 @@
 	<div class="w-full">
 		{#if tab === '/'}
 			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
-				<div class="relative col-start-1 max-w-full overflow-hidden">
+				<div class="relative flex flex-col gap-6 col-start-1 max-w-full overflow-hidden">
 					{#if data.readme === null}
 						<div class="flex h-96 flex-col place-items-center justify-center gap-2">
 							<span class="text-center text-lg text-muted-foreground">
@@ -210,6 +210,14 @@
 							{@html data.readme}
 						</div>
 					{/if}
+					<Button
+						href="/help?reason={'suspicious-registry' as SupportReason}&subject={`@${data.scopeName}/${data.registryName} is suspicious`}"
+						variant="destructive"
+						class="w-fit"
+					>
+						<Flag />
+						Report Registry
+					</Button>
 				</div>
 				<Separator class="md:hidden" />
 				<div
@@ -282,13 +290,6 @@
 							</ul>
 						</div>
 					{/if}
-					<Button
-						href="/help?reason={'suspicious-registry' as SupportReason}&subject={`@${data.scopeName}/${data.registryName} is suspicious`}"
-						variant="destructive"
-					>
-						<Flag />
-						Report Registry
-					</Button>
 				</div>
 			</div>
 		{:else if tab === 'blocks'}

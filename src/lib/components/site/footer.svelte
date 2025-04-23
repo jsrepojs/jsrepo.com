@@ -15,6 +15,10 @@
 			href: '/pricing'
 		},
 		{
+			title: 'Help',
+			href: '/help'
+		},
+		{
 			title: 'Docs',
 			href: 'https://jsrepo.dev/docs'
 		},

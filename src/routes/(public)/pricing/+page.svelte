@@ -55,8 +55,14 @@
 		</div>
 	</div>
 	<span class="text-sm text-muted-foreground">
-		*As we are still getting started expect pricing to change.
+		*Pricing may change as we are still just getting started.
 	</span>
+	<div class="mt-20 flex flex-col gap-2 justify-center place-items-center">
+		<h2 class="text-3xl font-bold text-center">Can't decide?</h2>
+		<Button href="/help?reason=pricing">
+			Contact Us
+		</Button>
+	</div>
 </div>
 
 {#snippet feature_list({ features }: { features: string[] })}
