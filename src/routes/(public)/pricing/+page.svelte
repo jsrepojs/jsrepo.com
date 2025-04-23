@@ -57,11 +57,9 @@
 	<span class="text-sm text-muted-foreground">
 		*Pricing may change as we are still just getting started.
 	</span>
-	<div class="mt-20 flex flex-col gap-2 justify-center place-items-center">
-		<h2 class="text-3xl font-bold text-center">Can't decide?</h2>
-		<Button href="/help?reason=pricing">
-			Contact Us
-		</Button>
+	<div class="mt-20 flex flex-col place-items-center justify-center gap-2">
+		<h2 class="text-center text-3xl font-bold">Can't decide?</h2>
+		<Button href="/help?reason=pricing">Contact Us</Button>
 	</div>
 </div>
 

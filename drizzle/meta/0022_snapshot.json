@@ -1,6 +1,6 @@
 {
-	"id": "c824ef55-ac3c-4c8a-84ad-7b20fc0bc2b7",
-	"prevId": "bd5bd55a-8933-4705-9fe1-4810cba10d50",
+	"id": "6a2a13ae-bd85-41d6-909c-093c95ce233f",
+	"prevId": "a2760175-64d3-4375-9147-68f980931fb4",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -778,7 +778,7 @@
 					"name": "claimed_at",
 					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": false,
+					"notNull": true,
 					"default": "now()"
 				}
 			},
@@ -860,6 +860,145 @@
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": true
+		},
+		"public.scope_transfer_request": {
+			"name": "scope_transfer_request",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "serial",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"scope_id": {
+					"name": "scope_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"new_org_id": {
+					"name": "new_org_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"new_user_id": {
+					"name": "new_user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_by_id": {
+					"name": "created_by_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"accepted_at": {
+					"name": "accepted_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"scope_transfer_request_created_by_id_idx": {
+					"name": "scope_transfer_request_created_by_id_idx",
+					"columns": [
+						{
+							"expression": "created_by_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"scope_transfer_request_scope_id_idx": {
+					"name": "scope_transfer_request_scope_id_idx",
+					"columns": [
+						{
+							"expression": "scope_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"scope_transfer_request_accepted_at_idx": {
+					"name": "scope_transfer_request_accepted_at_idx",
+					"columns": [
+						{
+							"expression": "accepted_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"scope_transfer_request_scope_id_scope_id_fk": {
+					"name": "scope_transfer_request_scope_id_scope_id_fk",
+					"tableFrom": "scope_transfer_request",
+					"tableTo": "scope",
+					"columnsFrom": ["scope_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"scope_transfer_request_new_org_id_org_id_fk": {
+					"name": "scope_transfer_request_new_org_id_org_id_fk",
+					"tableFrom": "scope_transfer_request",
+					"tableTo": "org",
+					"columnsFrom": ["new_org_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"scope_transfer_request_new_user_id_user_id_fk": {
+					"name": "scope_transfer_request_new_user_id_user_id_fk",
+					"tableFrom": "scope_transfer_request",
+					"tableTo": "user",
+					"columnsFrom": ["new_user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"scope_transfer_request_created_by_id_user_id_fk": {
+					"name": "scope_transfer_request_created_by_id_user_id_fk",
+					"tableFrom": "scope_transfer_request",
+					"tableTo": "user",
+					"columnsFrom": ["created_by_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
 		"public.session": {
 			"name": "session",

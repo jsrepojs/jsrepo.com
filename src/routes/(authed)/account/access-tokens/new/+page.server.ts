@@ -40,7 +40,7 @@ export const actions = {
 			body: {
 				name: form.data.name,
 				permissions: {
-					packages: ['publish']
+					registries: ['publish']
 				},
 				userId: session.user.id,
 				expiresIn: form.data.expiresIn

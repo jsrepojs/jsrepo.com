@@ -6,7 +6,7 @@
 	import '@fontsource-variable/jetbrains-mono';
 	import { ModeWatcher } from 'mode-watcher';
 	import Footer from '$lib/components/site/footer.svelte';
-	
+
 	let { children } = $props();
 
 	newTokenContext.set(new UseReactive(null));

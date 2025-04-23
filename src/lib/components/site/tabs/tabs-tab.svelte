@@ -18,7 +18,7 @@
 	{...rest}
 	use:active={{ activeForSubdirectories, isHash, isSearch }}
 	class={cn(
-		'flex w-fit flex-row rounded-t-lg gap-2 border-x border-t px-3 py-2 text-base/[--line-height] text-muted-foreground transition-all hover:text-foreground data-[active=false]:border-transparent data-[active=true]:bg-accent data-[active=true]:text-foreground',
+		'flex w-fit flex-row gap-2 rounded-t-lg border-x border-t px-3 py-2 text-base/[--line-height] text-muted-foreground transition-all hover:text-foreground data-[active=false]:border-transparent data-[active=true]:bg-accent data-[active=true]:text-foreground',
 		className
 	)}
 	style="--line-height: 24px;"

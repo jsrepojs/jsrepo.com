@@ -38,7 +38,7 @@ export async function POST({ request }) {
 		body: {
 			key: apiKey,
 			permissions: {
-				packages: ['publish']
+				registries: ['publish']
 			}
 		}
 	});
@@ -214,7 +214,8 @@ export async function POST({ request }) {
 			}
 
 			// update metadata
-			await tx.update(tables.registry)
+			await tx
+				.update(tables.registry)
 				.set({
 					metaAuthors: manifest.meta?.authors ?? null,
 					metaBugs: manifest.meta?.bugs ?? null,

@@ -9,7 +9,7 @@ import {
 	unique,
 	integer,
 	pgEnum,
-	index,
+	index
 } from 'drizzle-orm/pg-core';
 
 // Auth Schema
@@ -171,6 +171,31 @@ export const scope = pgTable(
 
 export type Scope = InferSelectModel<typeof scope>;
 
+export const scopeTransferRequest = pgTable(
+	'scope_transfer_request',
+	{
+		id: serial('id').primaryKey(),
+		scopeId: integer('scope_id')
+			.notNull()
+			.references(() => scope.id, { onDelete: 'cascade' }),
+		newOrgId: integer('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		newUserId: text('new_user_id').references(() => user.id, { onDelete: 'cascade' }),
+		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		acceptedAt: timestamp('accepted_at')
+	},
+	(table) => {
+		return [
+			sql`CONSTRAINT not_null_owner CHECK (${table.newOrgId} IS NOT NULL OR ${table.newUserId} IS NOT NULL)`,
+			index('scope_transfer_request_created_by_id_idx').on(table.createdById),
+			index('scope_transfer_request_scope_id_idx').on(table.scopeId),
+			index('scope_transfer_request_accepted_at_idx').on(table.acceptedAt)
+		];
+	}
+);
+
+export type ScopeTransferRequest = InferSelectModel<typeof scopeTransferRequest>;
+
 export const registry = pgTable(
 	'registry',
 	{
@@ -197,7 +222,7 @@ export const registry = pgTable(
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),
-			index('registry_meta_authors').on(table.metaAuthors),
+			index('registry_meta_authors').on(table.metaAuthors)
 		];
 	}
 ).enableRLS();

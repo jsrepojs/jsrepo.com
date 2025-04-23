@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-    <title>Thank you! - jsrepo</title>
+	<title>Thank you! - jsrepo</title>
 </svelte:head>
 
 <main

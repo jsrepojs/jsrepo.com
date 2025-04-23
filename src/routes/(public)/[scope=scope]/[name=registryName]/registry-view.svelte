@@ -198,7 +198,7 @@
 	<div class="w-full">
 		{#if tab === '/'}
 			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
-				<div class="relative flex flex-col gap-6 col-start-1 max-w-full overflow-hidden">
+				<div class="relative col-start-1 flex max-w-full flex-col gap-6 overflow-hidden">
 					{#if data.readme === null}
 						<div class="flex h-96 flex-col place-items-center justify-center gap-2">
 							<span class="text-center text-lg text-muted-foreground">

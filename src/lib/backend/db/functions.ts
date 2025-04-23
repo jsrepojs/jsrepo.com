@@ -19,6 +19,13 @@ import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
+import * as v from 'valibot';
+
+export type tx = PgTransaction<
+	PostgresJsQueryResultHKT,
+	Record<string, never>,
+	TablesRelationalConfig
+>;
 
 export async function canPublishToScope(
 	user: tables.User,
@@ -80,8 +87,6 @@ export async function getUser(userId: string): Promise<tables.User | null> {
 
 	return user[0] ?? null;
 }
-
-// export async function getScopePackages(userId: string, scope: string) {}
 
 export async function createScope(record: {
 	name: string;
@@ -172,7 +177,7 @@ export async function getVersion(scopeName: string, registryName: string, versio
 }
 
 export async function createRegistry(
-	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
+	tx: tx,
 	record: InferInsertModel<typeof tables.registry>
 ): Promise<number | null> {
 	const result = await tx
@@ -376,7 +381,7 @@ export async function listMyOrganizations(userId: string) {
  * @param userId
  * @param scopeName
  */
-export async function getScopePackages(userId: string | null, scopeName: string) {
+export async function getScopeRegistries(userId: string | null, scopeName: string) {
 	const owner = aliasedTable(tables.user, 'owner');
 
 	const result = await db
@@ -468,4 +473,94 @@ function checkAccessQuery(
 			)
 		)
 	);
+}
+
+export async function getOrg(name: string) {
+	const result = await db.select().from(tables.org).where(eq(tables.org.name, name));
+
+	if (result.length === 0) return null;
+
+	return result[0];
+}
+
+export async function getUserByEmail(email: string) {
+	const result = await db.select().from(tables.user).where(eq(tables.user.email, email));
+
+	if (result.length === 0) return null;
+
+	return result[0];
+}
+
+export async function isScopeOwner(userId: string, scopeName: string): Promise<boolean> {
+	const result = await db
+		.select()
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(
+			tables.user,
+			or(eq(tables.user.id, tables.scope.userId), eq(tables.user.id, tables.org.ownerId))
+		)
+		.where(and(eq(tables.scope.name, scopeName), eq(tables.user.id, userId)));
+
+	return result.length > 0;
+}
+
+export async function createScopeTransferRequest(
+	tx: tx,
+	record: InferInsertModel<typeof tables.scopeTransferRequest>
+) {
+	const result = await tx
+		.insert(tables.scopeTransferRequest)
+		.values(record)
+		.returning({ id: tables.scopeTransferRequest.id });
+
+	return result[0]?.id ?? null;
+}
+
+export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null> {
+	const result = v.safeParse(v.pipe(v.string(), v.email()), search);
+
+	if (result.success) {
+		// is email
+		const user = await getUserByEmail(search);
+
+		if (user === null) return null;
+
+		return 'user';
+	} else {
+		const org = await getOrg(search);
+
+		if (org === null) return null;
+
+		return 'org';
+	}
+}
+
+export async function getOrgWithOwner(name: string) {
+	const result = await db
+		.select()
+		.from(tables.org)
+		.innerJoin(tables.user, eq(tables.user.id, tables.org.ownerId))
+		.where(eq(tables.org.name, name));
+
+	return result[0] ?? null;
+}
+
+export type TransferOwnershipOptions = { scopeId: number } & (
+	| { newOrgId: number; newUserId?: never }
+	| { newUserId: string; newOrgId?: never }
+);
+
+export async function transferScopeOwnership(tx: tx, request: TransferOwnershipOptions) {
+	if (request.newUserId) {
+		await tx
+			.update(tables.scope)
+			.set({ orgId: null, userId: request.newUserId })
+			.where(eq(tables.scope.id, request.scopeId));
+	} else {
+		await tx
+			.update(tables.scope)
+			.set({ orgId: request.newOrgId, userId: null })
+			.where(eq(tables.scope.id, request.scopeId));
+	}
 }

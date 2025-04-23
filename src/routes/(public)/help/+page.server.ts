@@ -55,6 +55,6 @@ export const actions = {
 			error(500, 'There was an error processing your request');
 		}
 
-		throw redirect(303, '/help/success')
+		throw redirect(303, '/help/success');
 	}
 };

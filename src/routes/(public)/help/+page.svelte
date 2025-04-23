@@ -123,7 +123,8 @@
 			</Form.Control>
 			<Form.FieldErrors />
 		</Form.Field>
-		<Form.Button loading={$submitting} disabled={!canSubmit} class="w-full">Get Support</Form.Button>
+		<Form.Button loading={$submitting} disabled={!canSubmit} class="w-full">Get Support</Form.Button
+		>
 		{#if error}
 			<span class="text-sm text-destructive">{error}</span>
 		{/if}

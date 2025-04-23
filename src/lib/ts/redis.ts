@@ -6,9 +6,9 @@ export const redis = new Redis({ url: UPSTASH_REDIS_URL, token: UPSTASH_REDIS_TO
 
 /** Limits the user to 5 requests per 24 hours */
 export const supportFormRateLimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '24 h'),
-    analytics: true,
+	redis,
+	limiter: Ratelimit.slidingWindow(5, '24 h'),
+	analytics: true,
 
-    prefix: 'ratelimit-support-form',
-})
+	prefix: 'ratelimit-support-form'
+});
