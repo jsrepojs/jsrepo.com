@@ -1,6 +1,6 @@
 import { auth } from '$lib/auth.js';
 import { error } from '@sveltejs/kit';
-import { getInfo } from '../../page.server.js';
+import { getInfo } from '../../registry-view-server.js';
 
 export async function load({ params, request }) {
 	const session = await auth.api.getSession({ headers: request.headers });

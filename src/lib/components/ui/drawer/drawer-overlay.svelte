@@ -3,18 +3,18 @@
 -->
 
 <script lang="ts">
-	import { Dialog as DialogPrimitive } from 'bits-ui';
+	import { Drawer as DrawerPrimitive } from 'vaul-svelte';
 	import { cn } from '$lib/utils/utils.js';
 
 	let {
 		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: DialogPrimitive.TitleProps = $props();
+	}: DrawerPrimitive.OverlayProps = $props();
 </script>
 
-<DialogPrimitive.Title
+<DrawerPrimitive.Overlay
 	bind:ref
-	class={cn('text-lg font-semibold leading-none tracking-tight', className)}
+	class={cn('fixed inset-0 z-50 bg-black/80', className)}
 	{...restProps}
 />

@@ -5,7 +5,7 @@
 	import semver from 'semver';
 	import * as array from '$lib/ts/array';
 	import type { Block, Manifest } from '$lib/ts/registry/manifest';
-	import { ChevronRight, FlaskRound, File, Ellipsis } from '@lucide/svelte';
+	import { ChevronRight, FlaskRound, File, Ellipsis, Flag } from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { FileIcon } from '$lib/components/ui/file-icon';
@@ -16,10 +16,11 @@
 	import '../../../../markdown.css';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Popover from '$lib/components/ui/popover';
-	import { buttonVariants } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { parsePackageName } from '$lib/ts/parse-package-name';
 	import * as Nav from '$lib/components/site/nav';
 	import { toRelative } from '$lib/ts/dates';
+	import type { SupportReason } from '$lib/ts/help';
 
 	let { data }: { data: PageData } = $props();
 
@@ -197,7 +198,7 @@
 	<div class="w-full">
 		{#if tab === '/'}
 			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
-				<div class="col-start-1 max-w-full overflow-hidden relative">
+				<div class="relative col-start-1 max-w-full overflow-hidden">
 					{#if data.readme === null}
 						<div class="flex h-96 flex-col place-items-center justify-center gap-2">
 							<span class="text-center text-lg text-muted-foreground">
@@ -281,6 +282,13 @@
 							</ul>
 						</div>
 					{/if}
+					<Button
+						href="/help?reason={'suspicious-registry' as SupportReason}&subject={`@${data.scopeName}/${data.registryName} is suspicious`}"
+						variant="destructive"
+					>
+						<Flag />
+						Report Registry
+					</Button>
 				</div>
 			</div>
 		{:else if tab === 'blocks'}

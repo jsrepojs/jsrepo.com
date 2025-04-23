@@ -49,3 +49,25 @@ export function accessTokenCreatedEmail(user: MinUser, key: APIKey): CreateEmail
 <p>You can manage your tokens <a href="https://jsrepo.com/account/access-tokens">here</a>.</p>`
 	};
 }
+
+export function supportEmail(opts: {
+	name: string;
+	email: string;
+	subject: string;
+	body: string;
+	reason: string;
+}): CreateEmailOptions {
+	return {
+		from: `${opts.name} <users@jsrepo.com>`,
+		to: [SUPPORT_EMAIL],
+		replyTo: `${opts.name} <${opts.email}>`,
+		subject: opts.subject,
+		html: `[${opts.reason}] ${opts.body}`,
+		tags: [
+			{
+				name: 'support',
+				value: opts.reason
+			}
+		]
+	};
+}
