@@ -56,6 +56,9 @@
 			} else {
 			}
 
+			userOrOrg = '';
+			userOrOrgValidated = false;
+
 			transferDialogOpen = false;
 		} catch {
 		} finally {
@@ -63,6 +66,11 @@
 		}
 	}
 </script>
+
+<!-- 
+heres the plan here when a request is active this 
+entire form will be replaced with the request where you can cancel it 
+-->
 
 <div class="flex flex-col gap-4">
 	<FieldSet.Root>
@@ -109,7 +117,8 @@
 						</Dialog.Description>
 					</Dialog.Header>
 					<small class="text-muted-foreground">
-						The user or organization owner will receive an email to accept the transfer.
+						The user or organization owner will receive an email to accept the transfer. Submitting
+						this form will dismiss any pending transfer requests.
 					</small>
 					<Dialog.Footer>
 						<Button variant="outline" onclick={() => (transferDialogOpen = false)}>Cancel</Button>

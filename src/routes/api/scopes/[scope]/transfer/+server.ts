@@ -1,6 +1,7 @@
 import { auth } from '$lib/auth';
 import {
 	createScopeTransferRequest,
+	dismissPendingScopeTransferRequests,
 	getOrgWithOwner,
 	getScope,
 	getUserByEmail,
@@ -10,6 +11,7 @@ import {
 	type TransferOwnershipOptions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
+import { postHogClient } from '$lib/ts/posthog.js';
 import {
 	resend,
 	scopeTransferredEmail,
@@ -61,6 +63,9 @@ export async function PATCH({ request, params }) {
 			createdById: string;
 			acceptedAt: Date | undefined;
 		};
+
+		// dismiss pending transfer requests
+		await dismissPendingScopeTransferRequests(tx, scope.id);
 
 		if (userOrOrg === 'user') {
 			const user = await getUserByEmail(body.transferTo);
@@ -156,6 +161,14 @@ export async function PATCH({ request, params }) {
 		);
 
 		return 'transferred';
+	});
+
+	postHogClient.capture({
+		event: result === 'transferred' ? 'scope-transferred' : 'scope-transfer-requested',
+		distinctId: session.user.id,
+		properties: {
+			scope: scopeName
+		}
 	});
 
 	return json({ type: result } satisfies TransferRequestResponse);

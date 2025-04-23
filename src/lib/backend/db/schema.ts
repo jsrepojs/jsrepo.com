@@ -184,7 +184,8 @@ export const scopeTransferRequest = pgTable(
 		oldUserId: text('old_user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
-		acceptedAt: timestamp('accepted_at')
+		acceptedAt: timestamp('accepted_at'),
+		rejectedAt: timestamp('rejected_at'),
 	},
 	(table) => {
 		return [

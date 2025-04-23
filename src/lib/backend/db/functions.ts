@@ -11,7 +11,7 @@ import {
 	desc,
 	type TablesRelationalConfig,
 	type InferInsertModel,
-	getTableColumns
+	getTableColumns,
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -641,4 +641,20 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 		);
 
 	return result[0] !== undefined;
+}
+
+export async function dismissPendingScopeTransferRequests(tx: tx, scopeId: number) {
+	await tx
+		.delete(tables.scopeTransferRequest)
+		.where(
+			and(
+				eq(tables.scopeTransferRequest.scopeId, scopeId),
+
+				// don't dismiss any that have already been interacted with
+				and(
+					isNull(tables.scopeTransferRequest.acceptedAt),
+					isNull(tables.scopeTransferRequest.rejectedAt)
+				)
+			)
+		);
 }
