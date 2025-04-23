@@ -16,7 +16,9 @@
 	</div>
 	<Tabs.Root>
 		<Tabs.Tab href="/@{data.scope.name}" activeForSubdirectories={false}>Registries</Tabs.Tab>
-		<Tabs.Tab href="/@{data.scope.name}/-/settings">Settings</Tabs.Tab>
+		{#if data.hasSettingsAccess}
+			<Tabs.Tab href="/@{data.scope.name}/-/settings">Settings</Tabs.Tab>
+		{/if}
 	</Tabs.Root>
 	<div class="w-full">
 		{@render children()}

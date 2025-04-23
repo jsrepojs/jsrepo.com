@@ -1,6 +1,6 @@
 {
-	"id": "2539e4ee-21ab-45f8-945b-f8c8fc984613",
-	"prevId": "6a2a13ae-bd85-41d6-909c-093c95ce233f",
+	"id": "68d8646a-5d06-408c-8fe8-e4140d06c47b",
+	"prevId": "2539e4ee-21ab-45f8-945b-f8c8fc984613",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -729,10 +729,10 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
-				"registry_name_unique": {
-					"name": "registry_name_unique",
+				"registry_scope_id_name_unique": {
+					"name": "registry_scope_id_name_unique",
 					"nullsNotDistinct": false,
-					"columns": ["name"]
+					"columns": ["scope_id", "name"]
 				}
 			},
 			"policies": {},

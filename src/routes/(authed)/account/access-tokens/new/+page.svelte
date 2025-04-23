@@ -88,66 +88,69 @@
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a
 		href="/account/access-tokens"
-		class="flex place-items-center gap-2 text-muted-foreground transition-all hover:text-foreground"
+		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
 	>
 		<ChevronLeft />
 		Back to Access Tokens
 	</a>
-	<h1 class="text-2xl font-bold">New Access Token</h1>
-	<Form.Field {form} name="name">
-		<Form.Control>
-			{#snippet children({ props })}
-				<Form.Label>Name</Form.Label>
-				<div class="relative">
-					<Input {...props} bind:value={$formData.name} placeholder="Name" />
-					{#if hasName}
-						<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
-					{:else if $formData.name.length > 0}
-						<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
-					{/if}
-				</div>
-			{/snippet}
-		</Form.Control>
-		<Form.Description>Name to identify the access token.</Form.Description>
-		<Form.FieldErrors />
-	</Form.Field>
-	<Form.Field {form} name="expiresIn">
-		<Form.Control>
-			{#snippet children({ props })}
-				<Form.Label>Expires In</Form.Label>
-				<Select.Root
-					{...props}
-					type="single"
-					bind:value={
-						() => $formData.expiresIn?.toString() ?? 'never',
-						(v) => {
-							if (v === 'never') {
-								$formData.expiresIn = null;
-							} else {
-								$formData.expiresIn = parseInt(v);
+	<div>
+		<h1 class="text-2xl font-bold">New Access Token</h1>
+		<Form.Field {form} name="name">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Form.Label>Name</Form.Label>
+					<div class="relative">
+						<Input {...props} bind:value={$formData.name} placeholder="Name" />
+						{#if hasName}
+							<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
+						{:else if $formData.name.length > 0}
+							<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+						{/if}
+					</div>
+				{/snippet}
+			</Form.Control>
+			<Form.Description>Name to identify the access token.</Form.Description>
+			<Form.FieldErrors />
+		</Form.Field>
+		<Form.Field {form} name="expiresIn">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Form.Label>Expires In</Form.Label>
+					<Select.Root
+						{...props}
+						type="single"
+						bind:value={
+							() => $formData.expiresIn?.toString() ?? 'never',
+							(v) => {
+								if (v === 'never') {
+									$formData.expiresIn = null;
+								} else {
+									$formData.expiresIn = parseInt(v);
+								}
 							}
 						}
-					}
-				>
-					<Select.Trigger class="max-w-56">
-						{expiresInOptions.find((o) => o.value === ($formData.expiresIn?.toString() ?? 'never'))
-							?.label}
-					</Select.Trigger>
-					<Select.Content>
-						{#each expiresInOptions as option (option.label)}
-							<Select.Item value={option.value}>
-								{option.label}
-							</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
-			{/snippet}
-		</Form.Control>
-		<Form.Description>Time before the access token expires.</Form.Description>
-		<Form.FieldErrors />
-	</Form.Field>
-	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
-	{#if error}
-		<span class="text-sm text-destructive">{error}</span>
-	{/if}
+					>
+						<Select.Trigger class="max-w-56">
+							{expiresInOptions.find(
+								(o) => o.value === ($formData.expiresIn?.toString() ?? 'never')
+							)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each expiresInOptions as option (option.label)}
+								<Select.Item value={option.value}>
+									{option.label}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				{/snippet}
+			</Form.Control>
+			<Form.Description>Time before the access token expires.</Form.Description>
+			<Form.FieldErrors />
+		</Form.Field>
+		<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
+		{#if error}
+			<span class="text-sm text-destructive">{error}</span>
+		{/if}
+	</div>
 </form>

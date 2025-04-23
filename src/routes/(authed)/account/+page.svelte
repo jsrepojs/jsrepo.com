@@ -52,7 +52,7 @@
 	Icon: typeof ArrowRight;
 })}
 	<div
-		class="group relative flex flex-col justify-between gap-4 rounded-lg border border-border p-6 transition-all hover:bg-accent"
+		class="group relative flex flex-col justify-between gap-4 rounded-lg border border-border bg-card p-6 transition-all hover:bg-accent"
 	>
 		<div class="flex place-items-start justify-between">
 			<div class="flex flex-col place-items-start justify-center">

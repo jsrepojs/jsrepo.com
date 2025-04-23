@@ -159,6 +159,7 @@ export async function POST({ request }) {
 	const result = await db.transaction(async (tx) => {
 		let oldTaggedVersion: Version | null = null;
 		let latestVersion: Version | null = null;
+		let isLatest = releaseTag === null;
 
 		if (registryId === null) {
 			// create registry
@@ -181,7 +182,6 @@ export async function POST({ request }) {
 			// if the registry exists we need to check and see if the same tag has already been published
 			const versions = await getVersions(scopeName, registryName);
 
-			let isLatest = releaseTag === null;
 			if (versions) {
 				for (const version of versions) {
 					if (version.tag === releaseTag) {
@@ -208,11 +208,6 @@ export async function POST({ request }) {
 				}
 			}
 
-			if (isLatest) {
-				releaseTag = 'latest';
-				oldTaggedVersion = latestVersion;
-			}
-
 			// update metadata
 			await tx
 				.update(tables.registry)
@@ -225,6 +220,11 @@ export async function POST({ request }) {
 					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null
 				})
 				.where(eq(tables.registry.id, registryId));
+		}
+
+		if (isLatest) {
+			releaseTag = 'latest';
+			oldTaggedVersion = latestVersion;
 		}
 
 		// create version

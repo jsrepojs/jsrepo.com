@@ -562,11 +562,83 @@ export async function transferScopeOwnership(tx: tx, request: TransferOwnershipO
 			.set({ orgId: null, userId: request.newUserId })
 			.where(eq(tables.scope.id, request.scopeId));
 	} else {
-		assert(request.newOrgId !== undefined, 'This must be defined')
+		assert(request.newOrgId !== undefined, 'This must be defined');
 
 		await tx
 			.update(tables.scope)
 			.set({ orgId: request.newOrgId, userId: null })
 			.where(eq(tables.scope.id, request.scopeId));
 	}
+}
+
+export async function getScopeWithOwner(name: string) {
+	const result = await db
+		.select()
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.innerJoin(
+			tables.user,
+			or(eq(tables.user.id, tables.scope.userId), eq(tables.user.id, tables.org.ownerId))
+		)
+		.where(eq(tables.scope.name, name));
+
+	return result[0] ?? null;
+}
+
+/** You have scope access if 1 you are the owner or 2 you are a member of a team which is maintaining an active subscription.
+ *
+ * @param name
+ */
+export async function hasScopeAccess(userId: string | null, name: string) {
+	const owner = aliasedTable(tables.user, 'owner');
+
+	const result = await db
+		.select({
+			id: tables.scope.id
+		})
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.org_member, eq(tables.org_member.orgId, tables.org.id))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				eq(tables.scope.name, name),
+
+				// access check
+				or(
+					// Free / Pro
+					and(
+						isNotNull(tables.scope.userId),
+
+						eq(tables.scope.userId, userId ?? '')
+					),
+
+					// Team
+					and(
+						isNotNull(tables.scope.orgId),
+
+						// either we are the owner or we are a member of the team with the subscription active
+						or(
+							// we are the owner
+							eq(tables.org.ownerId, userId ?? ''),
+
+							// we are a member and subscription is paid
+							and(
+								eq(tables.org_member.userId, userId ?? ''),
+
+								isNotNull(owner.id),
+								eq(owner.polarSubscriptionPlanId, TEAM_PRODUCT_ID),
+								or(
+									isNull(owner.polarSubscriptionPlanEnd),
+									gt(owner.polarSubscriptionPlanEnd, new Date())
+								)
+							)
+						)
+					)
+				)
+			)
+		);
+
+	return result[0] !== undefined;
 }

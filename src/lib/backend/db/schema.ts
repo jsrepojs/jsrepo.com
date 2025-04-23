@@ -203,7 +203,7 @@ export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
+		name: varchar('name', { length: 20 }).notNull(),
 		private: boolean().notNull().default(false),
 		scopeId: integer('scope_id')
 			.notNull()
@@ -221,6 +221,7 @@ export const registry = pgTable(
 	},
 	(table) => {
 		return [
+			unique().on(table.scopeId, table.name),
 			index('registry_name_idx').on(table.name),
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),

@@ -64,7 +64,7 @@
 	}
 </script>
 
-<div class="py-4">
+<div class="flex flex-col gap-4">
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-col gap-2">
 			<FieldSet.Title>Transfer Ownership</FieldSet.Title>
