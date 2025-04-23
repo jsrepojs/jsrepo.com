@@ -1,7 +1,7 @@
 import { auth } from '$lib/auth.js';
 import { supportFormRateLimit } from '$lib/ts/redis.js';
-import { error, fail, redirect } from '@sveltejs/kit';
-import { superValidate } from 'sveltekit-superforms';
+import { error, fail } from '@sveltejs/kit';
+import { message, superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema.js';
 import { toRelative } from '$lib/ts/dates.js';
@@ -55,6 +55,6 @@ export const actions = {
 			error(500, 'There was an error processing your request');
 		}
 
-		throw redirect(303, '/help/success');
+		return message(form, { message: 'success' });
 	}
 };
