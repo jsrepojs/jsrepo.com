@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { Err, Ok, type Result } from '../result';
 
 export const blockSchema = v.object({
 	name: v.string(),
@@ -73,3 +74,68 @@ export type Category = v.InferOutput<typeof categorySchema>;
 export type Block = v.InferOutput<typeof blockSchema>;
 
 export type Manifest = v.InferOutput<typeof manifestSchema>;
+
+export function validateAndScore(manifest: Manifest, hasReadme: boolean): Result<number, string> {
+	let score = 0;
+
+	if (hasReadme) score += 40;
+
+	// validate manifest metadata
+	if (manifest.meta) {
+		const meta = manifest.meta;
+
+		if (meta.authors) {
+			// at least 1 author listed
+			if (meta.authors.length > 0) {
+				score += 10;
+			}
+		}
+
+		if (meta.homepage) {
+			try {
+				new URL(meta.homepage);
+			} catch {
+				return Err(
+					`invalid meta.homepage field in manifest! Couldn't parse url \`${meta.homepage}\``
+				);
+			}
+
+			score += 10;
+		}
+
+		if (meta.repository) {
+			try {
+				new URL(meta.repository);
+			} catch {
+				return Err(
+					`invalid meta.repository field in manifest! Couldn't parse url \`${meta.repository}\``
+				);
+			}
+
+			score += 10;
+		}
+
+		if (meta.bugs) {
+			try {
+				new URL(meta.bugs);
+			} catch {
+				return Err(`invalid meta.bugs field in manifest! Couldn't parse url \`${meta.bugs}\``);
+			}
+
+			score += 10;
+		}
+
+		if (meta.tags) {
+			// have at least 2 tags
+			if (meta.tags.length >= 2) {
+				score += 10;
+			}
+		}
+
+		if (meta.description) {
+			score += 10;
+		}
+	}
+
+	return Ok(score);
+}

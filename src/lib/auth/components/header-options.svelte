@@ -19,7 +19,7 @@
 				<Avatar.Fallback>{getInitials($session.data.user.name)}</Avatar.Fallback>
 			</Avatar.Root>
 		</DropdownMenu.Trigger>
-		<DropdownMenu.Content align="center" sideOffset={6}>
+		<DropdownMenu.Content align="end" sideOffset={6}>
 			<DropdownMenu.Group>
 				<DropdownMenu.Item onSelect={() => goto('/account')}>Account</DropdownMenu.Item>
 				<DropdownMenu.Item onSelect={() => goto('/account/scopes')}>Scopes</DropdownMenu.Item>

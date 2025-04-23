@@ -9,7 +9,7 @@ import {
 	unique,
 	integer,
 	pgEnum,
-	index
+	index,
 } from 'drizzle-orm/pg-core';
 
 // Auth Schema
@@ -157,7 +157,7 @@ export const scope = pgTable(
 		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
-		claimedAt: timestamp('claimed_at').defaultNow()
+		claimedAt: timestamp('claimed_at').notNull().defaultNow()
 	},
 	(table) => {
 		return [
@@ -180,12 +180,24 @@ export const registry = pgTable(
 		scopeId: integer('scope_id')
 			.notNull()
 			.references(() => scope.id, { onDelete: 'cascade' }),
+
+		// metadata fields created on publish
+		metaAuthors: text('meta_authors').array(),
+		metaBugs: text('meta_bugs'),
+		metaDescription: text('meta_description'),
+		metaHomepage: text('meta_homepage'),
+		metaRepository: text('meta_repository'),
+		metaTags: text('meta_tags').array(),
+
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
 		return [
 			index('registry_name_idx').on(table.name),
-			index('registry_private_idx').on(table.private)
+			index('registry_private_idx').on(table.private),
+			index('registry_meta_description').on(table.metaDescription),
+			index('registry_meta_tags').on(table.metaTags),
+			index('registry_meta_authors').on(table.metaAuthors),
 		];
 	}
 ).enableRLS();

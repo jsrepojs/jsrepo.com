@@ -9,7 +9,9 @@ import {
 	isNull,
 	or,
 	desc,
-	type TablesRelationalConfig
+	type TablesRelationalConfig,
+	type InferInsertModel,
+	getTableColumns
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -100,11 +102,7 @@ export async function getRegistry(
 
 	const registries = await db
 		.select({
-			id: tables.registry.id,
-			name: tables.registry.name,
-			private: tables.registry.private,
-			scopeId: tables.registry.scopeId,
-			createdAt: tables.registry.createdAt
+			...getTableColumns(tables.registry)
 		})
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
@@ -175,11 +173,7 @@ export async function getVersion(scopeName: string, registryName: string, versio
 
 export async function createRegistry(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	record: {
-		name: string;
-		scopeId: number;
-		private: boolean;
-	}
+	record: InferInsertModel<typeof tables.registry>
 ): Promise<number | null> {
 	const result = await tx
 		.insert(tables.registry)

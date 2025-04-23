@@ -12,7 +12,7 @@ import {
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { postHogClient } from '$lib/ts/posthog.js';
-import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest.js';
+import { manifestSchema, validateAndScore, type Manifest } from '$lib/ts/registry/manifest.js';
 import { NAME_REGEX } from '$lib/ts/registry/name.js';
 import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
@@ -22,6 +22,8 @@ import semver from 'semver';
 import { getPreReleaseTag } from '$lib/ts/versioning.js';
 import type { Version } from '$lib/backend/db/schema.js';
 import { newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
+import * as tables from '$lib/backend/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -100,6 +102,13 @@ export async function POST({ request }) {
 		error(400, `invalid version ${manifest.version} is not semver compatible`);
 	}
 
+	const hasReadme = files.find((f) => f.name === 'README.md') !== undefined;
+
+	validateAndScore(manifest, hasReadme).match(
+		(v) => v,
+		(err) => error(400, err)
+	);
+
 	let releaseTag = getPreReleaseTag(manifest.version);
 
 	// trim @ character
@@ -156,7 +165,13 @@ export async function POST({ request }) {
 			registryId = await createRegistry(tx, {
 				name: registryName,
 				scopeId: scope.id,
-				private: publishPrivate
+				private: publishPrivate,
+				metaAuthors: manifest.meta?.authors ?? null,
+				metaBugs: manifest.meta?.bugs ?? null,
+				metaDescription: manifest.meta?.description ?? null,
+				metaHomepage: manifest.meta?.homepage ?? null,
+				metaRepository: manifest.meta?.repository ?? null,
+				metaTags: manifest.meta?.tags ?? null
 			});
 
 			if (registryId === null) {
@@ -197,6 +212,18 @@ export async function POST({ request }) {
 				releaseTag = 'latest';
 				oldTaggedVersion = latestVersion;
 			}
+
+			// update metadata
+			await tx.update(tables.registry)
+				.set({
+					metaAuthors: manifest.meta?.authors ?? null,
+					metaBugs: manifest.meta?.bugs ?? null,
+					metaDescription: manifest.meta?.description ?? null,
+					metaHomepage: manifest.meta?.homepage ?? null,
+					metaRepository: manifest.meta?.repository ?? null,
+					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null
+				})
+				.where(eq(tables.registry.id, registryId));
 		}
 
 		// create version
@@ -207,7 +234,7 @@ export async function POST({ request }) {
 				registryId,
 				version: manifest.version,
 				tag: releaseTag,
-				hasReadme: files.find((f) => f.name === 'README.md') !== undefined,
+				hasReadme,
 				releasedById: verifyResult.key?.userId ?? '' // we asserted this to be defined earlier
 			},
 			oldTaggedVersion?.id

@@ -17,10 +17,15 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Popover from '$lib/components/ui/popover';
 	import { buttonVariants } from '$lib/components/ui/button';
+	import { parsePackageName } from '$lib/ts/parse-package-name';
+	import * as Nav from '$lib/components/site/nav';
+	import { toRelative } from '$lib/ts/dates';
 
 	let { data }: { data: PageData } = $props();
 
 	const tab = $derived(page.url.searchParams.get('tab') ?? '/');
+
+	let tabListPopoverOpen = $state(false);
 
 	type RegistryInfo = {
 		categories: number;
@@ -109,40 +114,93 @@
 <div class="flex flex-col">
 	<div class="flex flex-col gap-1 py-6">
 		<h1 class="text-4xl font-bold">
-			<a href="/@{data.scopeName}" class="underline-offset-2 hover:underline">@{data.scopeName}</a
-			>/{data.registryName}
+			<a href="/@{data.scopeName}" class="underline-offset-2 hover:underline">
+				@{data.scopeName}
+			</a>/{data.registryName}
 		</h1>
-		<div class="relative flex place-items-center gap-2">
+		<div class="relative flex flex-wrap place-items-center gap-2">
 			<span class="font-mono text-sm text-muted-foreground">
 				{data.version.version.version}
 			</span>
 			<FileIcon extension={registryPrimaryLanguage} />
+			<span class="text-sm text-muted-foreground">
+				Published {toRelative(data.version.version.createdAt)}
+			</span>
 		</div>
-		{#if data.manifest.meta?.description}
-			<p class="text-muted-foreground">{data.manifest.meta.description}</p>
+		{#if data.registry.metaDescription}
+			<p class="text-muted-foreground">{data.registry.metaDescription}</p>
 		{/if}
 	</div>
-	<Tabs.Root class="flex justify-between place-items-end">
+	<Tabs.Root class="flex place-items-end justify-between">
 		<div class="flex place-items-end">
 			<Tabs.Tab href="?tab=/" isSearch>README</Tabs.Tab>
-			<Tabs.Tab href="?tab=blocks" isSearch>Blocks</Tabs.Tab>
-			<Tabs.Tab href="?tab=dependencies" isSearch>Dependencies</Tabs.Tab>
-			<Tabs.Tab href="?tab=versions" isSearch>Versions</Tabs.Tab>
+			<Tabs.Tab href="?tab=blocks" isSearch tag={registryInfo.blocks.toString()}>Blocks</Tabs.Tab>
+			<Tabs.Tab
+				href="?tab=dependencies"
+				isSearch
+				class="hidden sm:flex"
+				tag={registryInfo.dependencies.length.toString()}
+			>
+				Dependencies
+			</Tabs.Tab>
+			<Tabs.Tab
+				href="?tab=versions"
+				isSearch
+				class="hidden sm:flex"
+				tag={data.versions.length.toString()}
+			>
+				Versions
+			</Tabs.Tab>
 		</div>
-		<Popover.Root>
-			<Popover.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1')}>
+		<Popover.Root bind:open={tabListPopoverOpen}>
+			<Popover.Trigger
+				class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1 sm:hidden')}
+			>
 				<Ellipsis />
 			</Popover.Trigger>
-			<Popover.Content>huh</Popover.Content>
+			<Popover.Content class="w-48 p-0" align="end">
+				<div class="flex flex-col p-1">
+					<a
+						href="?tab=dependencies"
+						onclick={() => (tabListPopoverOpen = false)}
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+						style="--line-height: 24px;"
+					>
+						Dependencies
+						<div class="flex h-[--line-height] place-items-center justify-center">
+							<div
+								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
+							>
+								{registryInfo.dependencies.length}
+							</div>
+						</div>
+					</a>
+					<a
+						href="?tab=versions"
+						onclick={() => (tabListPopoverOpen = false)}
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+						style="--line-height: 24px;"
+					>
+						Versions
+						<div class="flex h-[--line-height] place-items-center justify-center">
+							<div
+								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
+							>
+								{data.versions.length}
+							</div>
+						</div>
+					</a>
+				</div>
+			</Popover.Content>
 		</Popover.Root>
 	</Tabs.Root>
 	<div class="w-full">
 		{#if tab === '/'}
 			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
-				<div class="col-start-1">
+				<div class="col-start-1 max-w-full overflow-hidden relative">
 					{#if data.readme === null}
 						<div class="flex h-96 flex-col place-items-center justify-center gap-2">
-							<span class="text-lg text-muted-foreground">
+							<span class="text-center text-lg text-muted-foreground">
 								This registry doesn't have a README.
 							</span>
 						</div>
@@ -153,19 +211,80 @@
 					{/if}
 				</div>
 				<Separator class="md:hidden" />
-				<div class="flex flex-col gap-4 md:col-start-2">
+				<div
+					class="relative flex w-full flex-col gap-4 overflow-hidden md:col-start-2 md:w-[20rem]"
+				>
 					<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />
-					{#if data.manifest.meta?.tags}
+					{#if data.registry.metaTags}
 						<div class="flex flex-wrap gap-2">
-							{#each data.manifest.meta.tags as tag, i (i)}
+							{#each data.registry.metaTags as tag (tag)}
 								<Badge>{tag}</Badge>
 							{/each}
+						</div>
+						<Separator />
+					{/if}
+					{#if data.registry.metaRepository}
+						<div class="flex flex-col gap-2">
+							<Nav.Title>Repository</Nav.Title>
+							<a
+								href={data.registry.metaRepository}
+								target="_blank"
+								class="truncate transition-all hover:underline"
+							>
+								{data.registry.metaRepository}
+							</a>
+						</div>
+						<Separator />
+					{/if}
+					{#if data.registry.metaHomepage}
+						<div class="flex flex-col gap-2">
+							<Nav.Title>Homepage</Nav.Title>
+							<a
+								href={data.registry.metaHomepage}
+								target="_blank"
+								class="truncate transition-all hover:underline"
+							>
+								{data.registry.metaHomepage}
+							</a>
+						</div>
+						<Separator />
+					{/if}
+					<div class="grid w-fit grid-cols-2 gap-4">
+						<div class="flex flex-col">
+							<Nav.Title>Categories</Nav.Title>
+							<span>{registryInfo.categories}</span>
+						</div>
+
+						<div class="flex flex-col">
+							<Nav.Title>Blocks</Nav.Title>
+							<span>{registryInfo.blocks}</span>
+						</div>
+
+						<div class="flex flex-col">
+							<Nav.Title>Dependencies</Nav.Title>
+							<span>{registryInfo.dependencies.length}</span>
+						</div>
+
+						<div class="flex flex-col">
+							<Nav.Title>Config Files</Nav.Title>
+							<span>{(data.manifest.configFiles ?? []).length}</span>
+						</div>
+					</div>
+					{#if data.registry.metaAuthors}
+						<Separator />
+						<div class="flex flex-col gap-2">
+							<Nav.Title>Authors</Nav.Title>
+							<ul class="flex flex-wrap gap-2">
+								{#each data.registry.metaAuthors as author, i (author + i)}
+									<li>{author}</li>
+								{/each}
+							</ul>
 						</div>
 					{/if}
 				</div>
 			</div>
 		{:else if tab === 'blocks'}
-			<List.Root class="flex flex-col gap-2 py-4" title="Blocks">
+			<List.Root class="flex flex-col gap-2 py-4">
 				<List.List>
 					{#each data.manifest.categories as category (category)}
 						{#each category.blocks.filter((b) => b.list) as block (block.name)}
@@ -248,13 +367,20 @@
 		{:else if tab === 'dependencies'}
 			<div class="flex flex-col gap-4 py-4">
 				{#if registryInfo.dependencies.length === 0}
-					<p>No dependencies</p>
+					<div class="flex h-96 flex-col place-items-center justify-center gap-2">
+						<span class="text-center text-lg text-muted-foreground">
+							This registry doesn't have any dependencies.
+						</span>
+					</div>
 				{:else}
-					<List.Root title="Dependencies">
+					<List.Root>
 						<List.List>
 							{#each registryInfo.dependencies as dependency (dependency)}
+								{@const pkg = parsePackageName(dependency).unwrap()}
 								<List.Item class="flex place-items-center justify-between">
-									<span class="">{dependency}</span>
+									<List.Link href="https://npmjs.com/package/{pkg.name}" target="_blank">
+										{dependency}
+									</List.Link>
 								</List.Item>
 							{/each}
 						</List.List>
