@@ -20,6 +20,7 @@ import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
 import * as v from 'valibot';
+import assert from 'assert';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -546,10 +547,13 @@ export async function getOrgWithOwner(name: string) {
 	return result[0] ?? null;
 }
 
-export type TransferOwnershipOptions = { scopeId: number } & (
-	| { newOrgId: number; newUserId?: never }
-	| { newUserId: string; newOrgId?: never }
-);
+export type TransferOwnershipOptions = {
+	scopeId: number;
+	oldUserId?: string | null;
+	oldOrgId?: number | null;
+	newOrgId?: number;
+	newUserId?: string;
+};
 
 export async function transferScopeOwnership(tx: tx, request: TransferOwnershipOptions) {
 	if (request.newUserId) {
@@ -558,6 +562,8 @@ export async function transferScopeOwnership(tx: tx, request: TransferOwnershipO
 			.set({ orgId: null, userId: request.newUserId })
 			.where(eq(tables.scope.id, request.scopeId));
 	} else {
+		assert(request.newOrgId !== undefined, 'This must be defined')
+
 		await tx
 			.update(tables.scope)
 			.set({ orgId: request.newOrgId, userId: null })

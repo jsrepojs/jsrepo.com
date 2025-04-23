@@ -180,19 +180,22 @@ export const scopeTransferRequest = pgTable(
 			.references(() => scope.id, { onDelete: 'cascade' }),
 		newOrgId: integer('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
 		newUserId: text('new_user_id').references(() => user.id, { onDelete: 'cascade' }),
+		oldOrgId: integer('old_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		oldUserId: text('old_user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		acceptedAt: timestamp('accepted_at')
 	},
 	(table) => {
 		return [
-			sql`CONSTRAINT not_null_owner CHECK (${table.newOrgId} IS NOT NULL OR ${table.newUserId} IS NOT NULL)`,
+			sql`CONSTRAINT not_null_new_owner CHECK (${table.newOrgId} IS NOT NULL OR ${table.newUserId} IS NOT NULL)`,
+			sql`CONSTRAINT not_null_old_owner CHECK (${table.oldOrgId} IS NOT NULL OR ${table.oldUserId} IS NOT NULL)`,
 			index('scope_transfer_request_created_by_id_idx').on(table.createdById),
 			index('scope_transfer_request_scope_id_idx').on(table.scopeId),
 			index('scope_transfer_request_accepted_at_idx').on(table.acceptedAt)
 		];
 	}
-);
+).enableRLS();
 
 export type ScopeTransferRequest = InferSelectModel<typeof scopeTransferRequest>;
 

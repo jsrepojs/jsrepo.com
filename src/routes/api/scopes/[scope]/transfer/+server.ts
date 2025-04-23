@@ -72,6 +72,8 @@ export async function PATCH({ request, params }) {
 			transferRequest = {
 				scopeId: scope.id,
 				newUserId: user.id,
+                oldUserId: scope.userId,
+                oldOrgId: scope.orgId,
 				createdById: session.user.id,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
@@ -110,6 +112,8 @@ export async function PATCH({ request, params }) {
 				scopeId: scope.id,
 				newOrgId: orgAndOwner.org.id,
 				createdById: session.user.id,
+                oldUserId: scope.userId,
+                oldOrgId: scope.orgId,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
 			};
