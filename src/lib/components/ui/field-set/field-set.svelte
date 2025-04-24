@@ -13,8 +13,8 @@
 		variants: {
 			variant: {
 				default: 'border-border bg-card',
-				primary: 'border-primary',
-				destructive: 'border-destructive'
+				primary: 'border-primary bg-card',
+				destructive: 'border-destructive bg-card'
 			}
 		}
 	});

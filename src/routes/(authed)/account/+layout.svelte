@@ -28,7 +28,8 @@
 				</span>
 				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
 			</div>
-			{#if subscription !== null}
+			<div class="hidden sm:block">
+				{#if subscription !== null}
 				<Badge>{subscription}</Badge>
 			{:else}
 				<Button
@@ -37,6 +38,7 @@
 					Get Pro
 				</Button>
 			{/if}
+			</div>
 		</div>
 		<div class="w-full md:col-start-2">
 			{@render children()}

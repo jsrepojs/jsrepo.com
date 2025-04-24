@@ -1,3 +1,5 @@
+// handles redirecting the user to get authorized before going to checkout
+
 import { auth } from '$lib/auth.js';
 import { redirectToLogin } from '$lib/auth/redirect.js';
 import { getUser } from '$lib/backend/db/functions.js';

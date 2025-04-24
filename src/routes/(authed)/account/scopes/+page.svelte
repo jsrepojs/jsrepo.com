@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
 	import { checkUserSubscription } from '$lib/ts/polar/client.js';
-	import { ChevronLeft, Plus } from '@lucide/svelte';
+	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
 
 	let { data } = $props();
@@ -16,13 +16,6 @@
 </svelte:head>
 
 <div class="flex flex-col gap-4">
-	<a
-		href="/account"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
-	>
-		<ChevronLeft />
-		Back to Account
-	</a>
 	{#if subscription === null}
 		<div class="flex flex-col gap-2">
 			<div class="flex place-items-center justify-between">

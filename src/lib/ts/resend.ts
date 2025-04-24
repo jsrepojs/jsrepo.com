@@ -74,15 +74,15 @@ export function scopeTransferredRequestedEmail(opts: {
 	scopeName: string;
 	newOwner: MinUser;
 	oldOwner: MinUser;
-	newOrg?: string;
+	newOwnerName: string;
 }): CreateEmailOptions {
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.newOwner.email],
 		subject: `@${opts.scopeName} transfer request`,
-		html: `<p>${opts.oldOwner.name} wants to transfer ${opts.scopeName} to ${opts.newOrg ? opts.newOrg : opts.newOwner.name}.</p>
+		html: `<p>${opts.oldOwner.name} wants to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
 		
-<p>View and confirm the request on <a href="https://jsrepo.com/account/scopes">jsrepo.com</a></p>`
+<p>View and confirm the request on <a href="https://jsrepo.com/account/scopes/transfer-requests">jsrepo.com</a></p>`
 	};
 }
 
@@ -90,28 +90,28 @@ export function scopeTransferredRequestedEmailToOldOwner(opts: {
 	scopeName: string;
 	newOwner: MinUser;
 	oldOwner: MinUser;
-	newOrg?: string;
+	newOwnerName: string;
 }): CreateEmailOptions {
 	return {
 		from: SUPPORT_EMAIL,
-		to: [opts.newOwner.email],
+		to: [opts.oldOwner.email],
 		subject: `@${opts.scopeName} transfer request submitted`,
-		html: `<p>You have submitted to transfer @${opts.scopeName} to ${opts.newOrg ? opts.newOrg : opts.newOwner.name}.</p>
+		html: `<p>You have submitted to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
 		
-<p>View and cancel this request on <a href="https://jsrepo.com/@${opts.scopeName}">jsrepo.com</a> until it has been accepted.</p>`
+<p>View and cancel this request on <a href="https://jsrepo.com/@${opts.scopeName}/-/settings">jsrepo.com</a> until it has been accepted.</p>`
 	};
 }
 
 export function scopeTransferredEmail(opts: {
 	scopeName: string;
 	newOwner: MinUser;
-	newOrg?: string;
+	newOwnerName: string;
 }): CreateEmailOptions {
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.newOwner.email],
-		subject: `@${opts.scopeName} now belongs to ${opts.newOrg ? opts.newOrg : 'you'}!`,
-		html: `<p>@${opts.scopeName} has been transferred to ${opts.newOrg ? opts.newOrg : 'you'}!</p>
+		subject: `@${opts.scopeName} now belongs to ${opts.newOwnerName}!`,
+		html: `<p>@${opts.scopeName} has been transferred to ${opts.newOwnerName ? opts.newOwnerName : 'you'}!</p>
 		
 <p>Check out your shiny new scope at <a href="https://jsrepo.com/@${opts.scopeName}">jsrepo.com</a></p>`
 	};

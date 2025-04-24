@@ -11,7 +11,7 @@ import {
 	desc,
 	type TablesRelationalConfig,
 	type InferInsertModel,
-	getTableColumns,
+	getTableColumns
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -549,24 +549,22 @@ export async function getOrgWithOwner(name: string) {
 
 export type TransferOwnershipOptions = {
 	scopeId: number;
-	oldUserId?: string | null;
-	oldOrgId?: number | null;
-	newOrgId?: number;
-	newUserId?: string;
+	newOrgId?: number | null;
+	newUserId?: string | null;
 };
 
 export async function transferScopeOwnership(tx: tx, request: TransferOwnershipOptions) {
 	if (request.newUserId) {
 		await tx
 			.update(tables.scope)
-			.set({ orgId: null, userId: request.newUserId })
+			.set({ orgId: null, userId: request.newUserId, claimedAt: new Date() })
 			.where(eq(tables.scope.id, request.scopeId));
 	} else {
 		assert(request.newOrgId !== undefined, 'This must be defined');
 
 		await tx
 			.update(tables.scope)
-			.set({ orgId: request.newOrgId, userId: null })
+			.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
 			.where(eq(tables.scope.id, request.scopeId));
 	}
 }
@@ -644,17 +642,118 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 }
 
 export async function dismissPendingScopeTransferRequests(tx: tx, scopeId: number) {
-	await tx
-		.delete(tables.scopeTransferRequest)
+	await tx.delete(tables.scopeTransferRequest).where(
+		and(
+			eq(tables.scopeTransferRequest.scopeId, scopeId),
+
+			// don't delete any that have been interacted with
+			and(
+				isNull(tables.scopeTransferRequest.acceptedAt),
+				isNull(tables.scopeTransferRequest.rejectedAt)
+			)
+		)
+	);
+}
+
+export async function getActiveTransferRequest(name: string) {
+	const toUser = aliasedTable(tables.user, 'to_user');
+	const toOrg = aliasedTable(tables.org, 'to_org');
+
+	const result = await db
+		.select({
+			scopeTransferRequest: getTableColumns(tables.scopeTransferRequest),
+			toUser: getTableColumns(toUser),
+			toOrg: getTableColumns(toOrg)
+		})
+		.from(tables.scopeTransferRequest)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.scopeTransferRequest.scopeId))
+		.leftJoin(toUser, eq(toUser.id, tables.scopeTransferRequest.newUserId))
+		.leftJoin(toOrg, eq(toOrg.id, tables.scopeTransferRequest.newOrgId))
 		.where(
 			and(
-				eq(tables.scopeTransferRequest.scopeId, scopeId),
+				eq(tables.scope.name, name),
 
-				// don't dismiss any that have already been interacted with
+				// only select those that are null
 				and(
 					isNull(tables.scopeTransferRequest.acceptedAt),
 					isNull(tables.scopeTransferRequest.rejectedAt)
 				)
 			)
 		);
+
+	return result[0] ?? null;
+}
+
+export async function deleteTransferRequest(id: number) {
+	await db.delete(tables.scopeTransferRequest).where(eq(tables.scopeTransferRequest.id, id));
+}
+
+export async function getTransferRequestInbox(userId: string) {
+	const result = await db
+		.select()
+		.from(tables.scopeTransferRequest)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.scopeTransferRequest.scopeId))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scopeTransferRequest.newOrgId))
+		.innerJoin(
+			tables.user,
+			or(
+				eq(tables.user.id, tables.org.ownerId),
+				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
+			)
+		)
+		.where(
+			and(
+				eq(tables.user.id, userId),
+
+				// only the ones we haven't replied to
+				and(
+					isNull(tables.scopeTransferRequest.acceptedAt),
+					isNull(tables.scopeTransferRequest.rejectedAt)
+				)
+			)
+		);
+
+	return result;
+}
+
+export async function getScopeTransferRequest(id: number) {
+	const result = await db
+		.select()
+		.from(tables.scopeTransferRequest)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.scopeTransferRequest.scopeId))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scopeTransferRequest.newOrgId))
+		.innerJoin(
+			tables.user,
+			or(
+				eq(tables.user.id, tables.org.ownerId),
+				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
+			)
+		)
+		.where(
+			and(
+				eq(tables.scopeTransferRequest.id, id),
+
+				// only the ones we haven't replied to
+				and(
+					isNull(tables.scopeTransferRequest.acceptedAt),
+					isNull(tables.scopeTransferRequest.rejectedAt)
+				)
+			)
+		);
+
+	return result[0] ?? null;
+}
+
+export async function rejectScopeTransferRequest(id: number) {
+	await db
+		.update(tables.scopeTransferRequest)
+		.set({ rejectedAt: new Date() })
+		.where(eq(tables.scopeTransferRequest.id, id));
+}
+
+export async function acceptScopeTransferRequest(tx: tx, id: number) {
+	await tx
+		.update(tables.scopeTransferRequest)
+		.set({ acceptedAt: new Date() })
+		.where(eq(tables.scopeTransferRequest.id, id));
 }

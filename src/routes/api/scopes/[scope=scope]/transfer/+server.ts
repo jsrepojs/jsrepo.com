@@ -1,9 +1,10 @@
 import { auth } from '$lib/auth';
+import { isSameScopeOwner } from '$lib/backend/db/client-functions.js';
 import {
 	createScopeTransferRequest,
 	dismissPendingScopeTransferRequests,
 	getOrgWithOwner,
-	getScope,
+	getScopeWithOwner,
 	getUserByEmail,
 	isScopeOwner,
 	isUserOrOrg,
@@ -25,15 +26,22 @@ export type TransferRequestRequest = {
 	transferTo: string;
 };
 
-export type TransferRequestResponse = {
-	type: 'transferred' | 'requested';
+type TransferRequest = TransferOwnershipOptions & {
+	createdById: string;
+	acceptedAt: Date | undefined;
+	oldUserId?: string | null;
+	oldOrgId?: number | null;
 };
 
-export async function PATCH({ request, params }) {
-	if (!params.scope.startsWith('@')) {
-		error(400, `invalid scope '${params.scope}' scopes must start with '@'`);
-	}
+export type TransferRequestResponse =
+	| {
+			type: 'transferred';
+	  }
+	| ({
+			type: 'requested';
+	  } & TransferRequest);
 
+export async function POST({ request, params }) {
 	const scopeName = params.scope.slice(1);
 
 	const body = (await request.json()) as TransferRequestRequest;
@@ -48,24 +56,24 @@ export async function PATCH({ request, params }) {
 		error(401, 'only the scope owner can transfer access');
 	}
 
-	const scope = await getScope(scopeName);
+	const scope = await getScopeWithOwner(scopeName);
 
 	assert(scope !== null, 'scope should be defined');
+
+	if (isSameScopeOwner(body.transferTo, scope)) {
+		error(400, 'cannot transfer to the same owner');
+	}
 
 	const userOrOrg = await isUserOrOrg(body.transferTo);
 
 	if (userOrOrg === null) error(400, `\`${body.transferTo}\` is not an user or org`);
 
 	let selfTransfer = false;
+	let transferRequest: TransferRequest | null = null;
 
 	const result = await db.transaction(async (tx) => {
-		let transferRequest: TransferOwnershipOptions & {
-			createdById: string;
-			acceptedAt: Date | undefined;
-		};
-
 		// dismiss pending transfer requests
-		await dismissPendingScopeTransferRequests(tx, scope.id);
+		await dismissPendingScopeTransferRequests(tx, scope.scope.id);
 
 		if (userOrOrg === 'user') {
 			const user = await getUserByEmail(body.transferTo);
@@ -75,10 +83,10 @@ export async function PATCH({ request, params }) {
 			selfTransfer = user.id === session.user.id;
 
 			transferRequest = {
-				scopeId: scope.id,
+				scopeId: scope.scope.id,
 				newUserId: user.id,
-				oldUserId: scope.userId,
-				oldOrgId: scope.orgId,
+				oldUserId: scope.scope.userId,
+				oldOrgId: scope.scope.orgId,
 				createdById: session.user.id,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
@@ -89,17 +97,19 @@ export async function PATCH({ request, params }) {
 			if (!selfTransfer) {
 				await Promise.all([
 					resend.emails.send(
-						scopeTransferredRequestedEmail({
-							scopeName: scopeName,
-							newOwner: user,
-							oldOwner: session.user
-						})
-					),
-					resend.emails.send(
 						scopeTransferredRequestedEmailToOldOwner({
 							scopeName: scopeName,
 							newOwner: user,
-							oldOwner: session.user
+							oldOwner: session.user,
+							newOwnerName: user.name
+						})
+					),
+					resend.emails.send(
+						scopeTransferredRequestedEmail({
+							scopeName: scopeName,
+							newOwner: user,
+							oldOwner: session.user,
+							newOwnerName: 'you'
 						})
 					)
 				]);
@@ -114,11 +124,11 @@ export async function PATCH({ request, params }) {
 			selfTransfer = orgAndOwner.user.id === session.user.id;
 
 			transferRequest = {
-				scopeId: scope.id,
+				scopeId: scope.scope.id,
 				newOrgId: orgAndOwner.org.id,
 				createdById: session.user.id,
-				oldUserId: scope.userId,
-				oldOrgId: scope.orgId,
+				oldUserId: scope.scope.userId,
+				oldOrgId: scope.scope.orgId,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
 			};
@@ -128,19 +138,19 @@ export async function PATCH({ request, params }) {
 			if (!selfTransfer) {
 				await Promise.all([
 					resend.emails.send(
-						scopeTransferredRequestedEmail({
-							scopeName: scopeName,
-							newOwner: orgAndOwner.user,
-							oldOwner: session.user,
-							newOrg: orgAndOwner.org.name
-						})
-					),
-					resend.emails.send(
 						scopeTransferredRequestedEmailToOldOwner({
 							scopeName: scopeName,
 							newOwner: orgAndOwner.user,
 							oldOwner: session.user,
-							newOrg: orgAndOwner.org.name
+							newOwnerName: orgAndOwner.org.name
+						})
+					),
+					resend.emails.send(
+						scopeTransferredRequestedEmail({
+							scopeName: scopeName,
+							newOwner: orgAndOwner.user,
+							oldOwner: session.user,
+							newOwnerName: orgAndOwner.org.name
 						})
 					)
 				]);
@@ -155,7 +165,7 @@ export async function PATCH({ request, params }) {
 		await resend.emails.send(
 			scopeTransferredEmail({
 				newOwner: session.user,
-				newOrg: userOrOrg === 'org' ? body.transferTo : undefined,
+				newOwnerName: userOrOrg === 'org' ? body.transferTo : 'you',
 				scopeName
 			})
 		);
@@ -171,5 +181,12 @@ export async function PATCH({ request, params }) {
 		}
 	});
 
-	return json({ type: result } satisfies TransferRequestResponse);
+	if (result === 'transferred') {
+		return json({ type: result } satisfies TransferRequestResponse);
+	} else {
+		assert(transferRequest !== null, '');
+
+		// @ts-expect-error shut up
+		return json({ type: result, ...transferRequest } satisfies TransferRequestResponse);
+	}
 }
