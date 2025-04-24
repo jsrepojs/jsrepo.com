@@ -25,7 +25,11 @@ export const user = pgTable('user', {
 	scopeLimit: integer().notNull().default(5),
 	polarCustomerId: text('polar_customer_id'),
 	polarSubscriptionPlanId: text('polar_subscription_plan_id'),
-	polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end')
+	polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end'),
+	role: text('role').notNull().default('user'),
+	banned: boolean('banned').notNull().default(false),
+	barReason: text('bar_reason'),
+	banExpires: timestamp('bar_expires')
 }).enableRLS();
 
 export type User = InferSelectModel<typeof user>;
@@ -40,7 +44,8 @@ export const session = pgTable('session', {
 	userAgent: text('user_agent'),
 	userId: text('user_id')
 		.notNull()
-		.references(() => user.id, { onDelete: 'cascade' })
+		.references(() => user.id, { onDelete: 'cascade' }),
+	impersonatedBy: text('user_id').references(() => user.id, { onDelete: 'cascade' })
 }).enableRLS();
 
 export type Session = InferSelectModel<typeof session>;
@@ -185,7 +190,7 @@ export const scopeTransferRequest = pgTable(
 		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		acceptedAt: timestamp('accepted_at'),
-		rejectedAt: timestamp('rejected_at'),
+		rejectedAt: timestamp('rejected_at')
 	},
 	(table) => {
 		return [

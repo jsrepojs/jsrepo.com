@@ -1,0 +1,1 @@
+ALTER TABLE "user" RENAME COLUMN "string" TO "bar_reason";

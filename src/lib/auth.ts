@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { apiKey, createAuthMiddleware } from 'better-auth/plugins';
+import { apiKey, createAuthMiddleware, admin } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
@@ -23,7 +23,8 @@ export const auth = betterAuth({
 			rateLimit: {
 				enabled: false
 			}
-		})
+		}),
+		admin()
 	],
 	socialProviders: {
 		github: {
@@ -33,6 +34,15 @@ export const auth = betterAuth({
 	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {
+			// there's no good way to determine if a user has an account and is banned or if the user doesn't exist
+			// if (ctx.context.returned instanceof APIError) {
+			// 	const returned = ctx.context.returned;
+
+			// 	if (returned.body?.code === "BANNED_USER") {
+			// 		throw ctx.redirect('/account-suspended')
+			// 	}
+			// }
+
 			// create polar customer id and sync subscription on sign in
 			if (ctx.path.startsWith('/callback')) {
 				const newSession = ctx.context.newSession;
