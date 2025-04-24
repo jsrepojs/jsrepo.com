@@ -1,6 +1,7 @@
 import { RESEND_API_KEY } from '$env/static/private';
 import type { APIKey } from '$lib/backend/db/schema';
 import { Resend, type CreateEmailOptions } from 'resend';
+import { htmlToText } from 'html-to-text';
 
 export const SUPPORT_EMAIL = 'jsrepo.com <support@jsrepo.com>';
 
@@ -12,11 +13,7 @@ export type MinUser = {
 };
 
 export function welcomeEmail(user: MinUser): CreateEmailOptions {
-	return {
-		from: 'Aidan <support@jsrepo.com>',
-		to: [user.email],
-		subject: 'Welcome to jsrepo.com',
-		html: `<p>Hey ${user.name}!</p>
+	const html = `<p>Hey ${user.name}!</p>
 								
 <p>I'm Aidan the creator of jsrepo and I'd like to be the first to welcome you to <a href="https://jsrepo.com">jsrepo.com</a>!</p>
 
@@ -24,27 +21,41 @@ export function welcomeEmail(user: MinUser): CreateEmailOptions {
 
 <p>You can reply to this email with any feedback / questions and I will personally respond!</p>
 
-<p>Now get back to shipping!</p>`
+<p>Now get back to shipping!</p>`;
+
+	return {
+		from: 'Aidan <support@jsrepo.com>',
+		to: [user.email],
+		subject: 'Welcome to jsrepo.com',
+		html,
+		text: htmlToText(html)
 	};
 }
 
 export function newVersionPublishedEmail(user: MinUser, name: string, version: string) {
+	const date = new Date().toISOString();
+	const html = `<p>A new version of ${name} (${version}) was just published at ${date}!</p>`;
+
 	return {
 		from: SUPPORT_EMAIL,
 		to: [user.email],
 		subject: `Successfully published ${name}@${version}`,
-		html: `<p>A new version of ${name} (${version}) was just published at ${new Date().toISOString()}!</p>`
+		html,
+		text: htmlToText(html)
 	};
 }
 
 export function accessTokenCreatedEmail(user: MinUser, key: APIKey): CreateEmailOptions {
+	const html = `<p>A new access token has been created (${key.name}) at ${key.createdAt.toISOString()} ${key.expiresAt ? `it is set to expire on ${key.expiresAt.toISOString()}` : ''}.</p>
+
+<p>You can manage your tokens <a href="https://jsrepo.com/account/access-tokens">here</a>.</p>`;
+
 	return {
 		from: SUPPORT_EMAIL,
 		to: [user.email],
 		subject: `New access token created ${key.name}`,
-		html: `<p>A new access token has been created (${key.name}) at ${key.createdAt.toISOString()} ${key.expiresAt ? `it is set to expire on ${key.expiresAt.toISOString()}` : ''}.</p>
-
-<p>You can manage your tokens <a href="https://jsrepo.com/account/access-tokens">here</a>.</p>`
+		html,
+		text: htmlToText(html)
 	};
 }
 
@@ -55,12 +66,15 @@ export function supportEmail(opts: {
 	body: string;
 	reason: string;
 }): CreateEmailOptions {
+	const html = `[${opts.reason}] ${opts.body}`;
+
 	return {
 		from: `${opts.name} <users@jsrepo.com>`,
 		to: [SUPPORT_EMAIL],
 		replyTo: `${opts.name} <${opts.email}>`,
 		subject: opts.subject,
-		html: `[${opts.reason}] ${opts.body}`,
+		html,
+		text: htmlToText(html),
 		tags: [
 			{
 				name: 'support',
@@ -76,13 +90,16 @@ export function scopeTransferredRequestedEmail(opts: {
 	oldOwner: MinUser;
 	newOwnerName: string;
 }): CreateEmailOptions {
+	const html = `<p>${opts.oldOwner.name} wants to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
+		
+<p>View and confirm the request on <a href="https://jsrepo.com/account/scopes/transfer-requests">jsrepo.com</a></p>`;
+
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.newOwner.email],
 		subject: `@${opts.scopeName} transfer request`,
-		html: `<p>${opts.oldOwner.name} wants to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
-		
-<p>View and confirm the request on <a href="https://jsrepo.com/account/scopes/transfer-requests">jsrepo.com</a></p>`
+		html,
+		text: htmlToText(html)
 	};
 }
 
@@ -92,13 +109,16 @@ export function scopeTransferredRequestedEmailToOldOwner(opts: {
 	oldOwner: MinUser;
 	newOwnerName: string;
 }): CreateEmailOptions {
+	const html = `<p>You have submitted to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
+		
+<p>View and cancel this request on <a href="https://jsrepo.com/@${opts.scopeName}/-/settings">jsrepo.com</a> until it has been accepted.</p>`;
+
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.oldOwner.email],
 		subject: `@${opts.scopeName} transfer request submitted`,
-		html: `<p>You have submitted to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
-		
-<p>View and cancel this request on <a href="https://jsrepo.com/@${opts.scopeName}/-/settings">jsrepo.com</a> until it has been accepted.</p>`
+		html,
+		text: htmlToText(html)
 	};
 }
 
@@ -107,12 +127,15 @@ export function scopeTransferredEmail(opts: {
 	newOwner: MinUser;
 	newOwnerName: string;
 }): CreateEmailOptions {
+	const html = `<p>@${opts.scopeName} has been transferred to ${opts.newOwnerName ? opts.newOwnerName : 'you'}!</p>
+		
+<p>Check out your shiny new scope at <a href="https://jsrepo.com/@${opts.scopeName}">jsrepo.com</a></p>`;
+
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.newOwner.email],
 		subject: `@${opts.scopeName} now belongs to ${opts.newOwnerName}!`,
-		html: `<p>@${opts.scopeName} has been transferred to ${opts.newOwnerName ? opts.newOwnerName : 'you'}!</p>
-		
-<p>Check out your shiny new scope at <a href="https://jsrepo.com/@${opts.scopeName}">jsrepo.com</a></p>`
+		html,
+		text: htmlToText(html)
 	};
 }
