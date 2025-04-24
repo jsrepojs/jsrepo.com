@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth.js';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
@@ -22,10 +21,8 @@ export async function load() {
 }
 
 export const actions = {
-	default: async ({ request }) => {
-		const session = await auth.api.getSession({
-			headers: request.headers
-		});
+	default: async ({ request, locals }) => {
+		const session = await locals.auth();
 
 		if (session === null) return fail(401);
 

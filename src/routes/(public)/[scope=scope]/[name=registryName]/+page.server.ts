@@ -1,9 +1,8 @@
-import { auth } from '$lib/auth.js';
 import { error } from '@sveltejs/kit';
 import { getInfo } from './registry-view-server.js';
 
-export async function load({ params, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ params, locals }) {
+	const session = await locals.auth();
 
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;

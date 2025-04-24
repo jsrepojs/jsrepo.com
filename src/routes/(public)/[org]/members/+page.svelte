@@ -8,20 +8,20 @@
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Button } from '$lib/components/ui/button';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
-	import type { CancelInviteRequest } from '../../../api/orgs/[name]/members/invite/+server';
+	import type { CancelInviteRequest } from '../../../api/orgs/[org]/members/invite/+server';
 	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
 	let tab = $state('members');
 
-	const cancelInviteQuery = new UseQuery(async ({ setLoadingKey }, requestId: number) => {
-		setLoadingKey(requestId.toString());
+	const cancelInviteQuery = new UseQuery(async ({ setLoadingKey }, inviteId: number) => {
+		setLoadingKey(inviteId.toString());
 
 		const response = await fetch(`/api/orgs/${data.org.name}/members/invite`, {
 			method: 'DELETE',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ requestId } satisfies CancelInviteRequest)
+			body: JSON.stringify({ inviteId } satisfies CancelInviteRequest)
 		});
 
 		if (response.ok) {

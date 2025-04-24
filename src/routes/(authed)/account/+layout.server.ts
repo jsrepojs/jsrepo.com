@@ -1,10 +1,9 @@
-import { auth } from '$lib/auth';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { getUser } from '$lib/backend/db/functions.js';
 import assert from 'assert';
 
-export async function load({ url, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ url, locals }) {
+	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
 

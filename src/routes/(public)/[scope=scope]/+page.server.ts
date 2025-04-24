@@ -1,8 +1,7 @@
-import { auth } from '$lib/auth.js';
 import { getScopeRegistries } from '$lib/backend/db/functions.js';
 
-export async function load({ params, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ params, locals }) {
+	const session = await locals.auth();
 
 	const scopeName = params.scope.slice(1);
 

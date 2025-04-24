@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth.js';
 import { supportFormRateLimit } from '$lib/ts/redis.js';
 import { error, fail } from '@sveltejs/kit';
 import { message, superValidate } from 'sveltekit-superforms';
@@ -8,8 +7,8 @@ import { toRelative } from '$lib/ts/dates.js';
 import { resend, supportEmail } from '$lib/ts/resend.js';
 import { dev } from '$app/environment';
 
-export async function load({ request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ locals }) {
+	const session = await locals.auth();
 
 	const form = await superValidate(valibot(schema));
 
@@ -20,7 +19,7 @@ export async function load({ request }) {
 }
 
 export const actions = {
-	default: async ({ getClientAddress, request }) => {
+	default: async ({ getClientAddress, request, locals }) => {
 		// don't count towards rate limit in dev mode
 		if (!dev) {
 			const { success, reset } = await supportFormRateLimit.limit(getClientAddress());
@@ -39,7 +38,7 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const session = await auth.api.getSession({ headers: request.headers });
+		const session = await locals.auth();
 
 		const name = session?.user.name ?? form.data.name;
 		const email = session?.user.email ?? form.data.email;

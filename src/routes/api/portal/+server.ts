@@ -1,5 +1,4 @@
 import { POLAR_ACCESS_TOKEN } from '$env/static/private';
-import { auth } from '$lib/auth';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { getUser } from '$lib/backend/db/functions';
 import { polarEnvironment } from '$lib/ts/polar/client';
@@ -10,7 +9,7 @@ export const GET = CustomerPortal({
 	accessToken: POLAR_ACCESS_TOKEN,
 	server: polarEnvironment(),
 	getCustomerId: async (event) => {
-		const session = await auth.api.getSession({ headers: event.request.headers });
+		const session = await event.locals.auth();
 
 		if (!session) redirectToLogin(event.url);
 

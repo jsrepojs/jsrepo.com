@@ -1,9 +1,8 @@
-import { auth } from '$lib/auth';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { listMyOrganizations } from '$lib/backend/db/functions.js';
 
-export async function load({ request, url }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ locals, url }) {
+	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
 

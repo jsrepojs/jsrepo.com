@@ -1,10 +1,7 @@
-import { auth } from '$lib/auth';
 import { redirectToAuthorized } from '$lib/auth/redirect.js';
 
-export async function load({ request, url }) {
-	const session = await auth.api.getSession({
-		headers: request.headers
-	});
+export async function load({ locals, url }) {
+	const session = await locals.auth();
 
 	if (session !== null) redirectToAuthorized(url);
 

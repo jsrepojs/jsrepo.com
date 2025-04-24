@@ -1,10 +1,9 @@
-import { auth } from '$lib/auth';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { getActiveTransferRequest, hasScopeAccess } from '$lib/backend/db/functions';
 import { redirect } from '@sveltejs/kit';
 
-export async function load({ request, url, params }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function load({ locals, url, params }) {
+	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
 

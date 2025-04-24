@@ -1,6 +1,5 @@
 // handles redirecting the user to get authorized before going to checkout
 
-import { auth } from '$lib/auth.js';
 import { redirectToLogin } from '$lib/auth/redirect.js';
 import { createCustomer, getUser } from '$lib/backend/db/functions.js';
 import { checkUserSubscription, getProductId } from '$lib/ts/polar/client.js';
@@ -8,12 +7,12 @@ import { polar } from '$lib/ts/polar/index.js';
 import { error, redirect } from '@sveltejs/kit';
 import assert from 'assert';
 
-export async function GET({ url, request, params }) {
+export async function GET({ url, locals, params }) {
 	const productId = getProductId(params.product);
 
 	if (!productId) error(404);
 
-	const session = await auth.api.getSession({ headers: request.headers });
+	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
 

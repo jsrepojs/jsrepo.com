@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth.js';
 import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
@@ -8,10 +7,10 @@ import assert from 'assert';
 import { checkUserSubscription } from '$lib/ts/polar/client';
 import { redirectToLogin } from '$lib/auth/redirect';
 
-export async function load({ request, url }) {
+export async function load({ locals, url }) {
 	const form = await superValidate(valibot(schema));
 
-	const session = await auth.api.getSession({ headers: request.headers });
+	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
 
@@ -29,10 +28,8 @@ export async function load({ request, url }) {
 }
 
 export const actions = {
-	default: async ({ request }) => {
-		const session = await auth.api.getSession({
-			headers: request.headers
-		});
+	default: async ({ request, locals }) => {
+		const session = await locals.auth();
 
 		if (session === null) return fail(401);
 

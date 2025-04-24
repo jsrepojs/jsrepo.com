@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth';
 import { deleteTransferRequest, isScopeOwner } from '$lib/backend/db/functions';
 import { error, json } from '@sveltejs/kit';
 
@@ -6,14 +5,14 @@ export type CancelTransferRequestRequest = {
 	requestId: number;
 };
 
-export async function DELETE({ params, request }) {
+export async function DELETE({ params, request, locals }) {
 	const scopeName = params.scope.slice(1);
 
 	const body = (await request.json()) as CancelTransferRequestRequest;
 
 	if (!body.requestId) error(400, 'expected requestId in the request body');
 
-	const session = await auth.api.getSession({ headers: request.headers });
+	const session = await locals.auth();
 
 	if (!session) error(401);
 

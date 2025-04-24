@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth';
 import { isSameScopeOwner } from '$lib/backend/db/client-functions.js';
 import {
 	createScopeTransferRequest,
@@ -41,14 +40,14 @@ export type TransferRequestResponse =
 			type: 'requested';
 	  } & TransferRequest);
 
-export async function POST({ request, params }) {
+export async function POST({ request, params, locals }) {
 	const scopeName = params.scope.slice(1);
 
 	const body = (await request.json()) as TransferRequestRequest;
 
 	if (!body.transferTo) error(400, 'expected transferTo in the request body');
 
-	const session = await auth.api.getSession({ headers: request.headers });
+	const session = await locals.auth();
 
 	if (!session) error(401);
 

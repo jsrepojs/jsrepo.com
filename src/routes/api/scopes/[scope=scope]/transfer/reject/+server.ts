@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth';
 import { getScopeTransferRequest, rejectScopeTransferRequest } from '$lib/backend/db/functions';
 import { error, json } from '@sveltejs/kit';
 
@@ -6,14 +5,14 @@ export type RejectTransferRequest = {
 	requestId: number;
 };
 
-export async function PATCH({ request, params }) {
+export async function PATCH({ request, params, locals }) {
 	const scopeName = params.scope.slice(1);
 
 	const body = (await request.json()) as RejectTransferRequest;
 
 	if (!body.requestId) error(400, 'expected requestId in the request body');
 
-	const session = await auth.api.getSession({ headers: request.headers });
+	const session = await locals.auth();
 
 	if (!session) error(401);
 

@@ -11,6 +11,7 @@
 	import * as v from 'valibot';
 	import type { User } from 'better-auth';
 	import { invalidateAll } from '$app/navigation';
+	import type { InviteMemberRequest } from '../../../api/orgs/[org]/members/invite/+server';
 
 	type Props = {
 		org: Org & { members: User[] };
@@ -30,7 +31,7 @@
 			headers: {
 				'content-type': 'application/json'
 			},
-			body: JSON.stringify({ email, role })
+			body: JSON.stringify({ email, role } satisfies InviteMemberRequest)
 		});
 
 		if (!response.ok) {

@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth';
 import {
 	getOrgInvitesForEmail,
 	getOrgWithMembers,
@@ -6,12 +5,12 @@ import {
 } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
-export async function GET({ params, url, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function GET({ params, url, locals }) {
+	const session = await locals.auth();
 
 	if (!session) error(401);
 
-	const orgName = params.name;
+	const orgName = params.org;
 	const email = url.searchParams.get('email');
 
 	if (email === null) error(400, 'expected email query param');

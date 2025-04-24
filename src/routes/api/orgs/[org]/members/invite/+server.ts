@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth';
 import {
 	createOrgInvite,
 	deleteOrgInvite,
@@ -18,12 +17,12 @@ export type InviteMemberRequest = {
 	role: OrgRole;
 };
 
-export async function POST({ params, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function POST({ params, request, locals }) {
+	const session = await locals.auth();
 
 	if (!session) error(401);
 
-	const orgName = params.name;
+	const orgName = params.org;
 
 	const org = await getOrgWithMembers(orgName);
 
@@ -38,7 +37,7 @@ export async function POST({ params, request }) {
 
 	const email = body.email.trim();
 
-	if (!orgMemberRoles.includes(body.role)) return error(400, 'invalid member role');
+	if (!orgMemberRoles.includes(body.role)) error(400, 'invalid member role');
 
 	if (body.email === session.user.email) error(400, 'you cannot invite yourself');
 
@@ -72,15 +71,15 @@ export async function POST({ params, request }) {
 }
 
 export type CancelInviteRequest = {
-	requestId: number;
+	inviteId: number;
 };
 
-export async function DELETE({ params, request }) {
-	const session = await auth.api.getSession({ headers: request.headers });
+export async function DELETE({ params, request, locals }) {
+	const session = await locals.auth();
 
 	if (!session) error(401);
 
-	const orgName = params.name;
+	const orgName = params.org;
 
 	const org = await getOrgWithMembers(orgName);
 
@@ -90,11 +89,11 @@ export async function DELETE({ params, request }) {
 
 	const body = (await request.json()) as CancelInviteRequest;
 
-	if (!body.requestId) error(400, 'expected requestId in the request body');
+	if (!body.inviteId) error(400, 'expected requestId in the request body');
 
-	const deleted = await deleteOrgInvite(body.requestId);
+	const deleted = await deleteOrgInvite(body.inviteId);
 
-	if (deleted !== body.requestId) error(500, 'error cancelling invite');
+	if (deleted !== body.inviteId) error(500, 'error cancelling invite');
 
 	return json({});
 }
