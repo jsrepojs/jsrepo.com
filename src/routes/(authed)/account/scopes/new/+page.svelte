@@ -3,6 +3,8 @@
 	import { superForm } from 'sveltekit-superforms/client';
 	import * as Form from '$lib/components/ui/form';
 	import { ChevronLeft } from '@lucide/svelte';
+	import { generateSlug } from 'random-word-slugs';
+	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 
 	let { data } = $props();
 
@@ -16,7 +18,12 @@
 
 	const { enhance, submitting, form: formData } = form;
 
-	const canSubmit = $derived($formData.name.length > 0);
+	const nameInvalid = $derived($formData.name.match(NAME_REGEX) === null)
+	const canSubmit = $derived($formData.name.length > 0 && !nameInvalid);
+
+	const placeholder = generateSlug(2, {
+		categories: { noun: ['animals', 'science', 'transportation', 'thing', 'food', 'profession'] }
+	});
 </script>
 
 <svelte:head>
@@ -37,10 +44,19 @@
 			{#snippet children({ props })}
 				<Form.Label>Name</Form.Label>
 				<div class="relative">
-					<span class="absolute left-2 top-1/2 -translate-y-1/2 text-base md:left-2.5 md:text-sm"
-						>@</span
-					>
-					<Input {...props} bind:value={$formData.name} placeholder="Name" class="pl-5" />
+					<span class="absolute left-2 top-1/2 -translate-y-1/2 text-base md:left-2.5 md:text-sm">
+						@
+					</span>
+					<Input
+						{...props}
+						aria-invalid={nameInvalid}
+						oninput={() => {
+							$formData.name = $formData.name.replace(/[^-a-z0-9]/gi, '');
+						}}
+						bind:value={$formData.name}
+						{placeholder}
+						class="pl-5 aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+					/>
 				</div>
 			{/snippet}
 		</Form.Control>
