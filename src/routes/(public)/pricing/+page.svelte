@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
 	import { Check } from '@lucide/svelte';
 </script>
 
@@ -32,7 +31,7 @@
 				<h4 class="text-center text-4xl font-bold">Pro</h4>
 				<span class="text-center text-2xl font-medium"> $10 / month </span>
 			</div>
-			<Button href="/checkout?product={PRO_PRODUCT_ID}">Get Started</Button>
+			<Button href="/checkout/pro">Get Started</Button>
 			{@render feature_list({
 				features: ['Unlimited registry scopes', 'Publish and install code from private registries']
 			})}
@@ -44,7 +43,7 @@
 				<h4 class="text-center text-4xl font-bold">Team</h4>
 				<span class="text-center text-2xl font-medium"> $25 / month* </span>
 			</div>
-			<Button href="/checkout?product={TEAM_PRODUCT_ID}">Get Stared</Button>
+			<Button href="/checkout/team">Get Stared</Button>
 			{@render feature_list({
 				features: [
 					'Unlimited registry scopes',

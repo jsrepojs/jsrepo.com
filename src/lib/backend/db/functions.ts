@@ -21,6 +21,8 @@ import semver from 'semver';
 import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
 import * as v from 'valibot';
 import assert from 'assert';
+import { polar } from '$lib/ts/polar';
+import type { Customer } from '@polar-sh/sdk/models/components/customer.js';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -87,6 +89,38 @@ export async function getUser(userId: string): Promise<tables.User | null> {
 	const user = await db.select().from(tables.user).where(eq(tables.user.id, userId));
 
 	return user[0] ?? null;
+}
+
+export async function createCustomer(user: tables.User) {
+	// this will recover the customer id in case it somehow gets lost
+	let customer: Customer | null = null;
+
+	const pages = await polar.customers.list({ email: user.email });
+
+	for await (const page of pages) {
+		for (const c of page.result.items) {
+			if (c.email === user.email) {
+				customer = c;
+				break;
+			}
+		}
+	}
+
+	if (customer === null) {
+		customer = await polar.customers.create({
+			externalId: user.id,
+			name: user.name,
+			email: user.email
+		});
+	}
+
+	const result = await db
+		.update(tables.user)
+		.set({ polarCustomerId: customer.id })
+		.where(eq(tables.user.id, user.id))
+		.returning();
+
+	return result[0] ?? null;
 }
 
 export async function createScope(record: {
@@ -411,7 +445,7 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 	return result;
 }
 
-export async function isBanned(name: string) {
+export async function nameIsBanned(name: string) {
 	const banned = await db
 		.select({ id: tables.commonNameBan.id })
 		.from(tables.commonNameBan)
@@ -756,4 +790,10 @@ export async function acceptScopeTransferRequest(tx: tx, id: number) {
 		.update(tables.scopeTransferRequest)
 		.set({ acceptedAt: new Date() })
 		.where(eq(tables.scopeTransferRequest.id, id));
+}
+
+export async function createOrg(record: InferInsertModel<typeof tables.org>): Promise<tables.Org | null> {
+	const result = await db.insert(tables.org).values(record).returning();
+
+	return result[0] ?? null;
 }

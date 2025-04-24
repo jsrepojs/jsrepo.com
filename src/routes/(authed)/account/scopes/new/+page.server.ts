@@ -3,7 +3,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { createScope, getScope, getUser, isBanned, listMyScopes } from '$lib/backend/db/functions';
+import { createScope, getScope, getUser, nameIsBanned, listMyScopes } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { checkUserSubscription } from '$lib/ts/polar/client';
 
@@ -49,7 +49,7 @@ export const actions = {
 			}
 		}
 
-		if (await isBanned(form.data.name)) {
+		if (await nameIsBanned(form.data.name)) {
 			return error(400, {
 				message: `We'd appreciate if you didn't use ${form.data.name} as the name of your scope.`
 			});

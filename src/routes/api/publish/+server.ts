@@ -1,7 +1,7 @@
 import { auth } from '$lib/auth.js';
 import {
 	canPublishToScope,
-	isBanned,
+	nameIsBanned,
 	createFiles,
 	createRegistry,
 	createVersion,
@@ -138,7 +138,7 @@ export async function POST({ request }) {
 
 	if (registryId === null) {
 		// ensure name is not banned only check on first time publish if we missed it that's on us
-		if (await isBanned(registryName)) {
+		if (await nameIsBanned(registryName)) {
 			error(400, `We'd appreciate if you didn't use ${registryName} as the name of your registry.`);
 		}
 	}

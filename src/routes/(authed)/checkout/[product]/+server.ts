@@ -2,25 +2,34 @@
 
 import { auth } from '$lib/auth.js';
 import { redirectToLogin } from '$lib/auth/redirect.js';
-import { getUser } from '$lib/backend/db/functions.js';
-import { checkUserSubscription } from '$lib/ts/polar/client.js';
+import { createCustomer, getUser } from '$lib/backend/db/functions.js';
+import { checkUserSubscription, getProductId } from '$lib/ts/polar/client.js';
 import { polar } from '$lib/ts/polar/index.js';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import assert from 'assert';
 
-export async function GET({ url, request }) {
+export async function GET({ url, request, params }) {
+	const productId = getProductId(params.product);
+
+	if (!productId) error(404)
+		
 	const session = await auth.api.getSession({ headers: request.headers });
 
 	if (!session) redirectToLogin(url);
 
-	const user = await getUser(session.user.id);
+	let user = await getUser(session.user.id);
 
 	assert(user !== null, 'User should be defined!');
-	assert(user.polarCustomerId !== null, 'User should have a customerId!');
 
-	const productId = url.searchParams.get('product');
+	if (user.polarCustomerId === null) {
+		const userResult = await createCustomer(user);
 
-	if (!productId) redirect(303, '/pricing');
+		assert(userResult !== null, 'something went horribly wrong creating the customer late')
+
+		user = userResult
+	}
+
+	assert(user.polarCustomerId !== null, 'User should have a customerId now!');
 
 	if (checkUserSubscription(user) !== null) {
 		if (productId === user.polarSubscriptionPlanId) {

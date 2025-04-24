@@ -48,3 +48,11 @@ export function checkUserSubscription(user: {
 }): Subscription | null {
 	return activeSubscription(user.polarSubscriptionPlanId, user.polarSubscriptionPlanEnd);
 }
+
+export function getProductId(product: string) {
+	if (product === 'pro') return PRO_PRODUCT_ID;
+
+	if (product === 'team') return TEAM_PRODUCT_ID;
+
+	return null
+}

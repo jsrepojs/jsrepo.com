@@ -33,7 +33,7 @@
 				<Badge>{subscription}</Badge>
 			{:else}
 				<Button
-					href="/api/checkout?products={PRO_PRODUCT_ID}&customerId={data.user.polarCustomerId}"
+					href="/checkout/pro"
 				>
 					Get Pro
 				</Button>
