@@ -82,6 +82,6 @@ export const actions = {
 			return error(500, 'There was an error creating the organization.');
 		}
 
-		redirect(303, `/account/organizations/${form.data.name}`);
+		redirect(303, `/${form.data.name}`);
 	}
 };

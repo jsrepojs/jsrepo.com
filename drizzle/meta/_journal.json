@@ -225,6 +225,20 @@
       "when": 1745516277714,
       "tag": "0031_loving_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1745520804148,
+      "tag": "0032_crazy_mister_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1745526179178,
+      "tag": "0033_round_blazing_skull",
+      "breakpoints": true
     }
   ]
 }

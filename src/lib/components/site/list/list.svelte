@@ -15,9 +15,11 @@
 <div {...rest} class={cn('flex flex-col gap-2', className)}>
 	{#if actions}
 		<div class="flex place-items-end justify-between">
-			{#if title}
-				<Nav.Title>{title}</Nav.Title>
-			{/if}
+			<span>
+				{#if title}
+					<Nav.Title>{title}</Nav.Title>
+				{/if}
+			</span>
 			{@render actions()}
 		</div>
 	{:else if title}

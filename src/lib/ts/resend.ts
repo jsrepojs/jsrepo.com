@@ -139,3 +139,21 @@ export function scopeTransferredEmail(opts: {
 		text: htmlToText(html)
 	};
 }
+
+export function invitedToOrgEmail(opts: {
+	owner: MinUser;
+	invited: string;
+	orgName: string;
+}): CreateEmailOptions {
+	const html = `<p>${opts.owner.name} invited you to join ${opts.orgName}!</p>
+	
+<p>View and accept your invitation on <a href="https://jsrepo.com/account/organizations/invites">jsrepo.com</a></p>`;
+
+	return {
+		from: SUPPORT_EMAIL,
+		to: [opts.invited],
+		subject: `${opts.owner.name} invited you to join ${opts.orgName}!`,
+		html,
+		text: htmlToText(html)
+	};
+}

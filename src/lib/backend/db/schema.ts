@@ -129,9 +129,13 @@ export const org = pgTable(
 
 export type Org = InferSelectModel<typeof org>;
 
-export const org_member_role = pgEnum('role', ['member', 'publisher']);
+export const orgMemberRole = pgEnum('org_roll', ['member', 'publisher', 'collaborator']);
 
-export const org_member = pgTable(
+export type OrgRole = (typeof orgMemberRole.enumValues)[number];
+
+export const orgMemberRoles = orgMemberRole.enumValues;
+
+export const orgMember = pgTable(
 	'org_members',
 	{
 		id: serial('id').primaryKey(),
@@ -141,7 +145,7 @@ export const org_member = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		role: org_member_role().notNull(),
+		role: orgMemberRole().notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
@@ -152,7 +156,29 @@ export const org_member = pgTable(
 	}
 ).enableRLS();
 
-export type OrgMember = InferSelectModel<typeof org_member>;
+export type OrgMember = InferSelectModel<typeof orgMember>;
+
+export const orgInvite = pgTable(
+	'org_invites',
+	{
+		id: serial('id').primaryKey(),
+		orgId: integer('org_id')
+			.notNull()
+			.references(() => org.id, { onDelete: 'cascade' }),
+		email: text('email')
+			.notNull()
+			.references(() => user.email, { onDelete: 'cascade' }),
+		role: orgMemberRole().notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		acceptedAt: timestamp('accepted_at'),
+		rejectedAt: timestamp('rejected_at')
+	},
+	(table) => {
+		return [index('org_invites_email_idx').on(table.email)];
+	}
+).enableRLS();
+
+export type OrgInvite = InferSelectModel<typeof orgInvite>
 
 export const scope = pgTable(
 	'scope',

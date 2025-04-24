@@ -35,7 +35,7 @@
 		<List.List>
 			{#each ownedOrgs as organization (organization.org.id)}
 				<List.Item>
-					<List.Link href="/account/organizations/{organization.org.name}">
+					<List.Link href="/{organization.org.name}">
 						{organization.org.name}
 					</List.Link>
 				</List.Item>
@@ -46,7 +46,7 @@
 		<List.List>
 			{#each memberOrgs as organization (organization.org.id)}
 				<List.Item>
-					<List.Link href="/account/organizations/{organization.org.name}">
+					<List.Link href="/{organization.org.name}">
 						{organization.org.name}
 					</List.Link>
 				</List.Item>
