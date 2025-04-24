@@ -209,7 +209,7 @@ export async function POST({ request }) {
 			}
 
 			// update metadata
-			await tx
+			const result = await tx
 				.update(tables.registry)
 				.set({
 					metaAuthors: manifest.meta?.authors ?? null,
@@ -219,7 +219,11 @@ export async function POST({ request }) {
 					metaRepository: manifest.meta?.repository ?? null,
 					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null
 				})
-				.where(eq(tables.registry.id, registryId));
+				.where(eq(tables.registry.id, registryId)).returning({ id: tables.registry.id });
+
+			if (result.length === 0) {
+				return tx.rollback();
+			}
 		}
 
 		if (isLatest) {

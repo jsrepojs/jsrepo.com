@@ -627,28 +627,6 @@ export async function getOrgWithOwner(name: string) {
 	return result[0];
 }
 
-export type TransferOwnershipOptions = {
-	scopeId: number;
-	newOrgId?: number | null;
-	newUserId?: string | null;
-};
-
-export async function transferScopeOwnership(tx: tx, request: TransferOwnershipOptions) {
-	if (request.newUserId) {
-		await tx
-			.update(tables.scope)
-			.set({ orgId: null, userId: request.newUserId, claimedAt: new Date() })
-			.where(eq(tables.scope.id, request.scopeId));
-	} else {
-		assert(request.newOrgId !== undefined, 'This must be defined');
-
-		await tx
-			.update(tables.scope)
-			.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
-			.where(eq(tables.scope.id, request.scopeId));
-	}
-}
-
 export async function getScopeWithOwner(name: string) {
 	const result = await db
 		.select()
@@ -837,11 +815,44 @@ export async function rejectScopeTransferRequest(id: number) {
 		.where(eq(tables.scopeTransferRequest.id, id));
 }
 
-export async function acceptScopeTransferRequest(tx: tx, id: number) {
-	await tx
-		.update(tables.scopeTransferRequest)
-		.set({ acceptedAt: new Date() })
-		.where(eq(tables.scopeTransferRequest.id, id));
+export type TransferOwnershipOptions = {
+	id: number;
+	scopeId: number;
+	newOrgId?: number | null;
+	newUserId?: string | null;
+};
+
+export async function acceptScopeTransferRequest(request: TransferOwnershipOptions) {
+	return await db.transaction(async (tx) => {
+		const res = await tx
+			.update(tables.scopeTransferRequest)
+			.set({ acceptedAt: new Date() })
+			.where(eq(tables.scopeTransferRequest.id, request.id));
+
+		if (res.length === 0) return false;
+
+		let scopeRes: tables.Scope[];
+		if (request.newUserId) {
+			scopeRes = await tx
+				.update(tables.scope)
+				.set({ orgId: null, userId: request.newUserId, claimedAt: new Date() })
+				.where(eq(tables.scope.id, request.scopeId));
+		} else {
+			assert(request.newOrgId !== undefined, 'This must be defined');
+	
+			scopeRes = await tx
+				.update(tables.scope)
+				.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
+				.where(eq(tables.scope.id, request.scopeId));
+		}
+
+		if (scopeRes.length === 0) {
+			tx.rollback();
+			return false;
+		}
+
+		return true;
+	});
 }
 
 export async function createOrg(
@@ -911,6 +922,24 @@ export async function getPendingOrgInvites(orgName: string, userId: string | nul
 	return result;
 }
 
+export async function getOrgInvite(id: number) {
+	const result = await db
+		.select()
+		.from(tables.orgInvite)
+		.where(
+			and(
+				eq(tables.orgInvite.id, id),
+
+				// hasn't interacted
+				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt))
+			)
+		);
+
+	if (result.length === 0) return null;
+
+	return result[0];
+}
+
 export async function deleteOrgInvite(id: number) {
 	const result = await db
 		.delete(tables.orgInvite)
@@ -927,4 +956,44 @@ export async function deleteOrgInvite(id: number) {
 	if (result.length === 0) return null;
 
 	return result[0].id;
+}
+
+export async function acceptOrgInvite(inviteId: number, userId: string) {
+	const result = await db.transaction(async (tx) => {
+		// change status to accepted
+		const invUpdate = await tx
+			.update(tables.orgInvite)
+			.set({ acceptedAt: new Date() })
+			.where(eq(tables.orgInvite, inviteId))
+			.returning();
+
+		if (invUpdate.length === 0) return false;
+
+		const invitation = invUpdate[0];
+
+		// move user to org
+		const res = await tx
+			.insert(tables.orgMember)
+			.values({ orgId: invitation.orgId, role: invitation.role, userId });
+
+		if (res.length === 0) {
+			tx.rollback();
+			return false;
+		}
+
+		return true;
+	});
+
+	return result;
+}
+
+export async function rejectOrgInvite(inviteId: number) {
+	const result = await db
+		.update(tables.orgInvite)
+		.set({ rejectedAt: new Date() })
+		.where(eq(tables.orgInvite.id, inviteId));
+
+	if (result.length === 0) return false;
+
+	return true;
 }

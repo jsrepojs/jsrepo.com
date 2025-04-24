@@ -1,7 +1,7 @@
-import { acceptOrgInvite, getOrgInvite } from '$lib/backend/db/functions.js';
+import { getOrgInvite, rejectOrgInvite } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
-export type AcceptInviteRequest = {
+export type RejectInviteRequest = {
 	inviteId: number;
 };
 
@@ -10,7 +10,7 @@ export async function PATCH({ locals, request }) {
 
 	if (!session) error(401);
 
-	const body = (await request.json()) as AcceptInviteRequest;
+	const body = (await request.json()) as RejectInviteRequest;
 
 	if (!body.inviteId) error(400, 'expected inviteId in the request body');
 
@@ -20,9 +20,9 @@ export async function PATCH({ locals, request }) {
 
 	if (invite.email !== session.user.email) error(401, 'this invite is not intended for you');
 
-	const result = await acceptOrgInvite(body.inviteId, session.user.id);
+	const result = await rejectOrgInvite(body.inviteId);
 
-	if (!result) error(500, 'error accepting org invite');
+	if (!result) error(500, 'error rejecting org invite');
 
 	return json({})
 }
