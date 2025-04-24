@@ -24,7 +24,7 @@ export class UseQuery<T, Args extends unknown[] = []> {
 	private invalidateOnCall: boolean;
 	#data = $state<T>();
 	#loading = $state(false);
-	#loadingKey = $state<string>()
+	#loadingKey = $state<string>();
 	#error = $state<unknown | null>(null);
 	fn: QueryFn<T, Args>;
 
@@ -45,6 +45,7 @@ export class UseQuery<T, Args extends unknown[] = []> {
 	}
 
 	async run(...args: Args) {
+		this.#error = undefined;
 		if (this.invalidateOnCall) {
 			this.#data = undefined;
 		}

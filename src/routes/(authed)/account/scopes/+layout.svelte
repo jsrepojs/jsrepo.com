@@ -17,7 +17,9 @@
 		<Tabs.Tab href="/account/scopes" activeForSubdirectories={false}>Scopes</Tabs.Tab>
 		<Tabs.Tab
 			href="/account/scopes/transfer-requests"
-			tag={data.transferRequestInbox.length > 0 ? data.transferRequestInbox.length.toString() : undefined}
+			tag={data.transferRequestInbox.length > 0
+				? data.transferRequestInbox.length.toString()
+				: undefined}
 		>
 			Transfer Requests
 		</Tabs.Tab>

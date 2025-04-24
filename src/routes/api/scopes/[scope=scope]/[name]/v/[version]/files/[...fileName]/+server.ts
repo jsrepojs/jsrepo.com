@@ -10,7 +10,13 @@ export async function GET({ params, request }) {
 
 	const session = await auth.api.getSession({ headers: request.headers });
 
-	const contents = await getFileContents(session?.user.id ?? null, scopeName, name, version, fileName);
+	const contents = await getFileContents(
+		session?.user.id ?? null,
+		scopeName,
+		name,
+		version,
+		fileName
+	);
 
 	if (contents === null) {
 		error(404);

@@ -862,13 +862,69 @@ export async function createOrgInvite(record: InferInsertModel<typeof tables.org
 	return result[0];
 }
 
-export async function getOrgInvites(email: string, orgId: number | null = null) {
+export async function getOrgInvitesForEmail(email: string, orgId: number | null = null) {
 	const result = await db
 		.select()
 		.from(tables.orgInvite)
 		.where(
-			and(eq(tables.orgInvite.email, email), orgId ? eq(tables.orgInvite.orgId, orgId) : undefined)
+			and(
+				eq(tables.orgInvite.email, email),
+
+				// hasn't interacted
+				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt)),
+
+				orgId ? eq(tables.orgInvite.orgId, orgId) : undefined
+			)
 		);
 
 	return result;
+}
+
+export async function getPendingOrgInvites(orgName: string, userId: string | null) {
+	if (userId === null) return [];
+
+	const member = aliasedTable(tables.user, 'member');
+
+	const result = await db
+		.select({
+			...getTableColumns(tables.orgInvite),
+			invitedUser: tables.user
+		})
+		.from(tables.orgInvite)
+		.innerJoin(tables.org, eq(tables.org.id, tables.orgInvite.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		// restrict access to only those who are part of the org
+		.innerJoin(
+			member,
+			or(eq(member.id, tables.orgMember.userId), eq(member.id, tables.org.ownerId))
+		)
+		.innerJoin(tables.user, eq(tables.user.email, tables.orgInvite.email))
+		.where(
+			and(
+				// hasn't interacted
+				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt)),
+
+				eq(tables.org.name, orgName)
+			)
+		);
+
+	return result;
+}
+
+export async function deleteOrgInvite(id: number) {
+	const result = await db
+		.delete(tables.orgInvite)
+		.where(
+			and(
+				eq(tables.orgInvite.id, id),
+
+				// hasn't interacted
+				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt))
+			)
+		)
+		.returning({ id: tables.orgInvite.id });
+
+	if (result.length === 0) return null;
+
+	return result[0].id;
 }

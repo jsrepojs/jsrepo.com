@@ -3,12 +3,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import {
-	getUser,
-	nameIsBanned,
-	getOrg,
-	createOrg
-} from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, getOrg, createOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { checkUserSubscription } from '$lib/ts/polar/client';
 import { redirectToLogin } from '$lib/auth/redirect';

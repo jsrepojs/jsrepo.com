@@ -11,8 +11,8 @@ import assert from 'assert';
 export async function GET({ url, request, params }) {
 	const productId = getProductId(params.product);
 
-	if (!productId) error(404)
-		
+	if (!productId) error(404);
+
 	const session = await auth.api.getSession({ headers: request.headers });
 
 	if (!session) redirectToLogin(url);
@@ -24,9 +24,9 @@ export async function GET({ url, request, params }) {
 	if (user.polarCustomerId === null) {
 		const userResult = await createCustomer(user);
 
-		assert(userResult !== null, 'something went horribly wrong creating the customer late')
+		assert(userResult !== null, 'something went horribly wrong creating the customer late');
 
-		user = userResult
+		user = userResult;
 	}
 
 	assert(user.polarCustomerId !== null, 'User should have a customerId now!');

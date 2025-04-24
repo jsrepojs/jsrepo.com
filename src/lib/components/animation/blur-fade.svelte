@@ -34,7 +34,7 @@
 	let id = $props.id();
 </script>
 
-<AnimatePresence let:item list={[{ key: id }]}>
+<AnimatePresence list={[{ key: id }]}>
 	<Motion.div
 		initial="hidden"
 		animate={isInView}

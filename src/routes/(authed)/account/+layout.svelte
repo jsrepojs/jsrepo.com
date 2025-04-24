@@ -3,7 +3,7 @@
 	import { getInitials } from '$lib/ts/initials';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { checkUserSubscription, PRO_PRODUCT_ID } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 
 	let { data, children } = $props();
@@ -30,14 +30,10 @@
 			</div>
 			<div class="hidden sm:block">
 				{#if subscription !== null}
-				<Badge>{subscription}</Badge>
-			{:else}
-				<Button
-					href="/checkout/pro"
-				>
-					Get Pro
-				</Button>
-			{/if}
+					<Badge>{subscription}</Badge>
+				{:else}
+					<Button href="/checkout/pro">Get Pro</Button>
+				{/if}
 			</div>
 		</div>
 		<div class="w-full md:col-start-2">

@@ -101,7 +101,7 @@
 								</span>
 							</Select.Trigger>
 							<Select.Content>
-								{#each Object.entries(SUPPORT_REASONS) as [group, reasons]}
+								{#each Object.entries(SUPPORT_REASONS) as [group, reasons] (group)}
 									<Select.Group>
 										<Select.GroupHeading>{group}</Select.GroupHeading>
 										{#each Object.entries(reasons) as [value, label] (value)}

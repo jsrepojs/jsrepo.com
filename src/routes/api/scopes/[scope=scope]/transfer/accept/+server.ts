@@ -26,7 +26,7 @@ export async function PATCH({ request, params }) {
 	const transferRequest = await getScopeTransferRequest(body.requestId);
 
 	if (transferRequest === null) {
-		error(404)
+		error(404);
 	}
 
 	if (scopeName !== transferRequest.scope.name) {
@@ -38,11 +38,11 @@ export async function PATCH({ request, params }) {
 	}
 
 	if (transferRequest.scope_transfer_request.acceptedAt !== null) {
-		error(400, 'this request has already been accepted')
+		error(400, 'this request has already been accepted');
 	}
 
 	if (transferRequest.scope_transfer_request.rejectedAt !== null) {
-		error(400, 'this request has already been rejected')
+		error(400, 'this request has already been rejected');
 	}
 
 	// accept the transfer request and transfer the scope

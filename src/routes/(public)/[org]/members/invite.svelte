@@ -10,6 +10,7 @@
 	import * as casing from '$lib/ts/casing';
 	import * as v from 'valibot';
 	import type { User } from 'better-auth';
+	import { invalidateAll } from '$app/navigation';
 
 	type Props = {
 		org: Org & { members: User[] };
@@ -23,7 +24,7 @@
 	let email = $state('');
 	let role = $state<OrgRole>('member');
 
-	const inviteQuery = new UseQuery(async ({}) => {
+	const inviteQuery = new UseQuery(async () => {
 		const response = await fetch(`/api/orgs/${org.name}/members/invite`, {
 			method: 'POST',
 			headers: {
@@ -32,11 +33,16 @@
 			body: JSON.stringify({ email, role })
 		});
 
-		if (response.ok) {
-			open = false;
-			email = '';
-			role = 'member';
+		if (!response.ok) {
+			const error = await response.json();
+
+			throw new Error(error.message);
 		}
+
+		await invalidateAll();
+		open = false;
+		email = '';
+		role = 'member';
 	});
 
 	const validateEmailQuery = new UseQuery(async () => {
@@ -54,7 +60,15 @@
 
 		if (member) return false;
 
-		return true;
+		const response = await fetch(`/api/orgs/${org.name}/members/can-invite?email=${email}`);
+
+		if (!response.ok) {
+			const error = await response.json();
+
+			throw new Error(error.message);
+		}
+
+		return response.ok;
 	});
 
 	const canSubmit = $derived(validateEmailQuery.data === true);
@@ -81,7 +95,7 @@
 					<Input
 						type="email"
 						bind:value={email}
-						oninput={validateEmailQuery.run}
+						oninput={validateEmailQuery.runDB}
 						placeholder="johnnydoe1@example.com"
 						aria-invalid={validateEmailQuery.data === false}
 						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
@@ -109,11 +123,20 @@
 				</Select.Root>
 			</div>
 		</div>
-		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
-			<Button onclick={inviteQuery.run} loading={inviteQuery.loading} disabled={!canSubmit}>
-				Invite
-			</Button>
+		<Dialog.Footer class="flex !flex-row !place-items-center !justify-between">
+			<small class="text-wrap text-start text-destructive">
+				{#if inviteQuery.error}
+					{inviteQuery.error}
+				{:else if validateEmailQuery.error}
+					{validateEmailQuery.error}
+				{/if}
+			</small>
+			<div class="flex place-items-center gap-2">
+				<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+				<Button onclick={inviteQuery.run} loading={inviteQuery.loading} disabled={!canSubmit}>
+					Invite
+				</Button>
+			</div>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

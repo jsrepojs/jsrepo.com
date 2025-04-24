@@ -18,7 +18,7 @@
 
 	const { enhance, submitting, form: formData } = form;
 
-	const nameInvalid = $derived($formData.name.match(NAME_REGEX) === null)
+	const nameInvalid = $derived($formData.name.match(NAME_REGEX) === null);
 	const canSubmit = $derived($formData.name.length > 0 && !nameInvalid);
 
 	const placeholder = generateSlug(2, {

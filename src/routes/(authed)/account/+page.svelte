@@ -1,12 +1,5 @@
 <script lang="ts">
-	import { activeSubscription } from '$lib/ts/polar/client';
 	import { ArrowRight, Building, KeyRound, Settings, Telescope } from '@lucide/svelte';
-
-	let { data } = $props();
-
-	const subscription = $derived(
-		activeSubscription(data.user.polarSubscriptionPlanId, data.user.polarSubscriptionPlanEnd)
-	);
 </script>
 
 <svelte:head>

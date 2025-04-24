@@ -54,5 +54,5 @@ export function getProductId(product: string) {
 
 	if (product === 'team') return TEAM_PRODUCT_ID;
 
-	return null
+	return null;
 }

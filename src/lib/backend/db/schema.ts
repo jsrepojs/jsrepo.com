@@ -167,7 +167,7 @@ export const orgInvite = pgTable(
 			.references(() => org.id, { onDelete: 'cascade' }),
 		email: text('email')
 			.notNull()
-			.references(() => user.email, { onDelete: 'cascade' }),
+			.references(() => user.email, { onDelete: 'cascade', onUpdate: 'cascade' }),
 		role: orgMemberRole().notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		acceptedAt: timestamp('accepted_at'),
@@ -178,7 +178,7 @@ export const orgInvite = pgTable(
 	}
 ).enableRLS();
 
-export type OrgInvite = InferSelectModel<typeof orgInvite>
+export type OrgInvite = InferSelectModel<typeof orgInvite>;
 
 export const scope = pgTable(
 	'scope',

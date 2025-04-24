@@ -1,5 +1,4 @@
 <script lang="ts">
-	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { ChevronLeft, Plus } from '@lucide/svelte';

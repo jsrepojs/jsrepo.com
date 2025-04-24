@@ -15,8 +15,8 @@
 		<Tabs.Tab href="/{data.org.name}" activeForSubdirectories={false}>Home</Tabs.Tab>
 		<Tabs.Tab href="/{data.org.name}/registries">Registries</Tabs.Tab>
 		<Tabs.Tab href="/{data.org.name}/members" tag={data.org.members.length.toString()}>
-            Members
-        </Tabs.Tab>
+			Members
+		</Tabs.Tab>
 		{#if data.member}
 			<Tabs.Tab href="/{data.org.name}/settings">Settings</Tabs.Tab>
 		{/if}
