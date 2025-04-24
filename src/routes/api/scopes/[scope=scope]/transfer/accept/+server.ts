@@ -1,7 +1,4 @@
-import {
-	acceptScopeTransferRequest,
-	getScopeTransferRequest,
-} from '$lib/backend/db/functions';
+import { acceptScopeTransferRequest, getScopeTransferRequest } from '$lib/backend/db/functions';
 import { resend, scopeTransferredEmail } from '$lib/ts/resend';
 import { error, json } from '@sveltejs/kit';
 

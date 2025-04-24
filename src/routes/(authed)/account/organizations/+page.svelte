@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { checkUserSubscription } from '$lib/ts/polar/client.js';
-	import { ChevronLeft, Plus } from '@lucide/svelte';
+	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
 
 	let { data } = $props();
@@ -18,13 +18,6 @@
 </svelte:head>
 
 <div class="flex flex-col gap-4">
-	<a
-		href="/account"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
-	>
-		<ChevronLeft />
-		Back to Account
-	</a>
 	<List.Root title="Your Organizations">
 		{#snippet actions()}
 			<Button href="/account/organizations/new" disabled={subscription !== 'Team'}>

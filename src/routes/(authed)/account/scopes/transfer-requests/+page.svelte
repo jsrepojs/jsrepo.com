@@ -56,6 +56,10 @@
 	);
 </script>
 
+<svelte:head>
+	<title>Transfer Requests - Scopes - Account - jsrepo</title>
+</svelte:head>
+
 {#if data.transferRequestInbox.length === 0}
 	<div class="flex h-96 flex-col place-items-center justify-center gap-2">
 		<span class="text-center text-lg text-muted-foreground">

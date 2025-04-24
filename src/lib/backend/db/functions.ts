@@ -839,7 +839,7 @@ export async function acceptScopeTransferRequest(request: TransferOwnershipOptio
 				.where(eq(tables.scope.id, request.scopeId));
 		} else {
 			assert(request.newOrgId !== undefined, 'This must be defined');
-	
+
 			scopeRes = await tx
 				.update(tables.scope)
 				.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
@@ -875,8 +875,12 @@ export async function createOrgInvite(record: InferInsertModel<typeof tables.org
 
 export async function getOrgInvitesForEmail(email: string, orgId: number | null = null) {
 	const result = await db
-		.select()
+		.select({
+			...getTableColumns(tables.orgInvite),
+			org: tables.org
+		})
 		.from(tables.orgInvite)
+		.innerJoin(tables.org, eq(tables.org.id, tables.orgInvite.orgId))
 		.where(
 			and(
 				eq(tables.orgInvite.email, email),
@@ -964,7 +968,7 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 		const invUpdate = await tx
 			.update(tables.orgInvite)
 			.set({ acceptedAt: new Date() })
-			.where(eq(tables.orgInvite, inviteId))
+			.where(eq(tables.orgInvite.id, inviteId))
 			.returning();
 
 		if (invUpdate.length === 0) return false;
@@ -974,7 +978,8 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 		// move user to org
 		const res = await tx
 			.insert(tables.orgMember)
-			.values({ orgId: invitation.orgId, role: invitation.role, userId });
+			.values({ orgId: invitation.orgId, role: invitation.role, userId: userId })
+			.returning();
 
 		if (res.length === 0) {
 			tx.rollback();
@@ -991,7 +996,8 @@ export async function rejectOrgInvite(inviteId: number) {
 	const result = await db
 		.update(tables.orgInvite)
 		.set({ rejectedAt: new Date() })
-		.where(eq(tables.orgInvite.id, inviteId));
+		.where(eq(tables.orgInvite.id, inviteId))
+		.returning();
 
 	if (result.length === 0) return false;
 

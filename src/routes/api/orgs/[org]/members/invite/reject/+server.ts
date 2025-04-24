@@ -24,5 +24,5 @@ export async function PATCH({ locals, request }) {
 
 	if (!result) error(500, 'error rejecting org invite');
 
-	return json({})
+	return json({});
 }
