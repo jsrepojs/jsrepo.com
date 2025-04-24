@@ -218,6 +218,13 @@
       "when": 1745509439137,
       "tag": "0030_red_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1745516277714,
+      "tag": "0031_loving_roland_deschain",
+      "breakpoints": true
     }
   ]
 }

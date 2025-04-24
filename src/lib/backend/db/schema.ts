@@ -45,7 +45,7 @@ export const session = pgTable('session', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' }),
-	impersonatedBy: text('user_id').references(() => user.id, { onDelete: 'cascade' })
+	impersonatedBy: text('impersonated_by').references(() => user.id, { onDelete: 'cascade' })
 }).enableRLS();
 
 export type Session = InferSelectModel<typeof session>;
