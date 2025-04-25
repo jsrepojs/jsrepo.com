@@ -9,7 +9,8 @@ import {
 	unique,
 	integer,
 	pgEnum,
-	index
+	index,
+	date
 } from 'drizzle-orm/pg-core';
 
 // Auth Schema
@@ -326,3 +327,31 @@ export const commonNameBan = pgTable(
 ).enableRLS();
 
 export type CommonNameBan = InferSelectModel<typeof commonNameBan>;
+
+export const dailyRegistryFetch = pgTable(
+	'daily_registry_fetch',
+	{
+		id: serial('id').primaryKey(),
+		scopeName: varchar('scope_name', { length: 20 })
+			.notNull()
+			.references(() => scope.name, { onDelete: 'cascade' }),
+		registryName: varchar('registry_name', { length: 20 }).notNull(),
+		version: text('version').notNull(),
+		fileName: text('file_name').notNull(),
+		count: integer('count').notNull(),
+		day: date().notNull()
+	},
+	(table) => {
+		return [
+			index('daily_registry_fetch_scope_name_idx').on(table.scopeName),
+			index('daily_registry_fetch_registry_name_idx').on(table.registryName),
+			index('daily_registry_fetch_version_idx').on(table.version),
+			index('daily_registry_fetch_file_name_idx').on(table.fileName),
+			index('daily_registry_fetch_count_idx').on(table.count),
+			index('daily_registry_fetch_day_idx').on(table.day),
+			unique().on(table.scopeName, table.registryName, table.version, table.fileName, table.day)
+		];
+	}
+).enableRLS();
+
+export type DailyRegistryFetch = InferSelectModel<typeof dailyRegistryFetch>;

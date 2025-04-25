@@ -24,6 +24,7 @@ import * as v from 'valibot';
 import assert from 'assert';
 import { polar } from '$lib/ts/polar';
 import type { Customer } from '@polar-sh/sdk/models/components/customer.js';
+import { postHogClient } from '$lib/ts/posthog';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -559,8 +560,6 @@ export async function getOrgWithMembers(orgName: string): Promise<CompleteOrg | 
 		.where(eq(tables.org.name, orgName));
 
 	if (result.length === 0) return null;
-
-	console.log(result);
 
 	const members: CompleteOrg['members'] = [];
 
@@ -1102,4 +1101,60 @@ export async function getOrgScopes(orgName: string) {
 		.where(eq(tables.org.name, orgName));
 
 	return result;
+}
+
+export type TrackFetchOptions = {
+	distinctId: string;
+	scopeName: string;
+	registryName: string;
+	registryVersion: string;
+	fileName: string;
+};
+
+export async function postFileFetch({
+	distinctId,
+	scopeName,
+	registryName,
+	registryVersion,
+	fileName
+}: TrackFetchOptions) {
+	if (!(await postHogClient.isFeatureEnabled('trackAllFileFetches', distinctId))) {
+		if (fileName !== 'jsrepo-manifest.json') return;
+	}
+
+	if (!(await postHogClient.isFeatureEnabled('trackFetches', distinctId))) return;
+
+	await trackFetch(scopeName, registryName, registryVersion, fileName);
+}
+
+async function trackFetch(
+	scopeName: string,
+	registryName: string,
+	version: string,
+	fileName: string
+) {
+	const registry = await getVersion(scopeName, registryName, version);
+
+	if (registry === null) return;
+
+	await db
+		.insert(tables.dailyRegistryFetch)
+		.values({
+			scopeName,
+			registryName,
+			version: registry.version.version,
+			fileName,
+			day: new Date().toLocaleDateString(),
+			count: 1
+		})
+		.onConflictDoUpdate({
+			target: [
+				tables.dailyRegistryFetch.scopeName,
+				tables.dailyRegistryFetch.registryName,
+				tables.dailyRegistryFetch.version,
+				tables.dailyRegistryFetch.fileName,
+				tables.dailyRegistryFetch.day
+			],
+			set: { count: sql`${tables.dailyRegistryFetch.count} + 1` }
+		});
 }

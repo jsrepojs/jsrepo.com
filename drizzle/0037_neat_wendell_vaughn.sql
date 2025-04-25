@@ -1,0 +1,1 @@
+ALTER TABLE "daily_registry_fetch" ADD COLUMN "count" integer NOT NULL;
