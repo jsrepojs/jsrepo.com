@@ -2,7 +2,7 @@
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import ListItem from './list-item.svelte';
 	import ListLink from './list-link.svelte';
-	import { Lock } from '@lucide/svelte';
+	import { Download, Lock } from '@lucide/svelte';
 
 	type Props = {
 		registry: RegistryDetails;
@@ -27,4 +27,8 @@
 			{registry.latestVersion?.version}
 		</span>
 	</div>
+	<span class="text-muted-foreground font-mono text-sm flex place-items-center gap-2">
+		{registry.monthlyFetches}
+		<Download class="size-4 inline"/>
+	</span>
 </ListItem>

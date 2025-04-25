@@ -12,7 +12,9 @@ import {
 	type TablesRelationalConfig,
 	type InferInsertModel,
 	getTableColumns,
-	sql
+	sql,
+	sum,
+	gte
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -25,6 +27,7 @@ import assert from 'assert';
 import { polar } from '$lib/ts/polar';
 import type { Customer } from '@polar-sh/sdk/models/components/customer.js';
 import { postHogClient } from '$lib/ts/posthog';
+import { DAY } from '$lib/ts/time';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -1032,7 +1035,9 @@ export type RegistrySearchOptions = {
 
 export type RegistryDetails = tables.Registry & {
 	scope: tables.Scope;
+	org: tables.Org | null;
 	latestVersion: tables.Version | null;
+	monthlyFetches: number;
 };
 
 export async function searchRegistries({
@@ -1043,6 +1048,8 @@ export async function searchRegistries({
 	offset,
 	userId
 }: Partial<RegistrySearchOptions>): Promise<RegistryDetails[]> {
+	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
+
 	const owner = aliasedTable(tables.user, 'owner');
 
 	let query = db
@@ -1050,7 +1057,8 @@ export async function searchRegistries({
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
 			org: tables.org,
-			latestVersion: tables.version
+			latestVersion: tables.version,
+			monthlyFetches: sum(tables.dailyRegistryFetch.count)
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
@@ -1059,6 +1067,13 @@ export async function searchRegistries({
 		.leftJoin(
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
+		)
+		.leftJoin(
+			tables.dailyRegistryFetch,
+			and(
+				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
+			)
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
@@ -1081,6 +1096,25 @@ export async function searchRegistries({
 				checkAccessQuery(userId ?? null, owner, true)
 			)
 		)
+		.groupBy(
+			tables.registry.id,
+			tables.registry.name,
+			tables.registry.scopeId,
+			tables.registry.createdAt,
+			// scope columns
+			tables.scope.id,
+			tables.scope.name,
+			tables.scope.orgId,
+			// org columns
+			tables.org.id,
+			tables.org.name,
+			tables.org.ownerId,
+			// version columns
+			tables.version.id,
+			tables.version.registryId,
+			tables.version.tag,
+			tables.version.createdAt
+		)
 		.offset(offset ?? 0);
 
 	if (limit !== undefined) {
@@ -1088,7 +1122,9 @@ export async function searchRegistries({
 		query = query.limit(limit);
 	}
 
-	return await query;
+	const result = await query;
+
+	return result.map((r) => ({ ...r, monthlyFetches: parseInt(r.monthlyFetches ?? '0') }));
 }
 
 export async function getOrgScopes(orgName: string) {
@@ -1133,25 +1169,25 @@ async function trackFetch(
 	version: string,
 	fileName: string
 ) {
-	const registry = await getVersion(scopeName, registryName, version);
+	const ver = await getVersion(scopeName, registryName, version);
 
-	if (registry === null) return;
+	if (ver === null) return;
 
 	await db
 		.insert(tables.dailyRegistryFetch)
 		.values({
-			scopeName,
-			registryName,
-			version: registry.version.version,
+			scopeId: ver.scope.id,
+			registryId: ver.registry.id,
+			versionId: ver.version.id,
 			fileName,
 			day: new Date().toLocaleDateString(),
 			count: 1
 		})
 		.onConflictDoUpdate({
 			target: [
-				tables.dailyRegistryFetch.scopeName,
-				tables.dailyRegistryFetch.registryName,
-				tables.dailyRegistryFetch.version,
+				tables.dailyRegistryFetch.scopeId,
+				tables.dailyRegistryFetch.registryId,
+				tables.dailyRegistryFetch.versionId,
 				tables.dailyRegistryFetch.fileName,
 				tables.dailyRegistryFetch.day
 			],
