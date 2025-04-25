@@ -36,7 +36,7 @@
 </script>
 
 <svelte:head>
-	<title>Members - {data.org.name} - jsrepo</title>
+	<title>Members - {data.org.name} - Organizations - jsrepo</title>
 </svelte:head>
 
 <!-- we can only view the options if we are part of the org -->
