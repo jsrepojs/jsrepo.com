@@ -1,4 +1,5 @@
 import { acceptScopeTransferRequest, getScopeTransferRequest } from '$lib/backend/db/functions';
+import { db } from '$lib/backend/db/index.js';
 import { resend, scopeTransferredEmail } from '$lib/ts/resend';
 import { error, json } from '@sveltejs/kit';
 
@@ -41,7 +42,9 @@ export async function PATCH({ request, params, locals }) {
 
 	// accept the transfer request and transfer the scope
 
-	const result = await acceptScopeTransferRequest(transferRequest.scope_transfer_request);
+	const result = await db.transaction(async (tx) =>
+		acceptScopeTransferRequest(tx, transferRequest.scope_transfer_request)
+	);
 
 	if (!result) error(500, 'there was an error transferring the scope');
 

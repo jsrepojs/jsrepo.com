@@ -53,9 +53,9 @@
 
 		const result = (await response.json()) as TransferRequestResponse;
 
-		if (result.type === 'requested') {
-			await invalidateAll();
-		} else {
+		await invalidateAll();
+
+		if (result.type === 'transferred') {
 			await goto(`/@${data.scope.name}`);
 		}
 

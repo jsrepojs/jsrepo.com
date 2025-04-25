@@ -25,7 +25,6 @@ import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
 import * as v from 'valibot';
-import assert from 'assert';
 import { polar } from '$lib/ts/polar';
 import type { Customer } from '@polar-sh/sdk/models/components/customer.js';
 import { postHogClient } from '$lib/ts/posthog';
@@ -614,7 +613,9 @@ export async function createScopeTransferRequest(
 		.values(record)
 		.returning({ id: tables.scopeTransferRequest.id });
 
-	return result[0]?.id ?? null;
+	if (result.length === 0) return null;
+
+	return result[0]?.id;
 }
 
 export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null> {
@@ -843,37 +844,41 @@ export type TransferOwnershipOptions = {
 	newUserId?: string | null;
 };
 
-export async function acceptScopeTransferRequest(request: TransferOwnershipOptions) {
-	return await db.transaction(async (tx) => {
-		const res = await tx
-			.update(tables.scopeTransferRequest)
-			.set({ acceptedAt: new Date() })
-			.where(eq(tables.scopeTransferRequest.id, request.id));
+export async function acceptScopeTransferRequest(tx: tx, request: TransferOwnershipOptions) {
+	const res = await tx
+		.update(tables.scopeTransferRequest)
+		.set({ acceptedAt: new Date() })
+		.where(eq(tables.scopeTransferRequest.id, request.id))
+		.returning();
 
-		if (res.length === 0) return false;
+	if (res.length === 0) {
+		tx.rollback();
+	}
 
-		let scopeRes: tables.Scope[];
-		if (request.newUserId) {
-			scopeRes = await tx
-				.update(tables.scope)
-				.set({ orgId: null, userId: request.newUserId, claimedAt: new Date() })
-				.where(eq(tables.scope.id, request.scopeId));
-		} else {
-			assert(request.newOrgId !== undefined, 'This must be defined');
-
-			scopeRes = await tx
-				.update(tables.scope)
-				.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
-				.where(eq(tables.scope.id, request.scopeId));
-		}
-
-		if (scopeRes.length === 0) {
+	let scopeRes: tables.Scope[];
+	if (request.newUserId) {
+		scopeRes = await tx
+			.update(tables.scope)
+			.set({ orgId: null, userId: request.newUserId, claimedAt: new Date() })
+			.where(eq(tables.scope.id, request.scopeId))
+			.returning();
+	} else {
+		if (request.newOrgId === undefined) {
 			tx.rollback();
-			return false;
 		}
 
-		return true;
-	});
+		scopeRes = await tx
+			.update(tables.scope)
+			.set({ orgId: request.newOrgId, userId: null, claimedAt: new Date() })
+			.where(eq(tables.scope.id, request.scopeId))
+			.returning();
+	}
+
+	if (scopeRes.length === 0) {
+		tx.rollback();
+	}
+
+	return true;
 }
 
 export async function createOrg(
@@ -1121,7 +1126,7 @@ export async function searchRegistries({
 			tables.version.registryId,
 			tables.version.tag,
 			tables.version.createdAt
-		)
+		);
 
 	if (orderBy !== undefined) {
 		// @ts-expect-error idk what's wrong with you

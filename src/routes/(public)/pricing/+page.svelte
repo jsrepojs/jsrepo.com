@@ -7,25 +7,23 @@
 	<title>Pricing - jsrepo</title>
 </svelte:head>
 
-<div
-	class="flex flex-col place-items-center justify-center py-[--header-height]"
->
+<div class="flex flex-col place-items-center justify-center py-[--header-height]">
 	<h1 class="text-6xl font-bold">Pricing</h1>
 	<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 py-8 lg:grid-cols-3">
 		<div
-			class="flex bg-card/50 h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-1 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-1 lg:h-[450px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Free</h4>
 				<span class="text-center text-2xl font-medium"> $0 / month </span>
 			</div>
-			<Button href="/login" variant='outline'>Get Started for Free</Button>
+			<Button href="/login" variant="outline">Get Started for Free</Button>
 			{@render feature_list({
 				features: ['Publish and install code from public registries', '5 registry scopes']
 			})}
 		</div>
 		<div
-			class="flex bg-gradient-to-br from-card h-full w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary p-6 lg:col-start-2 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary bg-gradient-to-br from-card p-6 lg:col-start-2 lg:h-[450px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Pro</h4>
@@ -37,7 +35,7 @@
 			})}
 		</div>
 		<div
-			class="flex bg-card/50 h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border p-6 lg:col-start-3 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-3 lg:h-[450px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Team</h4>
@@ -58,7 +56,9 @@
 	</span>
 	<div class="mt-20 flex flex-col place-items-center justify-center gap-2">
 		<h2 class="text-center text-3xl font-bold">Can't decide?</h2>
-		<p class="text-muted-foreground">Were here to help! Shoot us an email and let's talk about it!</p>
+		<p class="text-muted-foreground">
+			Were here to help! Shoot us an email and let's talk about it!
+		</p>
 		<Button href="/help?reason=pricing" variant="outline">Contact Us</Button>
 	</div>
 </div>

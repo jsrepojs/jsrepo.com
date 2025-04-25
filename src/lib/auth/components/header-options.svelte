@@ -1,13 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { authClient } from '../client';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
-	import { signOut } from './utils';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Building, LogOut, Telescope, User } from '@lucide/svelte';
 
 	const session = authClient.useSession();
 </script>

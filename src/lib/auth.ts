@@ -100,6 +100,7 @@ export const auth = betterAuth({
 						}
 					} catch (err) {
 						postHogClient.captureException(err, user?.id, { path: ctx.path });
+						await postHogClient.shutdown();
 					}
 				}
 			}

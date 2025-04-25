@@ -1,5 +1,6 @@
 import { isSameScopeOwner } from '$lib/backend/db/client-functions.js';
 import {
+	acceptScopeTransferRequest,
 	createScopeTransferRequest,
 	dismissPendingScopeTransferRequests,
 	getOrgWithOwner,
@@ -7,7 +8,6 @@ import {
 	getUserByEmail,
 	isScopeOwner,
 	isUserOrOrg,
-	transferScopeOwnership,
 	type TransferOwnershipOptions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
@@ -19,6 +19,7 @@ import {
 	scopeTransferredRequestedEmailToOldOwner
 } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
+import { waitUntil } from '@vercel/functions';
 import assert from 'assert';
 
 export type TransferRequestRequest = {
@@ -81,7 +82,7 @@ export async function POST({ request, params, locals }) {
 
 			selfTransfer = user.id === session.user.id;
 
-			transferRequest = {
+			const initialRequest = {
 				scopeId: scope.scope.id,
 				newUserId: user.id,
 				oldUserId: scope.scope.userId,
@@ -91,7 +92,14 @@ export async function POST({ request, params, locals }) {
 				acceptedAt: selfTransfer ? new Date() : undefined
 			};
 
-			await createScopeTransferRequest(tx, transferRequest);
+			const requestId = await createScopeTransferRequest(tx, initialRequest);
+
+			if (!requestId) {
+				tx.rollback();
+				return;
+			}
+
+			transferRequest = { id: requestId, ...initialRequest };
 
 			if (!selfTransfer) {
 				await Promise.all([
@@ -122,7 +130,7 @@ export async function POST({ request, params, locals }) {
 
 			selfTransfer = orgAndOwner.user.id === session.user.id;
 
-			transferRequest = {
+			const initialRequest = {
 				scopeId: scope.scope.id,
 				newOrgId: orgAndOwner.org.id,
 				createdById: session.user.id,
@@ -132,7 +140,14 @@ export async function POST({ request, params, locals }) {
 				acceptedAt: selfTransfer ? new Date() : undefined
 			};
 
-			await createScopeTransferRequest(tx, transferRequest);
+			const requestId = await createScopeTransferRequest(tx, initialRequest);
+
+			if (!requestId) {
+				tx.rollback();
+				return;
+			}
+
+			transferRequest = { id: requestId, ...initialRequest };
 
 			if (!selfTransfer) {
 				await Promise.all([
@@ -159,7 +174,11 @@ export async function POST({ request, params, locals }) {
 		}
 
 		// if we are transferring to ourself just transfer
-		await transferScopeOwnership(tx, transferRequest);
+		const transferRes = await acceptScopeTransferRequest(tx, transferRequest);
+
+		if (!transferRes) {
+			error(500, 'error accepting the transfer request');
+		}
 
 		await resend.emails.send(
 			scopeTransferredEmail({
@@ -179,6 +198,8 @@ export async function POST({ request, params, locals }) {
 			scope: scopeName
 		}
 	});
+
+	waitUntil(postHogClient.shutdown());
 
 	if (result === 'transferred') {
 		return json({ type: result } satisfies TransferRequestResponse);

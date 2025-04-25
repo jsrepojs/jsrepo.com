@@ -1,4 +1,4 @@
 export type ListItem<T> = {
-    label: string;
-    value: T
-}
+	label: string;
+	value: T;
+};

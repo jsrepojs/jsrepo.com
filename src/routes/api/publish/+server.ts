@@ -24,6 +24,7 @@ import type { Version } from '$lib/backend/db/schema.js';
 import { newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
 import * as tables from '$lib/backend/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { waitUntil } from '@vercel/functions';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -278,6 +279,8 @@ export async function POST({ request }) {
 			private: isPrivate
 		}
 	});
+
+	waitUntil(postHogClient.shutdown());
 
 	await resend.emails.send(newVersionPublishedEmail(user, manifest.name, manifest.version));
 

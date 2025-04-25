@@ -27,7 +27,7 @@
 				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
 			</div>
 			<div class="hidden sm:block">
-				<SubBadge user={data.user}/>
+				<SubBadge user={data.user} />
 			</div>
 		</div>
 		<Separator class="md:hidden" />

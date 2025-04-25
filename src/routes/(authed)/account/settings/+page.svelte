@@ -41,7 +41,7 @@
 			<div>
 				<FieldSet.Title>Your Subscription</FieldSet.Title>
 				<p class="text-muted-foreground">
-					<SubBadge user={data.user}/>
+					<SubBadge user={data.user} />
 					{endsAt ? `ends ${endsAt}` : ''}
 				</p>
 			</div>
