@@ -13,7 +13,15 @@
 </script>
 
 {#if $session.data}
-	<DropdownMenu.Root>
+	<a href="/account">
+		<Avatar.Root class="size-8 ring-offset-background">
+			<Avatar.Image src={$session.data.user?.image} />
+			<Avatar.Fallback>{getInitials($session.data.user.name)}</Avatar.Fallback>
+		</Avatar.Root>
+	</a>
+
+	<!-- maybe we will bring it back idk -->
+	<!-- <DropdownMenu.Root>
 		<DropdownMenu.Trigger>
 			<Avatar.Root class="size-7 ring-2 ring-accent ring-offset-2 ring-offset-background">
 				<Avatar.Image src={$session.data.user?.image} />
@@ -46,7 +54,7 @@
 				</DropdownMenu.Item>
 			</DropdownMenu.Group>
 		</DropdownMenu.Content>
-	</DropdownMenu.Root>
+	</DropdownMenu.Root> -->
 {:else if !page.url.pathname.startsWith('/login')}
 	<Button href="/login">Sign In</Button>
 {/if}

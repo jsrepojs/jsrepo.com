@@ -52,13 +52,18 @@
 			</Select.Content>
 		</Select.Root>
 	</div>
-	<List.Root>
-		<List.List>
-			{#each data.registries as registry (registry.id)}
-				<List.Registry {registry} />
-			{/each}
-		</List.List>
-	</List.Root>
+	{#if data.total === 0}
+		<List.Empty>No registries found.</List.Empty>
+	{:else}
+		<List.Root>
+			<List.List>
+				{#each data.registries as registry (registry.id)}
+					<List.Registry {registry} />
+				{/each}
+			</List.List>
+		</List.Root>
+	{/if}
+
 	<Pagination.Root
 		bind:page
 		onPageChange={(v) => ($params.page = v)}
