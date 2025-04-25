@@ -7,6 +7,7 @@
 	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
+	import { signOut } from '$lib/auth/components/utils';
 
 	let { data } = $props();
 
@@ -74,4 +75,10 @@
 			</FieldSet.Content>
 		</FieldSet.Root>
 	{/if}
+	<FieldSet.Root>
+		<FieldSet.Content class="flex flex-row place-items-center justify-between">
+			<FieldSet.Title>Sign Out?</FieldSet.Title>
+			<Button onclick={signOut}>Sign Out</Button>
+		</FieldSet.Content>
+	</FieldSet.Root>
 </div>

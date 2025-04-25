@@ -20,6 +20,9 @@
 			>
 				jsrepo
 			</a>
+		</div>
+
+		<div class="flex place-items-center gap-6">
 			<div class="hidden place-content-center gap-4 md:flex">
 				<a
 					href="/pricing"
@@ -36,9 +39,6 @@
 					<ArrowUpRight class="inline size-4" />
 				</a>
 			</div>
-		</div>
-
-		<div class="flex place-items-center gap-2">
 			<div class="hidden md:contents">
 				<HeaderOptions />
 			</div>

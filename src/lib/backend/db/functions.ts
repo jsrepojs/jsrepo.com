@@ -14,11 +14,12 @@ import {
 	getTableColumns,
 	sql,
 	sum,
-	gte
+	gte,
+	SQL
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
-import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/polar/client';
@@ -43,8 +44,8 @@ export async function canPublishToScope(
 	if (scope.userId === user.id) {
 		if (!privateRegistry) return true;
 
-		// check the subscription status
-		if ([PRO_PRODUCT_ID, TEAM_PRODUCT_ID].includes(user.polarSubscriptionPlanId ?? '')) return true;
+		// any paid plan is fine
+		if (checkUserSubscription(user) !== null) return true;
 
 		return false;
 	}
@@ -1024,13 +1025,14 @@ export async function rejectOrgInvite(inviteId: number) {
 }
 
 export type RegistrySearchOptions = {
-	q: string;
-	org: string;
-	scope: string;
+	q: string | null;
+	org: string | null;
+	scope: string | null;
 	/** So users can see private registries they have access to */
-	userId: string;
-	offset: number;
-	limit: number;
+	userId: string | null;
+	offset: number | null;
+	limit: number | null;
+	orderBy: PgColumn | SQL | undefined
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1082,9 +1084,26 @@ export async function searchRegistries({
 			and(
 				// query
 				q
-					? ilike(
-							sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
-							`%${q.replace(/^@/, '')}%`
+					? q.startsWith('@')
+						// if q starts with @ then only search registry names forwards
+						? ilike(
+								sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`,
+								`${q}%`
+							)
+
+						// search everything
+						: or(
+								ilike(
+									sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
+									`%${q.replace(/^@/, '')}%`
+								),
+
+								ilike(tables.registry.metaDescription, `%${q}%`),
+
+								sql`EXISTS (
+								SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
+								WHERE tag ILIKE ${'%' + q + '%'}
+							)`
 						)
 					: undefined,
 
