@@ -5,7 +5,7 @@ export async function load({ params }) {
 
 	const scopes = await getOrgScopes(orgName);
 
-    return {
-        scopes
-    }
+	return {
+		scopes
+	};
 }

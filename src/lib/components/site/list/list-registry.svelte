@@ -14,21 +14,27 @@
 </script>
 
 <ListItem>
-	<div class="flex flex-col">
+	<div class="flex flex-col gap-1">
 		<div class="flex place-items-center gap-2">
 			<ListLink href="/{name}">
 				{name}
 			</ListLink>
+			<span class="hidden font-mono text-sm text-muted-foreground sm:block">
+				{registry.latestVersion?.version}
+			</span>
 			{#if registry.private}
 				<Lock class="size-3.5 text-muted-foreground" />
 			{/if}
 		</div>
-		<span class="font-mono text-sm text-muted-foreground">
+		<span class="text-muted-foreground">
+			{registry.metaDescription}
+		</span>
+		<span class="block font-mono text-sm text-muted-foreground sm:hidden">
 			{registry.latestVersion?.version}
 		</span>
 	</div>
-	<span class="text-muted-foreground font-mono text-sm flex place-items-center gap-2">
+	<span class="hidden place-items-center gap-2 font-mono text-sm text-muted-foreground sm:flex">
 		{registry.monthlyFetches}
-		<Download class="size-4 inline"/>
+		<Download class="inline size-4" />
 	</span>
 </ListItem>

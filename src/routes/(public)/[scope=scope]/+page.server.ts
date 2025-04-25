@@ -8,6 +8,6 @@ export async function load({ params, locals }) {
 	const registries = await searchRegistries({ scope: scopeName, userId: session?.user.id });
 
 	return {
-		registries
+		registries: registries.data
 	};
 }

@@ -15,7 +15,8 @@ import {
 	sql,
 	sum,
 	gte,
-	SQL
+	SQL,
+	countDistinct
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -1032,7 +1033,7 @@ export type RegistrySearchOptions = {
 	userId: string | null;
 	offset: number | null;
 	limit: number | null;
-	orderBy: PgColumn | SQL | undefined
+	orderBy: PgColumn | SQL | undefined;
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1049,12 +1050,35 @@ export async function searchRegistries({
 	limit,
 	offset,
 	userId
-}: Partial<RegistrySearchOptions>): Promise<RegistryDetails[]> {
+}: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const owner = aliasedTable(tables.user, 'owner');
 
-	let query = db
+	// --- Build the WHERE clause once ---
+	const whereClause = and(
+		q
+			? q.startsWith('@')
+				? ilike(sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`, `${q}%`)
+				: or(
+						ilike(
+							sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
+							`%${q.replace(/^@/, '')}%`
+						),
+						ilike(tables.registry.metaDescription, `%${q}%`),
+						sql`EXISTS (
+				SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
+				WHERE tag ILIKE ${'%' + q + '%'}
+			  )`
+					)
+			: undefined,
+		org ? eq(tables.org.name, org) : undefined,
+		scope ? eq(tables.scope.name, scope) : undefined,
+		checkAccessQuery(userId ?? null, owner, true)
+	);
+
+	// --- Data query (with limit/offset) ---
+	let dataQuery = db
 		.selectDistinctOn([tables.registry.id], {
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
@@ -1080,56 +1104,18 @@ export async function searchRegistries({
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.where(
-			and(
-				// query
-				q
-					? q.startsWith('@')
-						// if q starts with @ then only search registry names forwards
-						? ilike(
-								sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`,
-								`${q}%`
-							)
-
-						// search everything
-						: or(
-								ilike(
-									sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
-									`%${q.replace(/^@/, '')}%`
-								),
-
-								ilike(tables.registry.metaDescription, `%${q}%`),
-
-								sql`EXISTS (
-								SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
-								WHERE tag ILIKE ${'%' + q + '%'}
-							)`
-						)
-					: undefined,
-
-				// org
-				org ? eq(tables.org.name, org) : undefined,
-
-				// scope
-				scope ? eq(tables.scope.name, scope) : undefined,
-
-				checkAccessQuery(userId ?? null, owner, true)
-			)
-		)
+		.where(whereClause)
 		.groupBy(
 			tables.registry.id,
 			tables.registry.name,
 			tables.registry.scopeId,
 			tables.registry.createdAt,
-			// scope columns
 			tables.scope.id,
 			tables.scope.name,
 			tables.scope.orgId,
-			// org columns
 			tables.org.id,
 			tables.org.name,
 			tables.org.ownerId,
-			// version columns
 			tables.version.id,
 			tables.version.registryId,
 			tables.version.tag,
@@ -1139,12 +1125,31 @@ export async function searchRegistries({
 
 	if (limit !== undefined) {
 		// @ts-expect-error idk what's wrong with you
-		query = query.limit(limit);
+		dataQuery = dataQuery.limit(limit);
 	}
 
-	const result = await query;
+	// --- Count query (no limit/offset, just count) ---
+	const countQuery = db
+		.select({ total: countDistinct(tables.registry.id) })
+		.from(tables.registry)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(whereClause);
 
-	return result.map((r) => ({ ...r, monthlyFetches: parseInt(r.monthlyFetches ?? '0') }));
+	// --- Run both queries in parallel ---
+	const [data, countResult] = await Promise.all([dataQuery, countQuery]);
+	const total = countResult[0]?.total ?? 0;
+
+	return {
+		total,
+		data: data.map((r) => ({
+			...r,
+			monthlyFetches: parseInt(r.monthlyFetches ?? '0')
+		}))
+	};
 }
 
 export async function getOrgScopes(orgName: string) {

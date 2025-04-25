@@ -10,7 +10,7 @@ export async function load({ params, locals }) {
 
 	const member = org.members.find((u) => u.id === session?.user.id);
 
-    if (!member) error(404);
+	if (!member) error(404);
 
 	return {
 		org,

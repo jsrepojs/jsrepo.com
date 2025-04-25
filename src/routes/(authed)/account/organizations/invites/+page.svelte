@@ -54,9 +54,7 @@
 </svelte:head>
 
 {#if data.orgInvitesInbox.length === 0}
-	<List.Empty>
-		You have no organization invitations.
-	</List.Empty>
+	<List.Empty>You have no organization invitations.</List.Empty>
 {:else}
 	<List.Root>
 		<List.List>

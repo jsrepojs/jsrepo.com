@@ -92,9 +92,7 @@
 	</List.Root>
 {:else if tab === 'invited' && data.member}
 	{#if data.invitations.length === 0}
-		<List.Empty>
-			You haven't invited anyone.
-		</List.Empty>
+		<List.Empty>You haven't invited anyone.</List.Empty>
 	{:else}
 		<List.Root>
 			<List.List>

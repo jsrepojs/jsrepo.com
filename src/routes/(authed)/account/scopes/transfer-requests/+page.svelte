@@ -61,9 +61,7 @@
 </svelte:head>
 
 {#if data.transferRequestInbox.length === 0}
-	<List.Empty>
-		You have no pending scope transfer requests.
-	</List.Empty>
+	<List.Empty>You have no pending scope transfer requests.</List.Empty>
 {:else}
 	<List.Root>
 		<List.List>

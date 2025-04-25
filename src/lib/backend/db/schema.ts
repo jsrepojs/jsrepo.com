@@ -361,7 +361,7 @@ export const dailyRegistryFetch = pgTable(
 			index('daily_registry_fetch_file_name_idx').on(table.fileName),
 			index('daily_registry_fetch_count_idx').on(table.count),
 			index('daily_registry_fetch_day_idx').on(table.day),
-			unique().on(table.scopeId, table.registryId, table.versionId, table.fileName, table.day),
+			unique().on(table.scopeId, table.registryId, table.versionId, table.fileName, table.day)
 			// unique().on(table.scopeName, table.registryName, table.version, table.fileName, table.day),
 		];
 	}

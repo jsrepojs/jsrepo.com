@@ -7,7 +7,7 @@ export async function load({ params, locals }) {
 
 	const registries = await searchRegistries({ org: orgName, userId: session?.user.id });
 
-    return {
-        registries
-    }
+	return {
+		registries: registries.data
+	};
 }

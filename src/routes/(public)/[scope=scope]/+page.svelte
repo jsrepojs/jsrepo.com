@@ -7,7 +7,7 @@
 <List.Root>
 	<List.List>
 		{#each data.registries as registry (registry.id)}
-			<List.Registry {registry}/>
+			<List.Registry {registry} />
 		{/each}
 	</List.List>
 </List.Root>

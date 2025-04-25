@@ -28,7 +28,9 @@
 
 		if (!response.ok) return [];
 
-		return (await response.json()) as RegistryDetails[];
+		const result = (await response.json()) as { data: RegistryDetails[] };
+
+		return result.data;
 	});
 
 	const filteredCompletions = $derived(query.data ?? []);

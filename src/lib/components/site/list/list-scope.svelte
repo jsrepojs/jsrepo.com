@@ -9,11 +9,11 @@
 
 	let { scope }: Props = $props();
 
-    const name = $derived(`@${scope.name}`);
+	const name = $derived(`@${scope.name}`);
 </script>
 
 <ListItem>
 	<ListLink href="/{name}">
-        {name}
-    </ListLink>
+		{name}
+	</ListLink>
 </ListItem>
