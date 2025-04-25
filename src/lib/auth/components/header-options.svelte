@@ -7,6 +7,7 @@
 	import { signOut } from './utils';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { Building, LogOut, Telescope, User } from '@lucide/svelte';
 
 	const session = authClient.useSession();
 </script>
@@ -21,9 +22,28 @@
 		</DropdownMenu.Trigger>
 		<DropdownMenu.Content align="end" sideOffset={6}>
 			<DropdownMenu.Group>
-				<DropdownMenu.Item onSelect={() => goto('/account')}>Account</DropdownMenu.Item>
-				<DropdownMenu.Item onSelect={() => goto('/account/scopes')}>Scopes</DropdownMenu.Item>
-				<DropdownMenu.Item onSelect={signOut}>Log out</DropdownMenu.Item>
+				<DropdownMenu.Item onSelect={() => goto('/account')}>
+					<User />
+					Account
+				</DropdownMenu.Item>
+			</DropdownMenu.Group>
+			<DropdownMenu.Separator />
+			<DropdownMenu.Group>
+				<DropdownMenu.Item onSelect={() => goto('/account/scopes')}>
+					<Telescope />
+					Scopes
+				</DropdownMenu.Item>
+				<DropdownMenu.Item onSelect={() => goto('/account/organizations')}>
+					<Building />
+					Organizations
+				</DropdownMenu.Item>
+			</DropdownMenu.Group>
+			<DropdownMenu.Separator />
+			<DropdownMenu.Group>
+				<DropdownMenu.Item onSelect={signOut}>
+					<LogOut />
+					Log out
+				</DropdownMenu.Item>
 			</DropdownMenu.Group>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>

@@ -200,11 +200,7 @@
 			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
 				<div class="relative col-start-1 flex max-w-full flex-col gap-6 overflow-hidden">
 					{#if data.readme === null}
-						<div class="flex h-96 flex-col place-items-center justify-center gap-2">
-							<span class="text-center text-lg text-muted-foreground">
-								This registry doesn't have a README.
-							</span>
-						</div>
+						<List.Empty>This registry doesn't have a README.</List.Empty>
 					{:else}
 						<div class="prose relative max-w-full overflow-hidden">
 							{@html data.readme}
@@ -376,11 +372,7 @@
 		{:else if tab === 'dependencies'}
 			<div class="flex flex-col gap-4 py-4">
 				{#if registryInfo.dependencies.length === 0}
-					<div class="flex h-96 flex-col place-items-center justify-center gap-2">
-						<span class="text-center text-lg text-muted-foreground">
-							This registry doesn't have any dependencies.
-						</span>
-					</div>
+					<List.Empty>This registry doesn't have any dependencies.</List.Empty>
 				{:else}
 					<List.Root>
 						<List.List>

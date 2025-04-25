@@ -54,11 +54,9 @@
 </svelte:head>
 
 {#if data.orgInvitesInbox.length === 0}
-	<div class="flex h-96 flex-col place-items-center justify-center gap-2">
-		<span class="text-center text-lg text-muted-foreground">
-			You have no organization invitations.
-		</span>
-	</div>
+	<List.Empty>
+		You have no organization invitations.
+	</List.Empty>
 {:else}
 	<List.Root>
 		<List.List>

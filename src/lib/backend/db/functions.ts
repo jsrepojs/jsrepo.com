@@ -11,7 +11,8 @@ import {
 	desc,
 	type TablesRelationalConfig,
 	type InferInsertModel,
-	getTableColumns
+	getTableColumns,
+	sql
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -395,7 +396,9 @@ export async function listMyScopes(userId: string) {
 	const [userScopes, orgScopes] = await Promise.all([
 		db.select().from(tables.scope).where(eq(tables.scope.userId, userId)),
 		db
-			.select()
+			.select({
+				...getTableColumns(tables.scope)
+			})
 			.from(tables.org)
 			.leftJoin(tables.orgMember, eq(tables.org.id, tables.orgMember.orgId))
 			.innerJoin(tables.scope, eq(tables.org.id, tables.scope.orgId))
@@ -534,32 +537,46 @@ export async function getOrg(name: string) {
 	return result[0];
 }
 
-export async function getOrgWithMembers(orgName: string) {
+export type CompleteOrg = tables.Org & {
+	members: (tables.User & { orgRole: tables.OrgRole | null })[];
+	owner: tables.User;
+};
+
+export async function getOrgWithMembers(orgName: string): Promise<CompleteOrg | null> {
+	const tableOwner = aliasedTable(tables.user, 'owner');
+
 	const result = await db
 		.select({
-			org: getTableColumns(tables.org),
-			user: {
-				...getTableColumns(tables.user),
-				role: tables.orgMember.role
-			}
+			...getTableColumns(tables.org),
+			member: tables.user,
+			orgRole: tables.orgMember.role,
+			owner: getTableColumns(tableOwner)
 		})
 		.from(tables.org)
+		.leftJoin(tableOwner, eq(tableOwner.id, tables.org.ownerId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.innerJoin(
-			tables.user,
-			or(eq(tables.user.id, tables.org.ownerId), eq(tables.user.id, tables.orgMember.userId))
-		)
+		.leftJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
 		.where(eq(tables.org.name, orgName));
 
 	if (result.length === 0) return null;
 
-	const members = [];
+	console.log(result);
+
+	const members: CompleteOrg['members'] = [];
+
+	const owner = result[0].owner;
+
+	if (owner === null) return null;
+
+	members.push({ ...owner, orgRole: null });
 
 	for (const row of result) {
-		members.push(row.user);
+		if (row.member !== null) {
+			members.push({ ...row.member, orgRole: row.orgRole });
+		}
 	}
 
-	return { ...result[0].org, members };
+	return { ...result[0], owner, members } satisfies CompleteOrg;
 }
 
 export async function getUserByEmail(email: string) {
@@ -1002,4 +1019,87 @@ export async function rejectOrgInvite(inviteId: number) {
 	if (result.length === 0) return false;
 
 	return true;
+}
+
+export type RegistrySearchOptions = {
+	q: string;
+	org: string;
+	scope: string;
+	/** So users can see private registries they have access to */
+	userId: string;
+	offset: number;
+	limit: number;
+};
+
+export type RegistryDetails = tables.Registry & {
+	scope: tables.Scope;
+	latestVersion: tables.Version | null;
+};
+
+export async function searchRegistries({
+	q,
+	org,
+	scope,
+	limit,
+	offset,
+	userId
+}: Partial<RegistrySearchOptions>): Promise<RegistryDetails[]> {
+	const owner = aliasedTable(tables.user, 'owner');
+
+	let query = db
+		.selectDistinctOn([tables.registry.id], {
+			...getTableColumns(tables.registry),
+			scope: tables.scope,
+			org: tables.org,
+			latestVersion: tables.version
+		})
+		.from(tables.registry)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(
+			tables.version,
+			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
+		)
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				// query
+				q
+					? ilike(
+							sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
+							`%${q.replace(/^@/, '')}%`
+						)
+					: undefined,
+
+				// org
+				org ? eq(tables.org.name, org) : undefined,
+
+				// scope
+				scope ? eq(tables.scope.name, scope) : undefined,
+
+				checkAccessQuery(userId ?? null, owner, true)
+			)
+		)
+		.offset(offset ?? 0);
+
+	if (limit !== undefined) {
+		// @ts-expect-error idk what's wrong with you
+		query = query.limit(limit);
+	}
+
+	return await query;
+}
+
+export async function getOrgScopes(orgName: string) {
+	const result = await db
+		.select({
+			...getTableColumns(tables.scope)
+		})
+		.from(tables.scope)
+		.innerJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.where(eq(tables.org.name, orgName));
+
+	return result;
 }

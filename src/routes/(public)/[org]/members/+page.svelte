@@ -41,7 +41,7 @@
 
 <!-- we can only view the options if we are part of the org -->
 {#if data.member}
-	<div class="flex place-items-center justify-between pb-2">
+	<div class="flex place-items-center justify-between py-2">
 		<div>
 			<ToggleGroup.Root type="single" bind:value={tab}>
 				<ToggleGroup.Item value="members">Members</ToggleGroup.Item>
@@ -59,7 +59,7 @@
 		</div>
 		<div>
 			<!-- only owners can invite users because of payment restrictions -->
-			{#if data.member.role === null}
+			{#if data.member.orgRole === null}
 				<Invite org={data.org} />
 			{/if}
 		</div>
@@ -69,7 +69,7 @@
 	<List.Root>
 		<List.List>
 			{#each data.org.members as member (member.id)}
-				{@const role = member.role ? casing.kebabToPascal(member.role) : 'Owner'}
+				{@const role = member.orgRole ? casing.kebabToPascal(member.orgRole) : 'Owner'}
 				<List.Item class="hover:bg-card">
 					<div class="flex place-items-center gap-4">
 						<Avatar.Root class="size-9">
@@ -91,36 +91,42 @@
 		</List.List>
 	</List.Root>
 {:else if tab === 'invited' && data.member}
-	<List.Root>
-		<List.List>
-			{#each data.invitations as invitation (invitation.id)}
-				{@const role = casing.kebabToPascal(invitation.role)}
-				<List.Item class="hover:bg-card">
-					<div class="flex place-items-center gap-4">
-						<Avatar.Root class="size-9">
-							<Avatar.Image src={invitation.invitedUser.image} />
-							<Avatar.Fallback>{getInitials(invitation.invitedUser.name)}</Avatar.Fallback>
-						</Avatar.Root>
-						<div class="flex flex-col">
-							<span class="font-medium">{invitation.invitedUser.name}</span>
-							<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
-								{role}
-							</span>
+	{#if data.invitations.length === 0}
+		<List.Empty>
+			You haven't invited anyone.
+		</List.Empty>
+	{:else}
+		<List.Root>
+			<List.List>
+				{#each data.invitations as invitation (invitation.id)}
+					{@const role = casing.kebabToPascal(invitation.role)}
+					<List.Item class="hover:bg-card">
+						<div class="flex place-items-center gap-4">
+							<Avatar.Root class="size-9">
+								<Avatar.Image src={invitation.invitedUser.image} />
+								<Avatar.Fallback>{getInitials(invitation.invitedUser.name)}</Avatar.Fallback>
+							</Avatar.Root>
+							<div class="flex flex-col">
+								<span class="font-medium">{invitation.invitedUser.name}</span>
+								<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
+									{role}
+								</span>
+							</div>
 						</div>
-					</div>
-					<div>
-						<Button
-							onclick={() => cancelInviteQuery.run(invitation.id)}
-							disabled={cancelInviteQuery.loading}
-							loading={cancelInviteQuery.loadingKey === invitation.id.toString()}
-							variant="outline"
-						>
-							<X />
-							Cancel
-						</Button>
-					</div>
-				</List.Item>
-			{/each}
-		</List.List>
-	</List.Root>
+						<div>
+							<Button
+								onclick={() => cancelInviteQuery.run(invitation.id)}
+								disabled={cancelInviteQuery.loading}
+								loading={cancelInviteQuery.loadingKey === invitation.id.toString()}
+								variant="outline"
+							>
+								<X />
+								Cancel
+							</Button>
+						</div>
+					</List.Item>
+				{/each}
+			</List.List>
+		</List.Root>
+	{/if}
 {/if}

@@ -41,22 +41,14 @@
 		{/snippet}
 		<List.List>
 			{#each data.scopes.userScopes as scope (scope.id)}
-				<List.Item>
-					<List.Link href="/@{scope.name}">
-						@{scope.name}
-					</List.Link>
-				</List.Item>
+				<List.Scope {scope} />
 			{/each}
 		</List.List>
 	</List.Root>
 	<List.Root title="Organization Scopes">
 		<List.List>
-			{#each data.scopes.orgScopes as scope (scope.scope.id)}
-				<List.Item>
-					<List.Link href="/@{scope.scope.name}">
-						@{scope.scope.name}
-					</List.Link>
-				</List.Item>
+			{#each data.scopes.orgScopes as scope (scope.id)}
+				<List.Scope {scope} />
 			{/each}
 		</List.List>
 	</List.Root>

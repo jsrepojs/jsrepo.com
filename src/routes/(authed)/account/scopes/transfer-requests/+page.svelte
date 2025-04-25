@@ -61,11 +61,9 @@
 </svelte:head>
 
 {#if data.transferRequestInbox.length === 0}
-	<div class="flex h-96 flex-col place-items-center justify-center gap-2">
-		<span class="text-center text-lg text-muted-foreground">
-			You have no pending scope transfer requests.
-		</span>
-	</div>
+	<List.Empty>
+		You have no pending scope transfer requests.
+	</List.Empty>
 {:else}
 	<List.Root>
 		<List.List>
