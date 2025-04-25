@@ -1072,6 +1072,7 @@ export async function searchRegistries({
 			tables.dailyRegistryFetch,
 			and(
 				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
 				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
 			)
 		)
