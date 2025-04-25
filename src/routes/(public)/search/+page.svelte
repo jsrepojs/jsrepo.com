@@ -4,12 +4,34 @@
 	import * as Pagination from '$lib/components/ui/pagination';
 	import { queryParameters } from 'sveltekit-search-params';
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import * as Select from '$lib/components/ui/select';
+	import type { ListItem } from '$lib/ts/types.js';
+
+	const sortByOptions: ListItem<string>[] = [
+		{
+			label: 'Most Popular',
+			value: 'most_popular'
+		},
+		{
+			label: 'Newest',
+			value: 'newest'
+		},
+		{
+			label: 'Oldest',
+			value: 'oldest'
+		},
+		{
+			label: 'Recently Published',
+			value: 'recently_published'
+		}
+	];
 
 	let { data } = $props();
 
 	const params = queryParameters();
 
 	let page = $state($params.page ?? 1);
+	let sortBy = $state($params.order_by ?? 'most_popular');
 </script>
 
 <svelte:head>
@@ -18,6 +40,18 @@
 
 <div class="flex flex-col gap-2 py-2">
 	<RegistrySearch search={data.query} />
+	<div class="flex justify-end">
+		<Select.Root type="single" bind:value={sortBy} onValueChange={(v) => ($params.order_by = v)}>
+			<Select.Trigger class="w-fit">
+				Sort By: {sortByOptions.find((o) => o.value === sortBy)?.label}
+			</Select.Trigger>
+			<Select.Content>
+				{#each sortByOptions as option (option.value)}
+					<Select.Item {...option} />
+				{/each}
+			</Select.Content>
+		</Select.Root>
+	</div>
 	<List.Root>
 		<List.List>
 			{#each data.registries as registry (registry.id)}

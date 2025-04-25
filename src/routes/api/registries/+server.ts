@@ -4,7 +4,7 @@ import { asc, desc, sql, type SQL } from 'drizzle-orm';
 import * as tables from '$lib/backend/db/schema.js';
 
 const orderByOptions: Record<string, SQL> = {
-	most_popular: desc(sql`monthlyFetches`),
+	most_popular: asc(sql`cast(sum(${tables.dailyRegistryFetch.count}) as int)`),
 	newest: desc(tables.registry.createdAt),
 	oldest: asc(tables.registry.createdAt),
 	recently_published: desc(tables.version.createdAt)

@@ -1049,7 +1049,8 @@ export async function searchRegistries({
 	scope,
 	limit,
 	offset,
-	userId
+	userId,
+	orderBy
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
@@ -1079,7 +1080,7 @@ export async function searchRegistries({
 
 	// --- Data query (with limit/offset) ---
 	let dataQuery = db
-		.selectDistinctOn([tables.registry.id], {
+		.select({
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
 			org: tables.org,
@@ -1121,7 +1122,14 @@ export async function searchRegistries({
 			tables.version.tag,
 			tables.version.createdAt
 		)
-		.offset(offset ?? 0);
+
+	if (orderBy !== undefined) {
+		// @ts-expect-error idk what's wrong with you
+		dataQuery = dataQuery.orderBy(orderBy);
+	}
+
+	// @ts-expect-error idk what's wrong with you
+	dataQuery = dataQuery.offset(offset ?? 0);
 
 	if (limit !== undefined) {
 		// @ts-expect-error idk what's wrong with you
