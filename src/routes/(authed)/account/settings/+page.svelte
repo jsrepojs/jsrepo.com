@@ -8,6 +8,7 @@
 	import { toRelative } from '$lib/ts/dates.js';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
+	import SubBadge from '$lib/components/site/sub-badge.svelte';
 
 	let { data } = $props();
 
@@ -40,7 +41,7 @@
 			<div>
 				<FieldSet.Title>Your Subscription</FieldSet.Title>
 				<p class="text-muted-foreground">
-					{subscription ?? 'Free'}
+					<SubBadge user={data.user}/>
 					{endsAt ? `ends ${endsAt}` : ''}
 				</p>
 			</div>

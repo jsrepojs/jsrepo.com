@@ -35,6 +35,8 @@ export async function GET({ url, locals, params }) {
 			redirect(303, '/account');
 		}
 
+		throw new Error('YOU HAVE A SUB (DONT SHIP THIS)');
+
 		const customer = await polar.customers.getState({ id: user.polarCustomerId });
 
 		const oldSubscription = customer.activeSubscriptions[0];

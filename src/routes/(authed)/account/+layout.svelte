@@ -2,18 +2,16 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 	import { toRelative } from '$lib/ts/dates.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { checkUserSubscription } from '$lib/ts/polar/client.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Separator } from '$lib/components/ui/separator';
+	import SubBadge from '$lib/components/site/sub-badge.svelte';
 
 	let { data, children } = $props();
 
 	const user = $derived(data.session.user);
 	const joined = $derived(toRelative(user.createdAt));
-	const subscription = $derived(checkUserSubscription(data.user));
 </script>
 
-<div class="flex h-[calc(100svh-var(--header-height))] flex-col gap-4 pt-10">
+<div class="flex min-h-[calc(100svh-var(--header-height))] flex-col gap-4 pb-4 pt-10">
 	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
 		<div
 			class="col-start-1 flex flex-row place-items-center justify-start gap-2 md:flex-col md:justify-center"
@@ -29,13 +27,10 @@
 				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
 			</div>
 			<div class="hidden sm:block">
-				{#if subscription !== null}
-					<Badge>{subscription}</Badge>
-				{:else}
-					<Button href="/checkout/pro">Get Pro</Button>
-				{/if}
+				<SubBadge user={data.user}/>
 			</div>
 		</div>
+		<Separator class="md:hidden" />
 		<div class="w-full md:col-start-2">
 			{@render children()}
 		</div>
