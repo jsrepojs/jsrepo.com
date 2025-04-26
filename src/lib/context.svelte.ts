@@ -1,6 +1,6 @@
 import { Context } from 'runed';
 
-export const NO_SEARCH_BAR_ROUTES = ['/', '/login', '/pricing']
+export const NO_SEARCH_BAR_ROUTES = ['/', '/login', '/pricing', '/help']
 
 export class UseReactive<T> {
 	#current = $state<T>();

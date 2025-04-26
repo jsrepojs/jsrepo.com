@@ -78,7 +78,7 @@
 	{/if}
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
-			<FieldSet.Title>Sign Out?</FieldSet.Title>
+			<FieldSet.Title>Sign Out</FieldSet.Title>
 			<Button onclick={signOut}>Sign Out</Button>
 		</FieldSet.Content>
 	</FieldSet.Root>
