@@ -1,5 +1,5 @@
 /*
-	Installed from github/ieedan/shadcn-svelte-extras
+	Installed from @ieedan/shadcn-svelte-extras
 */
 
 import { type ClassValue, clsx } from 'clsx';

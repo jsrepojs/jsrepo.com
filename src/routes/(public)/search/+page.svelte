@@ -1,5 +1,4 @@
 <script lang="ts">
-	import RegistrySearch from '$lib/components/site/registry-search.svelte';
 	import * as List from '$lib/components/site/list';
 	import * as Pagination from '$lib/components/ui/pagination';
 	import { queryParameters } from 'sveltekit-search-params';
@@ -39,8 +38,10 @@
 </svelte:head>
 
 <div class="flex flex-col gap-2 py-2">
-	<RegistrySearch search={data.query} />
-	<div class="flex justify-end">
+	<div class="flex place-items-center justify-between">
+		<span>
+			{data.total} registries found
+		</span>
 		<Select.Root type="single" bind:value={sortBy} onValueChange={(v) => ($params.order_by = v)}>
 			<Select.Trigger class="w-fit">
 				Sort By: {sortByOptions.find((o) => o.value === sortBy)?.label}

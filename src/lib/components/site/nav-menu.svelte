@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/utils';
 	import { Button } from '$lib/components/ui/button';
-	import { ThemeSelector } from '$lib/components/ui/theme-selector';
+	import { LightSwitch } from '$lib/components/ui/light-switch';
 	import * as Icons from '$lib/components/icons';
 	import { Dialog } from 'bits-ui';
 	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
@@ -59,7 +59,7 @@
 	</div>
 	<div class="mx-8 flex place-items-center justify-between gap-2 border-t py-4">
 		<div class="flex place-items-center gap-2">
-			<ThemeSelector class="size-9" />
+			<LightSwitch class="size-9" />
 			<Button
 				target="_blank"
 				href="https://github.com/jsrepojs"

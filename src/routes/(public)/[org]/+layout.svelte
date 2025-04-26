@@ -1,11 +1,19 @@
 <script lang="ts">
 	import * as Tabs from '$lib/components/site/tabs';
+	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 
 	let { data, children } = $props();
 </script>
 
 <div class="flex flex-col py-6">
 	<div class="flex flex-col gap-2">
+		<Breadcrumb.Root>
+			<Breadcrumb.List>
+				<Breadcrumb.Item>Organizations</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Page>{data.org.name}</Breadcrumb.Page>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
 		<div class="flex flex-col gap-1">
 			<h1 class="text-4xl font-bold">{data.org.name}</h1>
 			{#if data.org.description}

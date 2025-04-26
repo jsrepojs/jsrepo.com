@@ -11,7 +11,7 @@
 	<h1 class="text-6xl font-bold">Pricing</h1>
 	<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 py-8 lg:grid-cols-3">
 		<div
-			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-1 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-1 lg:h-[400px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Free</h4>
@@ -23,7 +23,7 @@
 			})}
 		</div>
 		<div
-			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary bg-gradient-to-br from-card p-6 lg:col-start-2 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary bg-gradient-to-br from-card p-6 lg:col-start-2 lg:h-[400px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Pro</h4>
@@ -35,7 +35,7 @@
 			})}
 		</div>
 		<div
-			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-3 lg:h-[450px]"
+			class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-3 lg:h-[400px]"
 		>
 			<div class="w-full text-center">
 				<h4 class="text-center text-4xl font-bold">Team</h4>

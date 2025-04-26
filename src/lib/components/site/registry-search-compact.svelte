@@ -6,27 +6,18 @@
 	import { Download, LoaderCircle, Search } from '@lucide/svelte';
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import { shortcut } from '$lib/actions/shortcut.svelte';
-	import { page } from '$app/state';
-	import { untrack } from 'svelte';
 
 	type Props = {
 		class?: string;
-		maxOptions?: number; 
+		search?: string;
 		onSearch?: (search: string) => void;
 	};
 
-	let { onSearch, class: className, maxOptions = 10 }: Props = $props();
+	let { search = $bindable(''), onSearch, class: className }: Props = $props();
 
-	let search = $state(page.url.searchParams.get('q') ?? '');
+	const id = $props.id();
+
 	let ref = $state<HTMLInputElement>();
-
-	$effect(() => {
-		const value = page.url.searchParams.get('q');
-
-		untrack(() => {
-			search = value ?? '';
-		});
-	});
 
 	const query = new UseQuery(
 		async ({ signal }) => {
@@ -34,7 +25,7 @@
 				return [];
 			}
 
-			const response = await fetch(`/api/registries?limit=${maxOptions}&q=${search}`, {
+			const response = await fetch(`/api/registries?limit=10&q=${search}`, {
 				signal
 			});
 
@@ -51,9 +42,7 @@
 
 	let selectedIndex = $state<number>();
 
-	const isFocused = $derived(
-		activeElement.current?.id === 'search-registries' || selectedIndex !== undefined
-	);
+	const isFocused = $derived(activeElement.current?.id === id || selectedIndex !== undefined);
 
 	const canShowList = $derived(isFocused && search.length > 0 && filteredCompletions.length > 0);
 
@@ -151,14 +140,14 @@
 		e.preventDefault();
 		handleSubmit();
 	}}
-	class={cn('flex h-12 w-full place-items-center bg-popover text-base md:text-sm', className)}
+	class={cn('flex h-9 w-full place-items-center bg-popover text-base md:text-sm', className)}
 >
 	<div
 		class="relative flex h-full w-full place-items-center rounded-l-lg border border-border pl-3 transition-all focus-within:border-primary"
 	>
 		<Search class="mr-2 size-4 shrink-0 opacity-50" />
 		<input
-			id="search-registries"
+			{id}
 			bind:value={search}
 			bind:this={ref}
 			autocomplete="off"
@@ -168,7 +157,7 @@
 			class="h-full w-full min-w-0 bg-transparent py-3 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
 			placeholder="Search registries..."
 		/>
-		<div class="absolute right-0 top-0 flex h-12 place-items-center gap-2">
+		<div class="absolute right-0 top-0 flex h-9 place-items-center gap-2">
 			{#if query.loading}
 				<div class="flex size-full w-12 place-items-center justify-center">
 					<LoaderCircle class="size-4 shrink-0 animate-spin text-muted-foreground" />
@@ -180,7 +169,7 @@
 		</div>
 		{#if canShowList}
 			<div
-				class="absolute left-0 top-[3.25rem] z-10 w-full rounded-lg border border-border bg-popover"
+				class="absolute left-0 top-[2.5rem] z-10 w-full rounded-lg border border-border bg-popover"
 			>
 				<!-- Group -->
 				<div class="overflow-hidden p-1 text-foreground">
