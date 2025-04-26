@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Header from '$lib/components/site/header.svelte';
-	import { newTokenContext, UseReactive } from '$lib/context.svelte';
+	import { newTokenContext, NO_SEARCH_BAR_ROUTES, UseReactive } from '$lib/context.svelte';
 	import '../app.css';
 	import '@fontsource-variable/oxanium';
 	import '@fontsource-variable/jetbrains-mono';
@@ -16,8 +16,8 @@
 <ModeWatcher />
 
 <div
-	data-home={page.url.pathname === '/'}
-	class="[--header-height:3.625rem] data-[home=false]:[--header-height:7.25rem] md:data-[home=false]:[--header-height:3.625rem]"
+	data-search-bar={!NO_SEARCH_BAR_ROUTES.includes(page.url.pathname)}
+	class="[--header-height:3.625rem] data-[search-bar=true]:[--header-height:7.25rem] md:data-[search-bar=true]:[--header-height:3.625rem]"
 	style="display: contents;"
 >
 	<Header />
