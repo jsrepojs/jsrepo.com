@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { RegistryDetails } from '$lib/backend/db/functions';
+	import { FileIcon } from '$lib/components/ui/file-icon';
 	import ListItem from './list-item.svelte';
 	import ListLink from './list-link.svelte';
 	import { Download, Lock } from '@lucide/svelte';
@@ -19,6 +20,7 @@
 			<ListLink href="/{name}">
 				{name}
 			</ListLink>
+			<FileIcon extension={registry.metaPrimaryLanguage} />
 			<span class="hidden font-mono text-sm text-muted-foreground sm:block">
 				{registry.latestVersion?.version}
 			</span>

@@ -1035,6 +1035,7 @@ export type RegistrySearchOptions = {
 	q: string | null;
 	org: string | null;
 	scope: string | null;
+	lang: string | null;
 	/** So users can see private registries they have access to */
 	userId: string | null;
 	offset: number | null;
@@ -1056,7 +1057,8 @@ export async function searchRegistries({
 	limit,
 	offset,
 	userId,
-	orderBy
+	orderBy,
+	lang
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
@@ -1081,6 +1083,7 @@ export async function searchRegistries({
 			: undefined,
 		org ? eq(tables.org.name, org) : undefined,
 		scope ? eq(tables.scope.name, scope) : undefined,
+		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
 		checkAccessQuery(userId ?? null, owner, true)
 	);
 

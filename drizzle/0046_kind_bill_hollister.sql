@@ -1,0 +1,1 @@
+ALTER TABLE "registry" ALTER COLUMN "meta_primary_language" SET NOT NULL;

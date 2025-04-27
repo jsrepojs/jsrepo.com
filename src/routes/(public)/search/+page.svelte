@@ -5,6 +5,38 @@
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import * as Select from '$lib/components/ui/select';
 	import type { ListItem } from '$lib/ts/types.js';
+	import { FileIcon } from '$lib/components/ui/file-icon';
+
+	const langOptions: ListItem<string>[] = [
+		{
+			label: 'TypeScript',
+			value: 'ts'
+		},
+		{
+			label: 'JavaScript',
+			value: 'js'
+		},
+		{
+			label: 'React (JavaScript)',
+			value: 'jsx'
+		},
+		{
+			label: 'React (TypeScript)',
+			value: 'tsx'
+		},
+		{
+			label: 'Svelte',
+			value: 'svelte'
+		},
+		{
+			label: 'Vue',
+			value: 'vue'
+		},
+		{
+			label: 'HTML',
+			value: 'html'
+		}
+	];
 
 	const sortByOptions: ListItem<string>[] = [
 		{
@@ -31,6 +63,9 @@
 
 	let page = $state($params.page ?? 1);
 	let sortBy = $state($params.order_by ?? 'most_popular');
+	let lang = $state($params.lang ?? '');
+
+	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);
 </script>
 
 <svelte:head>
@@ -39,19 +74,45 @@
 
 <div class="flex flex-col gap-2 py-2">
 	<div class="flex place-items-center justify-between">
-		<span>
-			{data.total} registries found
-		</span>
-		<Select.Root type="single" bind:value={sortBy} onValueChange={(v) => ($params.order_by = v)}>
-			<Select.Trigger class="w-fit">
-				Sort By: {sortByOptions.find((o) => o.value === sortBy)?.label}
-			</Select.Trigger>
-			<Select.Content>
-				{#each sortByOptions as option (option.value)}
-					<Select.Item {...option} />
-				{/each}
-			</Select.Content>
-		</Select.Root>
+		<div>
+			<span class="hidden md:block">
+				{data.total} registries found
+			</span>
+		</div>
+		<div class="flex flex-wrap place-items-center justify-end gap-2">
+			<Select.Root
+				type="single"
+				allowDeselect
+				bind:value={lang}
+				onValueChange={(v) => ($params.lang = v)}
+			>
+				<Select.Trigger class="w-fit gap-1">
+					{#if langLabel}
+						<span>Lang: {langLabel}</span>
+					{:else}
+						<span>Lang</span>
+					{/if}
+				</Select.Trigger>
+				<Select.Content align="end">
+					{#each langOptions as option (option.value)}
+						<Select.Item value={option.value}>
+							<FileIcon extension={option.value} />
+							<span class="pl-2">{option.label}</span>
+						</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+			<Select.Root type="single" bind:value={sortBy} onValueChange={(v) => ($params.order_by = v)}>
+				<Select.Trigger class="w-fit gap-1">
+					Sort By: {sortByOptions.find((o) => o.value === sortBy)?.label}
+				</Select.Trigger>
+				<Select.Content align="end">
+					{#each sortByOptions as option (option.value)}
+						<Select.Item {...option} />
+					{/each}
+				</Select.Content>
+			</Select.Root>
+		</div>
 	</div>
 	{#if data.total === 0}
 		<List.Empty>No registries found.</List.Empty>

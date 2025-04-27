@@ -25,6 +25,7 @@ import { newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
 import * as tables from '$lib/backend/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { waitUntil } from '@vercel/functions';
+import { determinePrimaryLanguage } from '$lib/ts/registry/index.js';
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -157,6 +158,8 @@ export async function POST({ request }) {
 		return json({ status: 'dry-run' });
 	}
 
+	const primaryLanguage = determinePrimaryLanguage(...manifest.categories.flatMap((c) => c.blocks));
+
 	const result = await db.transaction(async (tx) => {
 		let oldTaggedVersion: Version | null = null;
 		let latestVersion: Version | null = null;
@@ -173,7 +176,8 @@ export async function POST({ request }) {
 				metaDescription: manifest.meta?.description ?? null,
 				metaHomepage: manifest.meta?.homepage ?? null,
 				metaRepository: manifest.meta?.repository ?? null,
-				metaTags: manifest.meta?.tags ?? null
+				metaTags: manifest.meta?.tags ?? null,
+				metaPrimaryLanguage: primaryLanguage
 			});
 
 			if (registryId === null) {
@@ -218,7 +222,8 @@ export async function POST({ request }) {
 					metaDescription: manifest.meta?.description ?? null,
 					metaHomepage: manifest.meta?.homepage ?? null,
 					metaRepository: manifest.meta?.repository ?? null,
-					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null
+					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null,
+					metaPrimaryLanguage: primaryLanguage
 				})
 				.where(eq(tables.registry.id, registryId))
 				.returning({ id: tables.registry.id });

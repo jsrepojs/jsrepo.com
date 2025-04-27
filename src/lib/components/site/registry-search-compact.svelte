@@ -93,8 +93,6 @@
 
 	async function handleSubmit() {
 		if (selectedIndex === undefined) {
-			if (search.trim().length === 0) return;
-
 			if (onSearch !== undefined) {
 				onSearch(search);
 			} else {

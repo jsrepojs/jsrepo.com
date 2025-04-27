@@ -249,6 +249,7 @@ export const registry = pgTable(
 		metaHomepage: text('meta_homepage'),
 		metaRepository: text('meta_repository'),
 		metaTags: text('meta_tags').array(),
+		metaPrimaryLanguage: text('meta_primary_language').notNull(),
 
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
@@ -259,7 +260,8 @@ export const registry = pgTable(
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),
-			index('registry_meta_authors').on(table.metaAuthors)
+			index('registry_meta_authors').on(table.metaAuthors),
+			index('registry_meta_primary_language').on(table.metaPrimaryLanguage)
 		];
 	}
 ).enableRLS();

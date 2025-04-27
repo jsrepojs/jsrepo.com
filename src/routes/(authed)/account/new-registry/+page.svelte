@@ -24,7 +24,7 @@
 </script>
 
 <svelte:head>
-    <title>New Registry - jsrepo</title>
+	<title>New Registry - jsrepo</title>
 </svelte:head>
 
 <div class="flex flex-col gap-2">

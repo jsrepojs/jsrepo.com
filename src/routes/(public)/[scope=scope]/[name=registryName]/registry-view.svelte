@@ -3,8 +3,7 @@
 	import type { PageData } from './$types';
 	import * as List from '$lib/components/site/list';
 	import semver from 'semver';
-	import * as array from '$lib/ts/array';
-	import type { Block, Manifest } from '$lib/ts/registry/manifest';
+	import type { Manifest } from '$lib/ts/registry/manifest';
 	import { ChevronRight, FlaskRound, File, Ellipsis, Flag } from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
@@ -21,6 +20,7 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { toRelative } from '$lib/ts/dates';
 	import type { SupportReason } from '$lib/ts/help';
+	import { determinePrimaryLanguage, parseFileExtension } from '$lib/ts/registry';
 
 	let { data }: { data: PageData } = $props();
 
@@ -52,59 +52,6 @@
 		};
 	}
 
-	function parseFileExtension(file: string) {
-		const index = file.lastIndexOf('.');
-
-		return file.slice(index);
-	}
-
-	function determinePrimaryLanguage(...blocks: Block[]) {
-		const langMap = new Map<string, number>();
-
-		const ifExistsIncrement = (key: string) => {
-			const val = langMap.get(key) ?? 0;
-
-			langMap.set(key, val + 1);
-		};
-
-		for (const block of blocks) {
-			for (const file of block.files) {
-				const ext = parseFileExtension(file);
-
-				if (ext === 'yaml' || ext === 'yml') {
-					ifExistsIncrement('yml');
-					continue;
-				}
-
-				if (ext === 'json' || ext === 'jsonc') {
-					ifExistsIncrement('json');
-					continue;
-				}
-
-				if (ext === 'sass' || ext === 'scss') {
-					ifExistsIncrement('sass');
-					continue;
-				}
-
-				if (blocks.length === 1) {
-					if (ext === '.svelte' || ext === 'tsx' || ext === 'jsx' || ext === 'vue') return ext;
-				}
-
-				ifExistsIncrement(ext);
-			}
-		}
-
-		const arr = array
-			.fromMap(langMap, (key, value) => ({ key, value }))
-			.toSorted((a, b) => b.value - a.value);
-
-		return arr[0].key;
-	}
-
-	const registryPrimaryLanguage = $derived(
-		determinePrimaryLanguage(...data.manifest.categories.flatMap((c) => c.blocks))
-	);
-
 	const registryInfo = $derived(getRegistryInfo(data.manifest));
 </script>
 
@@ -123,7 +70,7 @@
 			<span class="font-mono text-sm text-muted-foreground">
 				{data.version.version.version}
 			</span>
-			<FileIcon extension={registryPrimaryLanguage} />
+			<FileIcon extension={data.registry.metaPrimaryLanguage} />
 			<span class="text-sm text-muted-foreground">
 				Published {toRelative(data.version.version.createdAt)}
 			</span>

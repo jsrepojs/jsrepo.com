@@ -1,0 +1,1 @@
+CREATE INDEX "registry_meta_primary_language" ON "registry" USING btree ("meta_primary_language");
