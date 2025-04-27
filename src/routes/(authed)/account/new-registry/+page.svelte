@@ -23,6 +23,10 @@
 	}
 </script>
 
+<svelte:head>
+    <title>New Registry - jsrepo</title>
+</svelte:head>
+
 <div class="flex flex-col gap-2">
 	<a
 		href="/account"
