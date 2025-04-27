@@ -36,7 +36,7 @@
 	</div>
 	<div class="mb-20 mt-[25svh]">
 		<h1 class="pb-6 text-center text-3xl font-bold">All the features you need</h1>
-		<div class="grid md:grid-cols-3">
+		<div class="grid md:grid-cols-3 bg-card">
 			<div
 				class="rounded-tl-lg rounded-tr-lg border border-b-0 p-8 md:rounded-bl-lg md:rounded-tr-none md:border-b md:border-r-0"
 			>
