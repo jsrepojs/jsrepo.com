@@ -37,9 +37,6 @@
 	</a>
 	<h1 class="text-4xl font-bold">Publish a registry</h1>
 	<Steps.Root>
-		<Steps.Step title="Install the jsrepo CLI">
-			<Snippet text="npm install jsrepo@latest -g" />
-		</Steps.Step>
 		<Steps.Step title="Pick a Scope">
 			<Select.Root type="single" bind:value={scope}>
 				<Select.Trigger>
