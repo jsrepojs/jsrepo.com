@@ -16,7 +16,8 @@ import {
 	sum,
 	gte,
 	SQL,
-	countDistinct
+	countDistinct,
+	not
 } from 'drizzle-orm';
 import { db } from '.';
 import * as tables from './schema';
@@ -1231,4 +1232,26 @@ async function trackFetch(
 			],
 			set: { count: sql`${tables.dailyRegistryFetch.count} + 1` }
 		});
+}
+
+export async function listPublishableScopes(userId: string): Promise<tables.Scope[]> {
+	const result = await db
+		.select({ ...getTableColumns(tables.scope) })
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(
+			tables.user,
+			and(
+				eq(tables.user.id, userId),
+				or(
+					eq(tables.user.id, tables.scope.userId),
+					eq(tables.user.id, tables.org.ownerId),
+					and(eq(tables.user.id, tables.orgMember.userId), not(eq(tables.orgMember.role, 'member')))
+				)
+			)
+		)
+		.where(isNotNull(tables.user.id));
+
+	return result;
 }

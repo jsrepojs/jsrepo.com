@@ -6,13 +6,11 @@
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] place-items-center justify-center">
 	<div class="flex flex-col">
-        <h1 class="font-mono text-center font-bold" style="font-size: 150px;">
-            {page.status}
-        </h1>
-        <p class="text-muted-foreground text-center">
-            Whoops, something went wrong!
-        </p>
-        <div class="flex flex-wrap place-items-center justify-center gap-6 py-4 text-muted-foreground">
+		<h1 class="text-center font-mono font-bold" style="font-size: 150px;">
+			{page.status}
+		</h1>
+		<p class="text-center text-muted-foreground">Whoops, something went wrong!</p>
+		<div class="flex flex-wrap place-items-center justify-center gap-6 py-4 text-muted-foreground">
 			<BlurFade delay={100 / 1000}>
 				<a href="/" class="transition-all hover:text-foreground"> Home </a>
 			</BlurFade>
@@ -25,5 +23,5 @@
 				</a>
 			</BlurFade>
 		</div>
-    </div>
+	</div>
 </div>

@@ -11,7 +11,7 @@
 
 	type Props = {
 		class?: string;
-		maxOptions?: number; 
+		maxOptions?: number;
 		onSearch?: (search: string) => void;
 	};
 

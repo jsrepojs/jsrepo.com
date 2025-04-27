@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight, Building, KeyRound, Settings, Telescope } from '@lucide/svelte';
+	import { ArrowRight, Building, KeyRound, Plus, Settings, Telescope } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -7,6 +7,12 @@
 </svelte:head>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+	{@render card({
+		title: 'Publish a Registry',
+		description: 'Publish a registry to jsrepo.com.',
+		href: '/account/new-registry',
+		Icon: Plus
+	})}
 	{@render card({
 		title: 'Scopes',
 		description: 'Manage your scopes.',

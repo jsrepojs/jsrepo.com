@@ -47,13 +47,11 @@
 			</div>
 			{#if subscription !== null}
 				<Button href="/api/portal" variant="outline">
-					<Settings2/>
+					<Settings2 />
 					Manage
 				</Button>
 			{:else}
-				<Button href="/pricing">
-					Upgrade
-				</Button>
+				<Button href="/pricing">Upgrade</Button>
 			{/if}
 		</FieldSet.Content>
 	</FieldSet.Root>
@@ -85,7 +83,7 @@
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
 			<FieldSet.Title>Sign Out</FieldSet.Title>
 			<Button onclick={signOut} variant="outline">
-				<LogOut/>
+				<LogOut />
 				Sign Out
 			</Button>
 		</FieldSet.Content>

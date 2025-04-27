@@ -11,6 +11,7 @@ const bundledLanguages = {
 	diff: () => import('@shikijs/langs/diff'),
 	javascript: () => import('@shikijs/langs/javascript'),
 	json: () => import('@shikijs/langs/json'),
+	jsonc: () => import('@shikijs/langs/jsonc'),
 	svelte: () => import('@shikijs/langs/svelte'),
 	typescript: () => import('@shikijs/langs/typescript')
 };
