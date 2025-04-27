@@ -1,12 +1,11 @@
 <script lang="ts">
 	import Header from '$lib/components/site/header.svelte';
-	import { newTokenContext, NO_SEARCH_BAR_ROUTES, UseReactive } from '$lib/context.svelte';
+	import { newTokenContext, shouldShowSearch, UseReactive } from '$lib/context.svelte';
 	import '../app.css';
 	import '@fontsource-variable/oxanium';
 	import '@fontsource-variable/jetbrains-mono';
 	import { ModeWatcher } from 'mode-watcher';
 	import Footer from '$lib/components/site/footer.svelte';
-	import { page } from '$app/state';
 
 	let { children } = $props();
 
@@ -16,7 +15,7 @@
 <ModeWatcher />
 
 <div
-	data-search-bar={!NO_SEARCH_BAR_ROUTES.includes(page.url.pathname)}
+	data-search-bar={shouldShowSearch()}
 	class="[--header-height:3.625rem] data-[search-bar=true]:[--header-height:7.25rem] md:data-[search-bar=true]:[--header-height:3.625rem]"
 	style="display: contents;"
 >

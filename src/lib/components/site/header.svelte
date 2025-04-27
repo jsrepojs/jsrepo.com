@@ -10,7 +10,7 @@
 	import { untrack } from 'svelte';
 	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
 	import * as Icons from '$lib/components/icons';
-	import { NO_SEARCH_BAR_ROUTES } from '$lib/context.svelte';
+	import { shouldShowSearch } from '$lib/context.svelte';
 
 	let menuOpen = $state(false);
 	let search = $state(page.url.searchParams.get('q') ?? '');
@@ -36,7 +36,7 @@
 			</a>
 		</div>
 
-		{#if !NO_SEARCH_BAR_ROUTES.includes(page.url.pathname) && !isMobile.current}
+		{#if shouldShowSearch() && !isMobile.current}
 			<RegistrySearchCompact {search} />
 		{/if}
 
@@ -76,7 +76,7 @@
 			</Dialog.Root>
 		</div>
 	</div>
-	{#if !NO_SEARCH_BAR_ROUTES.includes(page.url.pathname) && isMobile.current}
+	{#if shouldShowSearch() && isMobile.current}
 		<div
 			class="container flex h-[3.625rem] w-full place-items-center border-t border-border py-2 md:hidden"
 		>
