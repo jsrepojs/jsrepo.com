@@ -2,7 +2,7 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ChevronLeft } from '@lucide/svelte';
+	import { ChevronLeft, LogOut, Settings2 } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
 	import { checkUserSubscription } from '$lib/ts/polar/client.js';
 	import { toRelative } from '$lib/ts/dates.js';
@@ -46,9 +46,14 @@
 				</p>
 			</div>
 			{#if subscription !== null}
-				<Button href="/api/portal">Manage</Button>
+				<Button href="/api/portal" variant="outline">
+					<Settings2/>
+					Manage
+				</Button>
 			{:else}
-				<Button href="/pricing">Upgrade</Button>
+				<Button href="/pricing">
+					Upgrade
+				</Button>
 			{/if}
 		</FieldSet.Content>
 	</FieldSet.Root>
@@ -79,7 +84,10 @@
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
 			<FieldSet.Title>Sign Out</FieldSet.Title>
-			<Button onclick={signOut}>Sign Out</Button>
+			<Button onclick={signOut} variant="outline">
+				<LogOut/>
+				Sign Out
+			</Button>
 		</FieldSet.Content>
 	</FieldSet.Root>
 </div>
