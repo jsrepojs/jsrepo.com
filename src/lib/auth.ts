@@ -22,7 +22,7 @@ export const auth = betterAuth({
 		apiKey({
 			rateLimit: {
 				enabled: false
-			}
+			},
 		}),
 		admin()
 	],
@@ -31,6 +31,12 @@ export const auth = betterAuth({
 			clientId: GITHUB_CLIENT_ID,
 			clientSecret: GITHUB_CLIENT_SECRET
 		}
+	},
+	session: {
+		cookieCache: {
+			enabled: true,
+			maxAge: 5 * 60
+		},
 	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {

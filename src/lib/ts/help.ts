@@ -1,4 +1,7 @@
 export const SUPPORT_REASONS = {
+	Feedback: {
+		'feature-request': 'Request a feature'
+	},
 	Report: {
 		'suspicious-registry': 'Report a Suspicious Registry',
 		bug: 'Report a Bug'
@@ -10,9 +13,10 @@ export const SUPPORT_REASONS = {
 	Other: {
 		other: 'Other'
 	}
-};
+} as const;
 
 export type SupportReason =
+	| keyof (typeof SUPPORT_REASONS)['Feedback']
 	| keyof (typeof SUPPORT_REASONS)['Report']
 	| keyof (typeof SUPPORT_REASONS)['Help']
 	| keyof (typeof SUPPORT_REASONS)['Other'];

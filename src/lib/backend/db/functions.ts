@@ -305,13 +305,21 @@ export async function createFiles(
 	return result.map((v) => v.id);
 }
 
-export async function getFileContents(
-	userId: string | null,
-	scopeName: string,
-	registryName: string,
-	version: string,
-	fileName: string
-): Promise<string | null> {
+type GetFileContentsOptions = {
+	userId: string | null;
+	scopeName: string;
+	registryName: string;
+	version: string;
+	fileName: string;
+};
+
+export async function getFileContents({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	fileName
+}: GetFileContentsOptions): Promise<string | null> {
 	const isTag = !semver.valid(version);
 
 	const owner = aliasedTable(tables.user, 'owner');
@@ -334,6 +342,57 @@ export async function getFileContents(
 				eq(tables.file.name, fileName),
 
 				checkAccessQuery(userId, owner)
+			)
+		);
+
+	if (result.length === 0) return null;
+
+	return result[0].content;
+}
+
+/** We do this because an extra trip to get the session the easy way costs us another 250ms. So instead we just make it part of the query.
+ * 
+ * @param param0 
+ * @returns 
+ */
+export async function getFileContentsTheHardWay({
+	scopeName,
+	registryName,
+	version,
+	fileName,
+	sessionToken,
+	apiKey
+}: Omit<GetFileContentsOptions, 'userId'> & {
+	sessionToken: string | null;
+	apiKey: string | null;
+}): Promise<string | null> {
+	const isTag = !semver.valid(version);
+
+	const owner = aliasedTable(tables.user, 'owner');
+
+	const result = await db
+		.select({ content: tables.file.content })
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
+		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
+		.leftJoin(tables.apikey, eq(tables.apikey.key, apiKey ?? ''))
+		.leftJoin(tables.session, eq(tables.session.token, sessionToken ?? ''))
+		.leftJoin(
+			tables.user,
+			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
+		)
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.where(
+			and(
+				eq(tables.scope.name, scopeName),
+				eq(tables.registry.name, registryName),
+				eq(isTag ? tables.version.tag : tables.version.version, version),
+				eq(tables.file.name, fileName),
+
+				checkAccessQueryFromUserTable(owner)
 			)
 		);
 
@@ -518,6 +577,61 @@ function checkAccessQuery(
 
 				// check if we are part of the organization
 				or(eq(tables.org.ownerId, userId ?? ''), eq(tables.orgMember.userId, userId ?? '')),
+
+				// check the status of the owners subscription plan
+				checkSubscription
+					? and(
+							isNotNull(owner.id),
+							eq(owner.polarSubscriptionPlanId, TEAM_PRODUCT_ID),
+							or(
+								isNull(owner.polarSubscriptionPlanEnd),
+								gt(owner.polarSubscriptionPlanEnd, new Date())
+							)
+						)
+					: undefined
+			)
+		)
+	);
+}
+
+/** Checks if the user has access to the registry
+ *
+ * You will need to join tables.scope, tables.user, tables.registry and have an aliased table of tables.user for the owner */
+function checkAccessQueryFromUserTable(
+	owner: typeof tables.user,
+	checkSubscription = true
+) {
+	return or(
+		// registry is not private
+		eq(tables.registry.private, false),
+
+		// registry is private but they have access and have paid their subscription
+		or(
+			// Pro
+			and(
+				isNotNull(tables.scope.userId),
+
+				// check if we own the scope
+				eq(tables.scope.userId, tables.user.id),
+
+				// check the status of the users subscription plan
+				checkSubscription
+					? and(
+							inArray(tables.user.polarSubscriptionPlanId, [PRO_PRODUCT_ID, TEAM_PRODUCT_ID]),
+							or(
+								isNull(tables.user.polarSubscriptionPlanEnd),
+								gt(tables.user.polarSubscriptionPlanEnd, new Date())
+							)
+						)
+					: undefined
+			),
+
+			// Team
+			and(
+				isNotNull(tables.scope.orgId),
+
+				// check if we are part of the organization
+				or(eq(tables.org.ownerId, tables.user.id), eq(tables.orgMember.userId, tables.user.id)),
 
 				// check the status of the owners subscription plan
 				checkSubscription

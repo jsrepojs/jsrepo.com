@@ -1,0 +1,1 @@
+CREATE INDEX "apikey_key_idx" ON "apikey" USING btree ("key");
