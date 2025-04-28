@@ -160,17 +160,35 @@ export async function getRegistry(
 	scopeName: string,
 	registryName: string,
 	userId: string | null
-): Promise<tables.Registry | null> {
+): Promise<RegistryDetails | null> {
+	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
+
 	const owner = aliasedTable(tables.user, 'owner');
 
 	const registries = await db
 		.select({
-			...getTableColumns(tables.registry)
+			...getTableColumns(tables.registry),
+			scope: tables.scope,
+			org: tables.org,
+			latestVersion: tables.version,
+			monthlyFetches: sum(tables.dailyRegistryFetch.count)
 		})
-		.from(tables.scope)
-		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.from(tables.registry)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(
+			tables.version,
+			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
+		)
+		.leftJoin(
+			tables.dailyRegistryFetch,
+			and(
+				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
+			)
+		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
 		.where(
@@ -180,11 +198,27 @@ export async function getRegistry(
 
 				checkAccessQuery(userId, owner)
 			)
+		)
+		.groupBy(
+			tables.registry.id,
+			tables.registry.name,
+			tables.registry.scopeId,
+			tables.registry.createdAt,
+			tables.scope.id,
+			tables.scope.name,
+			tables.scope.orgId,
+			tables.org.id,
+			tables.org.name,
+			tables.org.ownerId,
+			tables.version.id,
+			tables.version.registryId,
+			tables.version.tag,
+			tables.version.createdAt
 		);
 
 	if (registries.length === 0) return null;
 
-	return registries[0];
+	return { ...registries[0], monthlyFetches: parseInt(registries[0].monthlyFetches ?? '0') };
 }
 
 export async function getVersions(
@@ -212,20 +246,50 @@ export async function getVersions(
 	return versions;
 }
 
-export async function getVersion(scopeName: string, registryName: string, version: string) {
+type GetVersionOptions = {
+	scopeName: string;
+	registryName: string;
+	version: string;
+	/** WARNING: Specifying undefined as the userId will skip the access check */
+	userId: string | null | undefined;
+};
+
+export async function getVersion({
+	scopeName,
+	registryName,
+	version,
+	userId
+}: GetVersionOptions): Promise<
+	| (tables.Version & { scope: tables.Scope; registry: tables.Registry; releasedBy: tables.User })
+	| null
+> {
 	const isTag = !semver.valid(version);
 
+	const releasedBy = aliasedTable(tables.user, 'released_by');
+	const owner = aliasedTable(tables.user, 'owner');
+
 	const result = await db
-		.select()
+		.select({
+			...getTableColumns(tables.version),
+			scope: tables.scope,
+			registry: tables.registry,
+			releasedBy: releasedBy
+		})
 		.from(tables.version)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.innerJoin(tables.user, eq(tables.user.id, tables.version.releasedById))
+		.innerJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
 				eq(tables.registry.name, registryName),
-				eq(isTag ? tables.version.tag : tables.version.version, version)
+				eq(isTag ? tables.version.tag : tables.version.version, version),
+
+				userId !== undefined ? checkAccessQuery(userId, owner) : undefined
 			)
 		);
 
@@ -1348,7 +1412,7 @@ async function trackFetch(
 	version: string,
 	fileName: string
 ) {
-	const ver = await getVersion(scopeName, registryName, version);
+	const ver = await getVersion({ scopeName, registryName, version, userId: undefined });
 
 	if (ver === null) return;
 
@@ -1357,7 +1421,7 @@ async function trackFetch(
 		.values({
 			scopeId: ver.scope.id,
 			registryId: ver.registry.id,
-			versionId: ver.version.id,
+			versionId: ver.id,
 			fileName,
 			day: new Date().toLocaleDateString(),
 			count: 1
