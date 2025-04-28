@@ -351,9 +351,9 @@ export async function getFileContents({
 }
 
 /** We do this because an extra trip to get the session the easy way costs us another 250ms. So instead we just make it part of the query.
- * 
- * @param param0 
- * @returns 
+ *
+ * @param param0
+ * @returns
  */
 export async function getFileContentsTheHardWay({
 	scopeName,
@@ -365,13 +365,13 @@ export async function getFileContentsTheHardWay({
 }: Omit<GetFileContentsOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
-}): Promise<string | null> {
+}): Promise<{ content: string; private: boolean } | null> {
 	const isTag = !semver.valid(version);
 
 	const owner = aliasedTable(tables.user, 'owner');
 
 	const result = await db
-		.select({ content: tables.file.content })
+		.select({ private: tables.registry.private, content: tables.file.content })
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
@@ -398,7 +398,7 @@ export async function getFileContentsTheHardWay({
 
 	if (result.length === 0) return null;
 
-	return result[0].content;
+	return result[0];
 }
 
 export async function getFiles(
@@ -597,10 +597,7 @@ function checkAccessQuery(
 /** Checks if the user has access to the registry
  *
  * You will need to join tables.scope, tables.user, tables.registry and have an aliased table of tables.user for the owner */
-function checkAccessQueryFromUserTable(
-	owner: typeof tables.user,
-	checkSubscription = true
-) {
+function checkAccessQueryFromUserTable(owner: typeof tables.user, checkSubscription = true) {
 	return or(
 		// registry is not private
 		eq(tables.registry.private, false),

@@ -3,6 +3,9 @@ import { getFileContentsTheHardWay, postFileFetch } from '$lib/backend/db/functi
 import { error, text } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 
+/** The max age of a public cached asset in seconds */
+const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
 export async function GET({ params, request, getClientAddress }) {
 	// eslint-disable-next-line prefer-const
 	let { scope, name, version, fileName } = params;
@@ -14,7 +17,7 @@ export async function GET({ params, request, getClientAddress }) {
 	const sessionToken = cookie?.split('.')[0] ?? null;
 	const apiKey = request.headers.get('x-api-key');
 
-	const contents = await getFileContentsTheHardWay({
+	const result = await getFileContentsTheHardWay({
 		scopeName,
 		registryName: name,
 		version,
@@ -23,7 +26,7 @@ export async function GET({ params, request, getClientAddress }) {
 		apiKey
 	});
 
-	if (contents === null) {
+	if (result === null) {
 		error(404);
 	}
 
@@ -37,5 +40,12 @@ export async function GET({ params, request, getClientAddress }) {
 		})
 	);
 
-	return text(contents);
+	if (result.private) {
+		return text(result.content)
+	}
+
+	// caching
+	// we only cache public registries. A public registry is forever public and cannot be changed to be private.
+
+	return text(result.content, { headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` } });
 }
