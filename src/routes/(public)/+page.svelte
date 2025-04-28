@@ -27,7 +27,7 @@
 		</div>
 		<RegistrySearch maxOptions={3} />
 		<div class="flex place-items-center gap-4">
-			<Button href="/login">
+			<Button href="/account/new-registry">
 				<span class="flex place-items-center">
 					<ChevronRight class="inline" /> Start Shipping<span class="animate-caret-blink">_</span>
 				</span>
