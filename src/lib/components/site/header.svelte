@@ -51,6 +51,7 @@
 				</a>
 				<a
 					href="https://jsrepo.dev/docs"
+					target="_blank"
 					class="text-nowrap text-sm text-muted-foreground transition-all hover:text-foreground data-[active=true]:text-foreground"
 				>
 					Docs

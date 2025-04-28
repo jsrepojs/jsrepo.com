@@ -7,7 +7,7 @@ import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '$env/static/private';
 import { polar } from './ts/polar';
 import { getUser } from './backend/db/functions';
 import assert from 'assert';
-import { postHogClient } from './ts/posthog';
+import { posthog } from './ts/posthog';
 import { eq } from 'drizzle-orm';
 import { resend, welcomeEmail } from './ts/resend';
 
@@ -99,8 +99,8 @@ export const auth = betterAuth({
 							}
 						}
 					} catch (err) {
-						postHogClient.captureException(err, user?.id, { path: ctx.path });
-						await postHogClient.shutdown();
+						posthog.captureException(err, user?.id, { path: ctx.path });
+						await posthog.shutdown();
 					}
 				}
 			}

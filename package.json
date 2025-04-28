@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
-	"packageManager": "pnpm@10.9.0",
+	"packageManager": "pnpm@10.10.0",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -56,6 +56,7 @@
 		"mode-watcher": "^1.0.2",
 		"motion-start": "^0.1.5",
 		"postgres": "^3.4.5",
+		"posthog-js": "^1.236.7",
 		"posthog-node": "^4.13.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
@@ -99,6 +100,7 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"core-js",
 			"esbuild"
 		]
 	}

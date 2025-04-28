@@ -28,7 +28,7 @@ import { checkUserSubscription, PRO_PRODUCT_ID, TEAM_PRODUCT_ID } from '$lib/ts/
 import * as v from 'valibot';
 import { polar } from '$lib/ts/polar';
 import type { Customer } from '@polar-sh/sdk/models/components/customer.js';
-import { postHogClient } from '$lib/ts/posthog';
+import { posthog } from '$lib/ts/posthog';
 import { DAY } from '$lib/ts/time';
 
 export type tx = PgTransaction<
@@ -1040,7 +1040,7 @@ export type RegistrySearchOptions = {
 	userId: string | null;
 	offset: number | null;
 	limit: number | null;
-	orderBy: PgColumn | SQL | undefined;
+	orderBy: PgColumn | SQL | undefined | null;
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1064,16 +1064,27 @@ export async function searchRegistries({
 
 	const owner = aliasedTable(tables.user, 'owner');
 
-	// --- Build the WHERE clause once ---
+	// Weighted score expression
+	const qNoAt = q?.replace(/^@/, '') ?? '';
+	const scoreExpr = sql`
+	  (
+		(CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
+		+
+		(CASE WHEN EXISTS (
+		  SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
+		  WHERE tag ILIKE ${'%' + q + '%'}
+		) THEN 8 ELSE 0 END)
+		+
+		(CASE WHEN ${tables.registry.metaDescription} ILIKE ${'%' + q + '%'} THEN 3 ELSE 0 END)
+	  )::int
+	`.as('score');
+
 	const whereClause = and(
 		q
 			? q.startsWith('@')
 				? ilike(sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`, `${q}%`)
 				: or(
-						ilike(
-							sql`${tables.scope.name} || '/' || ${tables.registry.name}`,
-							`%${q.replace(/^@/, '')}%`
-						),
+						ilike(sql`${tables.scope.name} || '/' || ${tables.registry.name}`, `%${qNoAt}%`),
 						ilike(tables.registry.metaDescription, `%${q}%`),
 						sql`EXISTS (
 				SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
@@ -1084,17 +1095,31 @@ export async function searchRegistries({
 		org ? eq(tables.org.name, org) : undefined,
 		scope ? eq(tables.scope.name, scope) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
-		checkAccessQuery(userId ?? null, owner, true)
+		checkAccessQuery(userId ?? null, owner, true),
+
+		// filter out results with 0 score
+		q
+			? sql`(
+		  (CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
+		  +
+		  (CASE WHEN EXISTS (
+		    SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
+		    WHERE tag ILIKE ${'%' + q + '%'}
+		  ) THEN 8 ELSE 0 END)
+		  +
+		  (CASE WHEN ${tables.registry.metaDescription} ILIKE ${'%' + q + '%'} THEN 3 ELSE 0 END)
+		) > 0`
+			: undefined
 	);
 
-	// --- Data query (with limit/offset) ---
 	let dataQuery = db
 		.select({
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
 			org: tables.org,
 			latestVersion: tables.version,
-			monthlyFetches: sum(tables.dailyRegistryFetch.count)
+			monthlyFetches: sum(tables.dailyRegistryFetch.count),
+			score: scoreExpr
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
@@ -1132,20 +1157,22 @@ export async function searchRegistries({
 			tables.version.createdAt
 		);
 
-	if (orderBy !== undefined) {
-		// @ts-expect-error idk what's wrong with you
+	if (orderBy) {
+		// @ts-expect-error wrong
 		dataQuery = dataQuery.orderBy(orderBy);
+	} else {
+		// @ts-expect-error wrong
+		dataQuery = dataQuery.orderBy(sql`score DESC`);
 	}
 
-	// @ts-expect-error idk what's wrong with you
-	dataQuery = dataQuery.offset(offset ?? 0);
-
-	if (limit !== undefined) {
-		// @ts-expect-error idk what's wrong with you
+	if (limit) {
+		// @ts-expect-error wrong
 		dataQuery = dataQuery.limit(limit);
 	}
 
-	// --- Count query (no limit/offset, just count) ---
+	// @ts-expect-error wrong
+	dataQuery = dataQuery.offset(offset ?? 0);
+
 	const countQuery = db
 		.select({ total: countDistinct(tables.registry.id) })
 		.from(tables.registry)
@@ -1156,7 +1183,6 @@ export async function searchRegistries({
 		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
 		.where(whereClause);
 
-	// --- Run both queries in parallel ---
 	const [data, countResult] = await Promise.all([dataQuery, countQuery]);
 	const total = countResult[0]?.total ?? 0;
 
@@ -1196,11 +1222,11 @@ export async function postFileFetch({
 	registryVersion,
 	fileName
 }: TrackFetchOptions) {
-	if (!(await postHogClient.isFeatureEnabled('trackAllFileFetches', distinctId))) {
+	if (!(await posthog.isFeatureEnabled('trackAllFileFetches', distinctId))) {
 		if (fileName !== 'jsrepo-manifest.json') return;
 	}
 
-	if (!(await postHogClient.isFeatureEnabled('trackFetches', distinctId))) return;
+	if (!(await posthog.isFeatureEnabled('trackFetches', distinctId))) return;
 
 	await trackFetch(scopeName, registryName, registryVersion, fileName);
 }

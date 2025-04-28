@@ -40,6 +40,10 @@
 
 	const sortByOptions: ListItem<string>[] = [
 		{
+			label: 'Default',
+			value: 'default'
+		},
+		{
 			label: 'Most Popular',
 			value: 'most_popular'
 		},
@@ -62,7 +66,7 @@
 	const params = queryParameters();
 
 	let page = $state($params.page ?? 1);
-	let sortBy = $state($params.order_by ?? 'most_popular');
+	let sortBy = $state($params.order_by ?? 'default');
 	let lang = $state($params.lang ?? '');
 
 	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);

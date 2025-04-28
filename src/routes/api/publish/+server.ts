@@ -11,7 +11,7 @@ import {
 	getVersions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
-import { postHogClient } from '$lib/ts/posthog.js';
+import { posthog } from '$lib/ts/posthog.js';
 import { manifestSchema, validateAndScore, type Manifest } from '$lib/ts/registry/manifest.js';
 import { NAME_REGEX } from '$lib/ts/registry/name.js';
 import { extract, streamToBuffer } from '$lib/ts/tarz';
@@ -274,7 +274,7 @@ export async function POST({ request }) {
 	// if the registry already existed we use it's setting else we use the setting provided
 	const isPrivate = registry ? registry.private : publishPrivate;
 
-	postHogClient.capture({
+	posthog.capture({
 		event: 'publish-registry',
 		distinctId: verifyResult.key.userId,
 		properties: {
@@ -285,7 +285,7 @@ export async function POST({ request }) {
 		}
 	});
 
-	waitUntil(postHogClient.shutdown());
+	waitUntil(posthog.shutdown());
 
 	await resend.emails.send(newVersionPublishedEmail(user, manifest.name, manifest.version));
 

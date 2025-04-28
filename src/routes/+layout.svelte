@@ -6,6 +6,7 @@
 	import '@fontsource-variable/jetbrains-mono';
 	import { ModeWatcher } from 'mode-watcher';
 	import Footer from '$lib/components/site/footer.svelte';
+	import { Posthog } from '$lib/components/site/posthog';
 
 	let { children } = $props();
 
@@ -13,6 +14,7 @@
 </script>
 
 <ModeWatcher />
+<Posthog />
 
 <div
 	data-search-bar={shouldShowSearch()}

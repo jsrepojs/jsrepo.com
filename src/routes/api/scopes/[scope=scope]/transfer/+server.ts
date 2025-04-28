@@ -11,7 +11,7 @@ import {
 	type TransferOwnershipOptions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
-import { postHogClient } from '$lib/ts/posthog.js';
+import { posthog } from '$lib/ts/posthog.js';
 import {
 	resend,
 	scopeTransferredEmail,
@@ -191,7 +191,7 @@ export async function POST({ request, params, locals }) {
 		return 'transferred';
 	});
 
-	postHogClient.capture({
+	posthog.capture({
 		event: result === 'transferred' ? 'scope-transferred' : 'scope-transfer-requested',
 		distinctId: session.user.id,
 		properties: {
@@ -199,7 +199,7 @@ export async function POST({ request, params, locals }) {
 		}
 	});
 
-	waitUntil(postHogClient.shutdown());
+	waitUntil(posthog.shutdown());
 
 	if (result === 'transferred') {
 		return json({ type: result } satisfies TransferRequestResponse);
