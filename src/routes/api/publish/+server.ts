@@ -26,6 +26,9 @@ import * as tables from '$lib/backend/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { waitUntil } from '@vercel/functions';
 import { determinePrimaryLanguage } from '$lib/ts/registry/index.js';
+import { displaySize, MEGABYTE } from '$lib/ts/sizes.js';
+
+const MAX_FILE_SIZE = MEGABYTE / 8;
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -74,6 +77,17 @@ export async function POST({ request }) {
 		(val) => val,
 		(err) => error(500, `error extracting files ${err}`)
 	);
+
+	for (const file of files) {
+		const byteLength = new TextEncoder().encode(file.content).length;
+
+		if (byteLength > MAX_FILE_SIZE) {
+			error(
+				400,
+				`${file.name} exceeds ${displaySize(MAX_FILE_SIZE)} in size! If this limitation is a problem for your application please reach out at https://jsrepo.com/help`
+			);
+		}
+	}
 
 	const manifestFile = files.find((f) => f.name === 'jsrepo-manifest.json');
 

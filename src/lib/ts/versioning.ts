@@ -7,3 +7,7 @@ export function getPreReleaseTag(version: string): string | null {
 
 	return segments[0].toString() ?? null;
 }
+
+export function isTag(version: string) {
+	return semver.valid(version) === null
+}

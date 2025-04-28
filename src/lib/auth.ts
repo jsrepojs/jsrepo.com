@@ -20,6 +20,7 @@ export const auth = betterAuth({
 	}),
 	plugins: [
 		apiKey({
+			defaultPrefix: 'jsrepo_',
 			rateLimit: {
 				enabled: false
 			},

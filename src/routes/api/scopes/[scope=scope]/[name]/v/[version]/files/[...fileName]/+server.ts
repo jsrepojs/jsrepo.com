@@ -2,6 +2,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import { getFileContentsTheHardWay, postFileFetch } from '$lib/backend/db/functions.js';
 import { error, text } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
+import { isTag } from '$lib/ts/versioning.js';
 
 /** The max age of a public cached asset in seconds */
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -40,7 +41,8 @@ export async function GET({ params, request, getClientAddress }) {
 		})
 	);
 
-	if (result.private) {
+	// never cache tags
+	if (result.private || isTag(version)) {
 		return text(result.content)
 	}
 
