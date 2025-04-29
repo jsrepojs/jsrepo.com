@@ -20,7 +20,7 @@
 		successUrl?: string;
 	};
 
-	const plans: Record<PlanName | 'Free', Plan> = {
+	const plans: Record<'Pro' | 'Free', Plan> = {
 		Free: {
 			yearly: null,
 			monthly: null,
@@ -30,21 +30,16 @@
 		Pro: {
 			yearly: 100,
 			monthly: 10,
-			cta: 'Get Started',
-			features: ['Unlimited registry scopes', 'Publish and install code from private registries'],
-			preferred: true
-		},
-		Team: {
-			yearly: 100,
-			monthly: 10,
 			per: 'user',
 			cta: 'Get Started',
 			features: [
-				'Unlimited registry scopes',
 				'Publish and install code from private registries',
-				'Create and invite team members to organizations'
+				'Unlimited registry scopes',
+				'Organizations',
+				'Work with a team'
 			],
-			successUrl: '/account/organizations'
+			successUrl: '/account/organizations',
+			preferred: true
 		}
 	} as const;
 
@@ -73,11 +68,11 @@
 					</Tabs.Trigger>
 				</Tabs.List>
 			</Tabs.Root>
-			<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 lg:grid-cols-3">
+			<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 lg:grid-cols-2">
 				{#each Object.entries(plans) as [name, plan], i (name)}
 					<div
 						class={cn(
-							`flex h-full col-start-1 !lg:[--col-start:${i + 1}] w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:h-[450px]`,
+							`col-start-1 flex h-full !lg:[--col-start:${i + 1}] w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:h-[450px]`,
 							{
 								'border-primary': plan.preferred
 							}
@@ -115,12 +110,12 @@
 							features: plan.features
 						})}
 						<Button
-							onclick={() => {
+							onClickPromise={async () => {
 								if (name === 'Free') return;
 
 								if (!data.session) return;
 
-								upgradeSubscription({
+								await upgradeSubscription({
 									plan: name as PlanName,
 									annual: pricing === 'yearly',
 									successUrl: plan.successUrl,

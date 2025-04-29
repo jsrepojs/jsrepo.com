@@ -15,14 +15,6 @@ const PLANS = {
 			'price_1RJF3VG0c645PxpoRlweHNVy',
 			'price_1RJJAP4UV8VP8UhvGZGgEMWC'
 		)
-	} satisfies Plan,
-	team: {
-		name: 'Team',
-		priceId: variable('price_1RJFCiG0c645PxpotNsQsGb7', 'price_1RJJET4UV8VP8UhvFR19MZyW'),
-		annualDiscountPriceId: variable(
-			'price_1RJFCiG0c645PxpocZlguo25',
-			'price_1RJJET4UV8VP8UhvntbtZXd8'
-		)
 	} satisfies Plan
 } as const;
 

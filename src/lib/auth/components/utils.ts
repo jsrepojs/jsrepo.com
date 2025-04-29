@@ -46,9 +46,5 @@ export async function upgradeSubscription({
 		seats
 	});
 
-	console.log(response);
-	console.log('userId', userId);
-	console.log('plan', plan);
-
 	return response;
 }

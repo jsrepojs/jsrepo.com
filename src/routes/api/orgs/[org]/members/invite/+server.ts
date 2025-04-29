@@ -55,8 +55,8 @@ export async function POST({ params, request, locals }) {
 
 	assert(owner !== null, 'user must be defined');
 
-	if (checkUserSubscription(owner) !== 'Team') {
-		error(401, 'you need a Team subscription to invite members to your organization');
+	if (checkUserSubscription(owner) === null) {
+		error(401, 'you need a Pro subscription to invite members to your organization');
 	}
 
 	if (!owner.subscription?.seats || memberCount + 1 > owner.subscription.seats) {

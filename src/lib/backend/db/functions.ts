@@ -86,7 +86,7 @@ export async function canPublishToScope(
 
 	const owner = significantMembers.find((m) => m.id === m.ownerId)!;
 
-	if (checkUserSubscription(owner) !== 'Team') return false;
+	if (checkUserSubscription(owner) === null) return false;
 
 	return true;
 }
@@ -615,7 +615,7 @@ function checkAccessQuery({
 
 		// registry is private but they have access and have paid their subscription
 		or(
-			// Pro
+			// User owned scope
 			and(
 				isNotNull(tables.scope.userId),
 
@@ -625,13 +625,14 @@ function checkAccessQuery({
 				// check the status of the users subscription plan
 				checkSubscription
 					? and(
-							// has any subscription that is active
+							// has an active Pro plan
+							eq(tables.subscription.plan, 'pro'),
 							eq(tables.subscription.status, 'active')
 						)
 					: undefined
 			),
 
-			// Team
+			// Org owned scope
 			and(
 				isNotNull(tables.scope.orgId),
 
@@ -642,8 +643,8 @@ function checkAccessQuery({
 				checkSubscription
 					? and(
 							isNotNull(owner.id),
-							// owner has an active Team plan
-							eq(ownerSubscription.plan, 'Team'),
+							// owner has an active Pro plan
+							eq(ownerSubscription.plan, 'pro'),
 							eq(ownerSubscription.status, 'active')
 						)
 					: undefined
@@ -807,14 +808,14 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 
 				// access check
 				or(
-					// Free / Pro
+					// User owned scope
 					and(
 						isNotNull(tables.scope.userId),
 
 						eq(tables.scope.userId, userId ?? '')
 					),
 
-					// Team
+					// Org owned scope
 					and(
 						isNotNull(tables.scope.orgId),
 
@@ -828,7 +829,7 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 								eq(tables.orgMember.userId, userId ?? ''),
 
 								isNotNull(owner.id),
-								eq(ownerSubscription.plan, 'Team'),
+								eq(ownerSubscription.plan, 'pro'),
 								eq(ownerSubscription.status, 'active')
 							)
 						)

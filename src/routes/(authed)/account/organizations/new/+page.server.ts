@@ -18,7 +18,7 @@ export async function load({ locals, url }) {
 
 	assert(user !== null, 'user must be defined');
 
-	if (checkUserSubscription(user) !== 'Team') {
+	if (checkUserSubscription(user) === null) {
 		redirect(303, `/pricing`);
 	}
 
@@ -53,7 +53,7 @@ export const actions = {
 
 		assert(user !== null, 'User must be defined');
 
-		if (checkUserSubscription(user) !== 'Team') {
+		if (checkUserSubscription(user) === null) {
 			// we will rudely redirect them since they aren't supposed to be here anyways
 			redirect(303, '/pricing');
 		}

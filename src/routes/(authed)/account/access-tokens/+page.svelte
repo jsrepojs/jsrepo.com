@@ -72,37 +72,41 @@
 			<ChevronLeft />
 			Back to Account
 		</a>
-		<List.Root title="Your Access Tokens">
-			{#snippet actions()}
-				<Button href="/account/access-tokens/new">
-					<Plus /> New
-				</Button>
-			{/snippet}
-			{#if newKey}
-				<Snippet text={newKey.key} variant="secondary" />
-			{/if}
-			<List.List>
-				{#each apiKeys as apiKey (apiKey.id)}
-					<List.Item class="flex place-items-center justify-between">
-						<span class="text-lg font-medium">{apiKey.name}</span>
-						<div class="flex place-items-center gap-2">
-							<span class="text-sm text-muted-foreground">
-								Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
-							</span>
-							<Dialog.Trigger
-								onclick={() => (keyToDelete = apiKey)}
-								class={cn(
-									buttonVariants({ variant: 'outline', size: 'icon' }),
-									'size-5 text-destructive hover:text-destructive'
-								)}
-							>
-								<X />
-							</Dialog.Trigger>
-						</div>
-					</List.Item>
-				{/each}
-			</List.List>
-		</List.Root>
+		<div class="flex place-items-center justify-end">
+			<Button href="/account/access-tokens/new">
+				<Plus /> New
+			</Button>
+		</div>
+		{#if data.apiKeys.length === 0}
+			<List.Empty>You haven't created any access tokens yet.</List.Empty>
+		{:else}
+			<List.Root title="Your Access Tokens">
+				{#if newKey}
+					<Snippet text={newKey.key} variant="secondary" />
+				{/if}
+				<List.List>
+					{#each apiKeys as apiKey (apiKey.id)}
+						<List.Item class="flex place-items-center justify-between">
+							<span class="text-lg font-medium">{apiKey.name}</span>
+							<div class="flex place-items-center gap-2">
+								<span class="text-sm text-muted-foreground">
+									Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
+								</span>
+								<Dialog.Trigger
+									onclick={() => (keyToDelete = apiKey)}
+									class={cn(
+										buttonVariants({ variant: 'outline', size: 'icon' }),
+										'size-5 text-destructive hover:text-destructive'
+									)}
+								>
+									<X />
+								</Dialog.Trigger>
+							</div>
+						</List.Item>
+					{/each}
+				</List.List>
+			</List.Root>
+		{/if}
 	</div>
 
 	<Dialog.Content hideClose>

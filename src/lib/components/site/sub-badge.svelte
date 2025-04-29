@@ -14,8 +14,6 @@
 
 {#if subscription !== null}
 	{#if subscription === 'pro'}
-		<Badge class="border-0 bg-gradient-to-br from-yellow-500 to-red-500 text-white">Pro</Badge>
-	{:else}
-		<Badge class="border-0 bg-gradient-to-br from-blue-500 to-red-500 text-white">Team</Badge>
+		<Badge class="border-0 bg-gradient-to-br from-blue-500 to-red-500 text-white">Pro</Badge>
 	{/if}
 {/if}

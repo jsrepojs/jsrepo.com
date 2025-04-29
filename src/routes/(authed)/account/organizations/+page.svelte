@@ -20,7 +20,7 @@
 <div class="flex flex-col gap-4">
 	<List.Root title="Your Organizations">
 		{#snippet actions()}
-			<Button href="/account/organizations/new" disabled={subscription !== 'Team'}>
+			<Button href="/account/organizations/new" disabled={subscription === null}>
 				<Plus /> New
 			</Button>
 		{/snippet}
