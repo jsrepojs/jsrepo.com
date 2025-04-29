@@ -1,7 +1,7 @@
 export async function load({ locals }) {
-    const session = await locals.auth();
+	const session = await locals.auth();
 
-    return {
-        session
-    }
+	return {
+		session
+	};
 }

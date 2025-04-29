@@ -40,6 +40,9 @@
 			variant?: ButtonVariant;
 			size?: ButtonSize;
 			loading?: boolean;
+			onClickPromise?: (
+				e: Parameters<NonNullable<HTMLButtonAttributes['onclick']>>[0]
+			) => Promise<unknown>;
 		};
 </script>
 
@@ -54,9 +57,11 @@
 		ref = $bindable(null),
 		href = undefined,
 		type = 'button',
-		loading = false,
+		loading = $bindable(false),
 		disabled = false,
+		onclick,
 		children,
+		onClickPromise,
 		...restProps
 	}: ButtonProps = $props();
 </script>
@@ -78,6 +83,22 @@
 		bind:this={ref}
 		class={cn(buttonVariants({ variant, size }), className)}
 		disabled={disabled || loading}
+		onclick={async (e) => {
+			if (!onClickPromise) {
+				onclick?.(e);
+				return;
+			}
+
+			loading = true;
+
+			try {
+				await onClickPromise(e);
+			} catch {
+				// do nothing
+			} finally {
+				loading = false;
+			}
+		}}
 		{type}
 		{...restProps}
 	>
