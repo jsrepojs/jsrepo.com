@@ -28,10 +28,11 @@
 	<Footer />
 </div>
 
-<div class="fixed bottom-0 left-0 w-full bg-destructive flex place-items-center py-2">
-	<div class="flex container place-items-center">
+<div class="fixed bottom-0 left-0 flex w-full place-items-center bg-destructive py-2">
+	<div class="container flex place-items-center">
 		<span>
-			This is an pre-production preview of jsrepo.com. You should not expect any data to be retained when it launches.
+			This is an pre-production preview of jsrepo.com. You should not expect any data to be retained
+			when it launches.
 		</span>
 	</div>
 </div>

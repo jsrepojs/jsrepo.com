@@ -1459,3 +1459,32 @@ export async function listPublishableScopes(userId: string): Promise<tables.Scop
 
 	return result;
 }
+
+export async function getPublicDownloads({
+	scope,
+	registryName,
+	from
+}: {
+	scope: string;
+	registryName: string;
+	from: Date;
+}): Promise<number> {
+	const result = await db
+		.select({ downloads: sum(tables.dailyRegistryFetch.count) })
+		.from(tables.dailyRegistryFetch)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.dailyRegistryFetch.scopeId))
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.dailyRegistryFetch.registryId))
+		.where(
+			and(
+				eq(tables.scope.name, scope),
+				eq(tables.registry.name, registryName),
+				eq(tables.registry.private, false),
+				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
+			)
+		);
+
+	if (result.length === 0) return 0;
+
+	return parseInt(result[0].downloads ?? '0');
+}

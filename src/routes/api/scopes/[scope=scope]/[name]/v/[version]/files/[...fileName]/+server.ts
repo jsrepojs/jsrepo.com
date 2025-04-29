@@ -43,11 +43,13 @@ export async function GET({ params, request, getClientAddress }) {
 
 	// never cache tags
 	if (result.private || isTag(version)) {
-		return text(result.content)
+		return text(result.content);
 	}
 
 	// caching
 	// we only cache public registries. A public registry is forever public and cannot be changed to be private.
 
-	return text(result.content, { headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` } });
+	return text(result.content, {
+		headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` }
+	});
 }

@@ -9,5 +9,5 @@ export function getPreReleaseTag(version: string): string | null {
 }
 
 export function isTag(version: string) {
-	return semver.valid(version) === null
+	return semver.valid(version) === null;
 }

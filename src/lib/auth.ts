@@ -23,7 +23,7 @@ export const auth = betterAuth({
 			defaultPrefix: 'jsrepo_',
 			rateLimit: {
 				enabled: false
-			},
+			}
 		}),
 		admin()
 	],
@@ -37,7 +37,7 @@ export const auth = betterAuth({
 		cookieCache: {
 			enabled: true,
 			maxAge: 5 * 60
-		},
+		}
 	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {

@@ -16,9 +16,9 @@ export async function GET({ params }) {
 	if (!ver) error(404);
 
 	const badge = makeBadge({
-        label: 'jsrepo',
+		label: 'jsrepo',
 		labelColor: '#f7df1e',
-        color: '#1C1918',
+		color: '#1C1918',
 		message: ver.version
 	});
 
