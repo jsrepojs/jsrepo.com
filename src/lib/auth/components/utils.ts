@@ -28,18 +28,27 @@ export async function upgradeSubscription({
 	plan,
 	successUrl = '/account',
 	annual = false,
-	seats
+	seats,
+	userId
 }: {
 	plan: PlanName;
 	annual?: boolean;
 	successUrl?: string;
 	seats?: number;
+	userId: string;
 }) {
-	return await authClient.subscription.upgrade({
-		plan: plan,
+	const response = await authClient.subscription.upgrade({
+		plan,
 		successUrl,
 		annual,
 		cancelUrl: '/pricing',
+		referenceId: userId,
 		seats
 	});
+
+	console.log(response);
+	console.log('userId', userId);
+	console.log('plan', plan);
+
+	return response;
 }

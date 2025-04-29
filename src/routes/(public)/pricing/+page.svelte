@@ -5,6 +5,10 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { PlanName } from '$lib/ts/stripe/client';
 	import { cn } from '$lib/utils/utils';
+	import { redirectToLogin } from '$lib/auth/redirect';
+	import { page } from '$app/state';
+
+	let { data } = $props();
 
 	type Plan = {
 		monthly: number | null;
@@ -114,13 +118,20 @@
 							onclick={() => {
 								if (name === 'Free') return;
 
+								if (!data.session) return;
+
 								upgradeSubscription({
 									plan: name as PlanName,
 									annual: pricing === 'yearly',
-									successUrl: plan.successUrl
+									successUrl: plan.successUrl,
+									userId: data.session.user.id
 								});
 							}}
-							href={name === 'Free' ? '/login' : undefined}
+							href={name === 'Free'
+								? '/login'
+								: data.session === null
+									? redirectToLogin(page.url)
+									: undefined}
 							variant={plan.preferred ? 'default' : 'outline'}
 						>
 							{plan.cta}

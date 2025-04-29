@@ -33,6 +33,11 @@ export const auth = betterAuth({
 			},
 			subscription: {
 				enabled: true,
+				authorizeReference: async ({ user, referenceId }) => {
+					if (user.id === referenceId) return true;
+
+					return false;
+				},
 				plans
 			}
 		})

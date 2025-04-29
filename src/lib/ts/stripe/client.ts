@@ -1,3 +1,4 @@
+import { PUBLIC_STRIPE_PRODUCTION } from '$env/static/public';
 import type { UserWithSubscription } from '$lib/backend/db/functions';
 
 export type Plan = {
@@ -7,15 +8,21 @@ export type Plan = {
 };
 
 const PLANS = {
-	Pro: {
+	pro: {
 		name: 'Pro',
-		priceId: 'price_1RJF3VG0c645Pxpo6NTpErOA',
-		annualDiscountPriceId: 'price_1RJF3VG0c645PxpoRlweHNVy'
+		priceId: variable('price_1RJF3VG0c645Pxpo6NTpErOA', 'price_1RJJAP4UV8VP8UhvzcLHFYx3'),
+		annualDiscountPriceId: variable(
+			'price_1RJF3VG0c645PxpoRlweHNVy',
+			'price_1RJJAP4UV8VP8UhvGZGgEMWC'
+		)
 	} satisfies Plan,
-	Team: {
+	team: {
 		name: 'Team',
-		priceId: 'price_1RJFCiG0c645PxpotNsQsGb7',
-		annualDiscountPriceId: 'price_1RJFCiG0c645PxpocZlguo25'
+		priceId: variable('price_1RJFCiG0c645PxpotNsQsGb7', 'price_1RJJET4UV8VP8UhvFR19MZyW'),
+		annualDiscountPriceId: variable(
+			'price_1RJFCiG0c645PxpocZlguo25',
+			'price_1RJJET4UV8VP8UhvntbtZXd8'
+		)
 	} satisfies Plan
 } as const;
 
@@ -31,4 +38,12 @@ export function checkUserSubscription(user: UserWithSubscription): PlanName | nu
 	}
 
 	return null;
+}
+
+export function variable(prod: string, dev: string) {
+	if (PUBLIC_STRIPE_PRODUCTION === '1') {
+		return prod;
+	}
+
+	return dev;
 }

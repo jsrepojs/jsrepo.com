@@ -13,13 +13,13 @@
 </script>
 
 {#if subscription !== null}
-	{#if subscription === 'Pro'}
+	{#if subscription === 'pro'}
 		<Badge class="border-0 bg-gradient-to-br from-yellow-500 to-red-500 text-white">
-			{subscription}
+			Pro
 		</Badge>
 	{:else}
 		<Badge class="border-0 bg-gradient-to-br from-blue-500 to-red-500 text-white">
-			{subscription}
+			Team
 		</Badge>
 	{/if}
 {/if}

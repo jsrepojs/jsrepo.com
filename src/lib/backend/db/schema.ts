@@ -26,11 +26,11 @@ export const user = pgTable(
 		createdAt: timestamp('created_at').notNull(),
 		updatedAt: timestamp('updated_at').notNull(),
 		scopeLimit: integer().notNull().default(5),
-		stripeCustomerId: text('stripe_customer_id'),
 		role: text('role').notNull().default('user'),
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
-		banExpires: timestamp('bar_expires')
+		banExpires: timestamp('bar_expires'),
+		stripeCustomerId: text('stripe_customer_id'),
 	},
 	(table) => {
 		return [
@@ -149,16 +149,16 @@ export const subscription = pgTable(
 	{
 		id: text('id').primaryKey(),
 		plan: text('plan').notNull(),
-		referenceId: text('reference_id').notNull(),
+		referenceId: text('reference_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
 		stripeCustomerId: text('stripe_customer_id'),
 		stripeSubscriptionId: text('stripe_subscription_id'),
-		status: text('status').notNull(),
+		status: text('status'),
 		periodStart: timestamp('period_start'),
 		periodEnd: timestamp('period_end'),
 		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
-		seats: integer('seats'),
-		trialStart: timestamp('trialStart'),
-		trialEnd: timestamp('trialEnd')
+		seats: integer('seats')
 	},
 	(table) => {
 		return [
