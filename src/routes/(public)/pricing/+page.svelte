@@ -77,12 +77,12 @@
 				{#each Object.entries(plans) as [name, plan], i (name)}
 					<div
 						class={cn(
-							'col-start-1 flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:h-[450px]',
+							`flex h-full col-start-1 !lg:[--col-start:${i + 1}] w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:h-[450px]`,
 							{
 								'border-primary': plan.preferred
 							}
 						)}
-						style="grid-column-start: {i + 1};"
+						style="grid-column-start: var(--col-start);"
 					>
 						<div class="flex w-full flex-col gap-2 text-left">
 							<h3 class="flex place-items-center gap-2 text-left text-2xl">
