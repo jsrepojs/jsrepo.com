@@ -26,16 +26,17 @@ export const user = pgTable(
 		createdAt: timestamp('created_at').notNull(),
 		updatedAt: timestamp('updated_at').notNull(),
 		scopeLimit: integer().notNull().default(5),
-		polarCustomerId: text('polar_customer_id'),
-		polarSubscriptionPlanId: text('polar_subscription_plan_id'),
-		polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end'),
+		stripeCustomerId: text('stripe_customer_id'),
 		role: text('role').notNull().default('user'),
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
 		banExpires: timestamp('bar_expires')
 	},
 	(table) => {
-		return [index('user_email_idx').on(table.email)];
+		return [
+			index('user_email_idx').on(table.email),
+			index('user_stripe_customer_id_idx').on(table.stripeCustomerId)
+		];
 	}
 ).enableRLS();
 
@@ -142,6 +143,34 @@ export const apikey = pgTable(
 ).enableRLS();
 
 export type APIKey = InferSelectModel<typeof apikey>;
+
+export const subscription = pgTable(
+	'subscription',
+	{
+		id: text('id').primaryKey(),
+		plan: text('plan').notNull(),
+		referenceId: text('reference_id').notNull(),
+		stripeCustomerId: text('stripe_customer_id'),
+		stripeSubscriptionId: text('stripe_subscription_id'),
+		status: text('status').notNull(),
+		periodStart: timestamp('period_start'),
+		periodEnd: timestamp('period_end'),
+		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
+		seats: integer('seats'),
+		trialStart: timestamp('trialStart'),
+		trialEnd: timestamp('trialEnd')
+	},
+	(table) => {
+		return [
+			index('subscription_reference_id_idx').on(table.referenceId),
+			index('subscription_customer_id_idx').on(table.stripeCustomerId),
+			index('subscription_subscription_id_idx').on(table.stripeSubscriptionId),
+			index('subscription_plan_idx').on(table.plan)
+		];
+	}
+).enableRLS();
+
+export type Subscription = InferSelectModel<typeof subscription>;
 
 // ---
 

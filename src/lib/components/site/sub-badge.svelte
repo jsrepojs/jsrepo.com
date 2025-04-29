@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { User } from '$lib/backend/db/schema';
-	import { checkUserSubscription } from '$lib/ts/polar/client';
+	import { checkUserSubscription } from '$lib/ts/stripe/client';
 	import { Badge } from '$lib/components/ui/badge';
+	import type { UserWithSubscription } from '$lib/backend/db/functions';
 
 	type Props = {
-		user: User;
+		user: UserWithSubscription;
 	};
 
 	let { user }: Props = $props();

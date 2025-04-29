@@ -10,7 +10,7 @@ import {
 	listMyScopes
 } from '$lib/backend/db/functions';
 import assert from 'assert';
-import { checkUserSubscription } from '$lib/ts/polar/client';
+import { checkUserSubscription } from '$lib/ts/stripe/client';
 
 export async function load() {
 	const form = await superValidate(valibot(schema));

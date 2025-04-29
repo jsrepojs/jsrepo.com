@@ -7,7 +7,7 @@ import {
 	getUserByEmail
 } from '$lib/backend/db/functions.js';
 import { orgMemberRoles, type OrgRole } from '$lib/backend/db/schema.js';
-import { checkUserSubscription } from '$lib/ts/polar/client.js';
+import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 import { invitedToOrgEmail, resend } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
 import assert from 'assert';
@@ -27,6 +27,8 @@ export async function POST({ params, request, locals }) {
 	const org = await getOrgWithMembers(orgName);
 
 	if (!org) error(404);
+
+	const memberCount = org.members.length;
 
 	if (org.ownerId !== session.user.id) error(401, 'only the owner can invite team members');
 
@@ -55,6 +57,10 @@ export async function POST({ params, request, locals }) {
 
 	if (checkUserSubscription(owner) !== 'Team') {
 		error(401, 'you need a Team subscription to invite members to your organization');
+	}
+
+	if (!owner.subscription?.seats || memberCount + 1 > owner.subscription.seats) {
+		error(400, 'you need to purchase more seats');
 	}
 
 	if (invites.length > 0) error(400, `cannot reinvite ${email}`);

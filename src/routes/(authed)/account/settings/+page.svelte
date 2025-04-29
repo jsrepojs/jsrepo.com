@@ -4,8 +4,7 @@
 	import { Meter } from '$lib/components/ui/meter';
 	import { ChevronLeft, LogOut, Settings2 } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
-	import { checkUserSubscription } from '$lib/ts/polar/client.js';
-	import { toRelative } from '$lib/ts/dates.js';
+	import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
 	import SubBadge from '$lib/components/site/sub-badge.svelte';
@@ -13,9 +12,6 @@
 	let { data } = $props();
 
 	const subscription = $derived(checkUserSubscription(data.user));
-	const endsAt = $derived(
-		data.user.polarSubscriptionPlanEnd ? toRelative(data.user.polarSubscriptionPlanEnd) : null
-	);
 	const scopesPromise = new UsePromise(data.scopes, null);
 </script>
 
@@ -42,7 +38,6 @@
 				<FieldSet.Title>Your Subscription</FieldSet.Title>
 				<p class="text-muted-foreground">
 					<SubBadge user={data.user} />
-					{endsAt ? `ends ${endsAt}` : ''}
 				</p>
 			</div>
 			{#if subscription !== null}

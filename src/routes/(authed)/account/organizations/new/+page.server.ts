@@ -4,8 +4,8 @@ import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getUser, nameIsBanned, getOrg, createOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
-import { checkUserSubscription } from '$lib/ts/polar/client';
 import { redirectToLogin } from '$lib/auth/redirect';
+import { checkUserSubscription } from '$lib/ts/stripe/client';
 
 export async function load({ locals, url }) {
 	const form = await superValidate(valibot(schema));
@@ -19,7 +19,7 @@ export async function load({ locals, url }) {
 	assert(user !== null, 'user must be defined');
 
 	if (checkUserSubscription(user) !== 'Team') {
-		redirect(303, `/checkout/team`);
+		redirect(303, `/pricing`);
 	}
 
 	return {
@@ -55,7 +55,7 @@ export const actions = {
 
 		if (checkUserSubscription(user) !== 'Team') {
 			// we will rudely redirect them since they aren't supposed to be here anyways
-			redirect(303, '/checkout/team');
+			redirect(303, '/pricing');
 		}
 
 		if (await nameIsBanned(form.data.name)) {

@@ -1,15 +1,13 @@
 import { betterAuth } from 'better-auth';
-import { apiKey, createAuthMiddleware, admin } from 'better-auth/plugins';
+import { apiKey, admin } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '$env/static/private';
-import { polar } from './ts/polar';
-import { getUser } from './backend/db/functions';
-import assert from 'assert';
-import { posthog } from './ts/posthog';
-import { eq } from 'drizzle-orm';
+import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
 import { resend, welcomeEmail } from './ts/resend';
+import { stripe } from '@better-auth/stripe';
+import { stripeClient } from './ts/stripe';
+import { plans } from './ts/stripe/client';
 
 export type Providers = 'github';
 
@@ -25,7 +23,19 @@ export const auth = betterAuth({
 				enabled: false
 			}
 		}),
-		admin()
+		admin(),
+		stripe({
+			stripeClient,
+			stripeWebhookSecret: STRIPE_WEBHOOK_SECRET,
+			createCustomerOnSignUp: true,
+			onCustomerCreate: async ({ user }) => {
+				await resend.emails.send(welcomeEmail(user));
+			},
+			subscription: {
+				enabled: true,
+				plans
+			}
+		})
 	],
 	socialProviders: {
 		github: {
@@ -38,79 +48,5 @@ export const auth = betterAuth({
 			enabled: true,
 			maxAge: 5 * 60
 		}
-	},
-	hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			// there's no good way to determine if a user has an account and is banned or if the user doesn't exist
-			// if (ctx.context.returned instanceof APIError) {
-			// 	const returned = ctx.context.returned;
-
-			// 	if (returned.body?.code === "BANNED_USER") {
-			// 		throw ctx.redirect('/account-suspended')
-			// 	}
-			// }
-
-			// create polar customer id and sync subscription on sign in
-			if (ctx.path.startsWith('/callback')) {
-				const newSession = ctx.context.newSession;
-
-				if (newSession) {
-					let user: schema.User | null = null;
-
-					try {
-						user = await getUser(newSession.user.id);
-
-						assert(user !== null, 'User must be defined');
-
-						// create a new polar customer id on the first sign in
-						if (user.polarCustomerId === null) {
-							const res = resend.emails.send(welcomeEmail(user));
-
-							const result = await polar.customers.create({
-								externalId: newSession.user.id,
-								name: newSession.user.name,
-								email: newSession.user.email
-							});
-
-							await db
-								.update(schema.user)
-								.set({ polarCustomerId: result.id })
-								.where(eq(schema.user.id, user.id));
-
-							await res;
-						} else {
-							// sync the current subscription with the database
-							// it should already by synced by the webhooks but this is a precautionary measure
-							const result = await polar.customers.getState({ id: user.polarCustomerId });
-
-							// we should only ever have 1 active subscription
-							if (result.activeSubscriptions.length > 0) {
-								const subscription = result.activeSubscriptions[0];
-
-								// if the active subscription doesn't match the polar db then update it
-								if (subscription.productId === user.polarSubscriptionPlanId) {
-									await db
-										.update(schema.user)
-										.set({ polarSubscriptionPlanId: subscription.productId })
-										.where(eq(schema.user.id, user.id));
-								}
-							} else if (
-								user.polarSubscriptionPlanId !== null ||
-								user.polarSubscriptionPlanEnd !== null
-							) {
-								// remove the subscription plan id if the user isn't subscribed
-								await db
-									.update(schema.user)
-									.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null })
-									.where(eq(schema.user.id, user.id));
-							}
-						}
-					} catch (err) {
-						posthog.captureException(err, user?.id, { path: ctx.path });
-						await posthog.shutdown();
-					}
-				}
-			}
-		})
 	}
 });

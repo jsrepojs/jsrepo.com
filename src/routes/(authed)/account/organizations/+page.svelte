@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { checkUserSubscription } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
 

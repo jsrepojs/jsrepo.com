@@ -2,7 +2,7 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { checkUserSubscription } from '$lib/ts/polar/client.js';
+	import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
 
