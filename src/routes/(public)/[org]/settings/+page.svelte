@@ -35,7 +35,7 @@
 
 	const difference = $derived(newSeats - seats);
 
-	const updateSeatsQuery = new UseQuery(async ({}) => {
+	const updateSeatsQuery = new UseQuery(async () => {
 		if (data.org.subscription === null) {
 			const result = await authClient.subscription.upgrade({
 				plan: 'Organization Seat',

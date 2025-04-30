@@ -41,11 +41,13 @@ export async function PATCH({ locals, params, request }) {
 
 	assert(org.subscription.stripeSubscriptionId !== null, 'must be defined');
 
-    const subscription = await stripeClient.subscriptions.retrieve(org.subscription.stripeSubscriptionId);
+	const subscription = await stripeClient.subscriptions.retrieve(
+		org.subscription.stripeSubscriptionId
+	);
 
-    const itemId = subscription.items.data[0]?.id;
+	const itemId = subscription.items.data[0]?.id;
 
-    if (!itemId) error(400, 'error getting your subscription');
+	if (!itemId) error(400, 'error getting your subscription');
 
 	await stripeClient.subscriptions.update(org.subscription.stripeSubscriptionId, {
 		items: [

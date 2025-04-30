@@ -54,7 +54,7 @@ export async function DELETE({ params, locals }) {
 				return tx.rollback();
 			}
 		}
-		
+
 		return true;
 	});
 

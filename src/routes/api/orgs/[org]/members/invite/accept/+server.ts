@@ -14,7 +14,10 @@ export async function PATCH({ locals, request, params }) {
 
 	if (!body.inviteId) error(400, 'expected inviteId in the request body');
 
-	const [invite, org] = await Promise.all([getOrgInvite(body.inviteId), getOrg({ name: params.org })]);
+	const [invite, org] = await Promise.all([
+		getOrgInvite(body.inviteId),
+		getOrg({ name: params.org })
+	]);
 
 	if (!invite || !org) error(404);
 

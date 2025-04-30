@@ -7,9 +7,9 @@ export async function load({ locals }) {
 	let userPromise: Promise<UserWithSubscription | null>;
 
 	if (session) {
-		userPromise = getUser(session.user.id)
+		userPromise = getUser(session.user.id);
 	} else {
-		userPromise = immediate(null)
+		userPromise = immediate(null);
 	}
 
 	return {

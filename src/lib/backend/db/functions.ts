@@ -1445,4 +1445,3 @@ export async function startCourtesyMonth(orgId: string) {
 
 	return result.length > 0;
 }
-

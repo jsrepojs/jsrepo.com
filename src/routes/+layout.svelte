@@ -16,7 +16,7 @@
 
 <ModeWatcher />
 <Posthog />
-<Toaster/>
+<Toaster />
 
 <div
 	data-search-bar={shouldShowSearch()}

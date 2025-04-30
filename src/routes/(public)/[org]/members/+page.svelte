@@ -39,22 +39,38 @@
 
 	const removeMemberQuery = new UseQuery(
 		async ({ setLoadingKey }, member: FullOrg['members'][number]) => {
-			setLoadingKey(member.id.toString());
+			toast.promise(
+				// eslint-disable-next-line no-async-promise-executor
+				new Promise<void>(async (res, rej) => {
+					setLoadingKey(member.id.toString());
 
-			const response = await fetch(`/api/orgs/${data.org.name}/members/${member.id}`, {
-				method: 'DELETE',
-				headers: { 'content-type': 'application/json' }
-			});
+					try {
+						const response = await fetch(`/api/orgs/${data.org.name}/members/${member.id}`, {
+							method: 'DELETE',
+							headers: { 'content-type': 'application/json' }
+						});
 
-			if (response.ok) {
-				await invalidateAll();
+						if (response.ok) {
+							await invalidateAll();
+						} else {
+							const err = await response.json();
 
-				toast.success(`Removed ${member.user.name} from ${data.org.name}!`);
-			} else {
-				const err = await response.json();
+							toast.error('Error removing member', { description: err.message });
 
-				toast.error('Error removing member', { description: err.message });
-			}
+							throw new Error(err.message);
+						}
+					} catch (err) {
+						rej(err);
+					} finally {
+						res();
+					}
+				}),
+				{
+					success: `Removed ${member.user.name} from ${data.org.name}!`,
+					loading: `Removing ${member.user.name} from ${data.org.name}`,
+					error: 'Error removing member'
+				}
+			);
 		}
 	);
 </script>
