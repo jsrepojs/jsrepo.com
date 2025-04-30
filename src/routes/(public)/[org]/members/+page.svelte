@@ -41,7 +41,7 @@
 
 <!-- we can only view the options if we are part of the org -->
 {#if data.member}
-	<div class="flex place-items-center justify-between py-2">
+	<div class="flex place-items-center justify-between pb-2">
 		<div>
 			<ToggleGroup.Root type="single" bind:value={tab}>
 				<ToggleGroup.Item value="members">Members</ToggleGroup.Item>

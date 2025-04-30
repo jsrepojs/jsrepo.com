@@ -74,7 +74,7 @@
 	<title>Settings - jsrepo - jsrepo</title>
 </svelte:head>
 
-<div class="flex flex-col gap-2 py-2">
+<div class="flex flex-col gap-2">
 	<FieldSet.Root class="relative">
 		<FieldSet.Content class="flex flex-col gap-2">
 			<FieldSet.Title>Seats</FieldSet.Title>
@@ -86,13 +86,13 @@
 			{/if}
 			<div class="flex flex-col gap-2">
 				<Meter min={0} max={seats} value={occupiedSeats} />
-				<div class="flex place-items-center justify-between text-sm">
-					<span class="text-muted-foreground">
+				<div class="flex place-items-center justify-between text-sm gap-4">
+					<span class="text-muted-foreground text-start">
 						<span class="text-foreground">{occupiedSeats}</span> of
 						<span class="text-foreground">{seats}</span>
 						seats used
 					</span>
-					<span class="text-muted-foreground">
+					<span class="text-muted-foreground text-end">
 						<span class="text-foreground">{remainingSeats}</span>
 						{remainingSeats === 1 ? 'seat' : 'seats'} remaining.
 					</span>
