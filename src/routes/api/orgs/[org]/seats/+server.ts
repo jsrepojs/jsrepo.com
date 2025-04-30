@@ -51,7 +51,7 @@ export async function PATCH({ locals, params, request }) {
 		items: [
 			{
 				id: itemId,
-				price: PLANS['pro'].priceId,
+				price: PLANS['organizationSeat'].priceId,
 				quantity: body.seats
 			}
 		]

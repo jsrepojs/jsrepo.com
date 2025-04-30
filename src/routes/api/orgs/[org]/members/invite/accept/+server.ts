@@ -1,11 +1,11 @@
-import { acceptOrgInvite, getOrgInvite } from '$lib/backend/db/functions.js';
+import { acceptOrgInvite, getOrg, getOrgInvite } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
 export type AcceptInviteRequest = {
 	inviteId: number;
 };
 
-export async function PATCH({ locals, request }) {
+export async function PATCH({ locals, request, params }) {
 	const session = await locals.auth();
 
 	if (!session) error(401);
@@ -14,11 +14,16 @@ export async function PATCH({ locals, request }) {
 
 	if (!body.inviteId) error(400, 'expected inviteId in the request body');
 
-	const invite = await getOrgInvite(body.inviteId);
+	const [invite, org] = await Promise.all([getOrgInvite(body.inviteId), getOrg({ name: params.org })]);
 
-	if (!invite) error(404);
+	if (!invite || !org) error(404);
 
 	if (invite.email !== session.user.email) error(401, 'this invite is not intended for you');
+
+	// org is already full
+	if ((org.subscription?.seats ?? 0) + 1 < org.members.length + 1) {
+		error(400, "this org doesn't have any seats left");
+	}
 
 	const result = await acceptOrgInvite(body.inviteId, session.user.id);
 

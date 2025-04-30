@@ -46,7 +46,6 @@
 			});
 
 			if (result.error !== null) {
-				console.log('current', result);
 				throw new Error(result.error.message);
 			} else {
 				await invalidateAll();

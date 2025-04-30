@@ -3,13 +3,16 @@
 	import * as List from '$lib/components/site/list';
 	import { getInitials } from '$lib/ts/initials';
 	import * as casing from '$lib/ts/casing';
-	import { Crown, X } from '@lucide/svelte';
+	import { Crown, Ellipsis, X } from '@lucide/svelte';
 	import Invite from './invite.svelte';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Button } from '$lib/components/ui/button';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import type { CancelInviteRequest } from '../../../api/orgs/[org]/members/invite/+server';
 	import { invalidateAll } from '$app/navigation';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { toast } from 'svelte-sonner';
+	import type { FullOrg } from '$lib/backend/db/functions';
 
 	let { data } = $props();
 
@@ -33,6 +36,27 @@
 			}
 		}
 	});
+
+	const removeMemberQuery = new UseQuery(
+		async ({ setLoadingKey }, member: FullOrg['members'][number]) => {
+			setLoadingKey(member.id.toString());
+
+			const response = await fetch(`/api/orgs/${data.org.name}/members/${member.id}`, {
+				method: 'DELETE',
+				headers: { 'content-type': 'application/json' }
+			});
+
+			if (response.ok) {
+				await invalidateAll();
+
+				toast.success(`Removed ${member.user.name} from ${data.org.name}!`);
+			} else {
+				const err = await response.json();
+
+				toast.error('Error removing member', { description: err.message });
+			}
+		}
+	);
 </script>
 
 <svelte:head>
@@ -85,6 +109,28 @@
 							</span>
 						</div>
 					</div>
+					{#if data.member?.role === 'owner'}
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} variant="outline" size="sm">
+										<Ellipsis />
+									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end">
+								<DropdownMenu.Group>
+									<DropdownMenu.Item
+										onSelect={() => removeMemberQuery.run(member)}
+										class="text-destructive data-[highlighted]:text-destructive"
+									>
+										<X />
+										Remove from org
+									</DropdownMenu.Item>
+								</DropdownMenu.Group>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					{/if}
 				</List.Item>
 			{/each}
 		</List.List>

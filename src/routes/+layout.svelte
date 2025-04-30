@@ -7,6 +7,7 @@
 	import { ModeWatcher } from 'mode-watcher';
 	import Footer from '$lib/components/site/footer.svelte';
 	import { Posthog } from '$lib/components/site/posthog';
+	import { Toaster } from '$lib/components/ui/sonner';
 
 	let { children } = $props();
 
@@ -15,6 +16,7 @@
 
 <ModeWatcher />
 <Posthog />
+<Toaster/>
 
 <div
 	data-search-bar={shouldShowSearch()}

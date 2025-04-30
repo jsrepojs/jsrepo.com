@@ -1440,7 +1440,17 @@ export async function startCourtesyMonth(orgId: string) {
 	const result = await db
 		.update(tables.org)
 		.set({ courtesyMonthStartedAt: start, courtesyMonthEndedAt: end })
-		.where(eq(tables.org.id, orgId)).returning();
+		.where(eq(tables.org.id, orgId))
+		.returning();
+
+	return result.length > 0;
+}
+
+export async function removeOrgMember(memberId: number) {
+	const result = await db
+		.delete(tables.orgMember)
+		.where(eq(tables.orgMember.id, memberId))
+		.returning();
 
 	return result.length > 0;
 }
