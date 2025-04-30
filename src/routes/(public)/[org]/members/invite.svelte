@@ -78,7 +78,10 @@
 <Dialog.Root bind:open>
 	<Dialog.Trigger>
 		{#snippet child({ props })}
-			<Button {...props}>
+			<Button
+				{...props}
+				disabled={!org.subscription || (org.subscription.seats ?? 0) + 1 <= org.members.length}
+			>
 				<MailPlus />
 				Invite
 			</Button>

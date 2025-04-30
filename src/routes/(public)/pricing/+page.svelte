@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { upgradeSubscription } from '$lib/auth/components/utils';
 	import { Button } from '$lib/components/ui/button';
 	import { Check } from '@lucide/svelte';
-	import * as Tabs from '$lib/components/ui/tabs';
-	import type { PlanName } from '$lib/ts/stripe/client';
+	// import * as Tabs from '$lib/components/ui/tabs';
 	import { cn } from '$lib/utils/utils';
 	import { redirectToLogin } from '$lib/auth/redirect';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { authClient } from '$lib/auth/client.js';
 
 	let { data } = $props();
 
@@ -55,7 +55,7 @@
 		<h1 class="text-6xl font-bold">Pricing</h1>
 		<p class="text-center text-lg text-muted-foreground">Decide what's right for you.</p>
 		<div class="flex flex-col place-items-center justify-center gap-4 py-8">
-			<Tabs.Root bind:value={pricing}>
+			<!-- <Tabs.Root bind:value={pricing}>
 				<Tabs.List>
 					<Tabs.Trigger value="monthly">Monthly</Tabs.Trigger>
 					<Tabs.Trigger value="yearly" class="w-36">
@@ -67,7 +67,7 @@
 						</span>
 					</Tabs.Trigger>
 				</Tabs.List>
-			</Tabs.Root>
+			</Tabs.Root> -->
 			<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 lg:grid-cols-2">
 				{#each Object.entries(plans) as [name, plan], i (name)}
 					<div
@@ -115,9 +115,15 @@
 
 								if (!data.session) return;
 
-								await upgradeSubscription({
-									plan: name as PlanName,
-									annual: pricing === 'yearly',
+								const user = await data.userPromise;
+
+								if (user?.subscription !== null) {
+									await goto('/account');
+									return;
+								}
+
+								await authClient.subscription.upgrade({
+									plan: name,
 									successUrl: plan.successUrl,
 									referenceId: data.session.user.id
 								});

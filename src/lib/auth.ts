@@ -62,8 +62,10 @@ export const auth = betterAuth({
 
 					if (org === null) return false;
 
+					const member = org.members.find((m) => m.userId === user.id && m.role === 'owner');
+
 					// user is not an owning member
-					if (!org.members.find((m) => m.userId === user.id && m.role === 'owner')) {
+					if (!member) {
 						return false;
 					}
 

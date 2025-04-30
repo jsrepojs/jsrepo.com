@@ -55,7 +55,8 @@ export async function POST({ params, request, locals }) {
 		error(401, 'you need to buy seats before inviting members to your organization');
 	}
 
-	if (!org.subscription.seats || memberCount + 1 > org.subscription.seats) {
+	// there's always a free seat for the owner of the org who is paying for the subscription
+	if (!org.subscription.seats || memberCount + 1 > org.subscription.seats + 1) {
 		error(400, 'you need to purchase more seats');
 	}
 

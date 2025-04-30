@@ -3,7 +3,6 @@ import type { Providers } from '$lib/auth';
 import { authClient } from '../client';
 import { getRedirectTo } from '../redirect';
 import { goto } from '$app/navigation';
-import type { PlanName } from '$lib/ts/stripe/client';
 
 export async function signIn(provider: Providers) {
 	await authClient.signIn.social({
@@ -22,29 +21,4 @@ export async function signOut() {
 			}
 		}
 	});
-}
-
-export async function upgradeSubscription({
-	plan,
-	successUrl = '/account',
-	annual = false,
-	seats,
-	referenceId
-}: {
-	plan: PlanName;
-	annual?: boolean;
-	successUrl?: string;
-	seats?: number;
-	referenceId: string;
-}) {
-	const response = await authClient.subscription.upgrade({
-		plan,
-		successUrl,
-		annual,
-		cancelUrl: '/pricing',
-		referenceId: referenceId,
-		seats
-	});
-
-	return response;
 }
