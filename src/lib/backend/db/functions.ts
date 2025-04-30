@@ -1432,3 +1432,15 @@ export async function getPublicDownloads({
 
 	return parseInt(result[0].downloads ?? '0');
 }
+
+export async function startCourtesyMonth(orgId: string) {
+	const start = new Date();
+	const end = new Date(start.valueOf() + DAY * 30);
+
+	const result = await db
+		.update(tables.org)
+		.set({ courtesyMonthStartedAt: start, courtesyMonthEndedAt: end })
+		.where(eq(tables.org.id, orgId)).returning();
+
+	return result.length > 0;
+}

@@ -38,14 +38,15 @@
 	const updateSeatsQuery = new UseQuery(async ({}) => {
 		if (data.org.subscription === null) {
 			const result = await authClient.subscription.upgrade({
-				plan: 'pro',
+				plan: 'Organization Seat',
 				seats: newSeats,
 				referenceId: data.org.id,
 				successUrl: page.url.pathname,
-				cancelUrl: page.url.pathname
+				cancelUrl: page.url.pathname,
 			});
 
 			if (result.error !== null) {
+				console.log('current', result);
 				throw new Error(result.error.message);
 			} else {
 				await invalidateAll();

@@ -179,7 +179,9 @@ export const org = pgTable(
 		id: text('id').primaryKey(),
 		name: varchar('name', { length: 20 }).notNull().unique(),
 		description: text('description'),
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		courtesyMonthStartedAt: timestamp('courtesy_month_started_at'),
+		courtesyMonthEndedAt: timestamp('courtesy_month_ended_at'),
 	},
 	(table) => {
 		return [index('org_name_idx').on(table.name)];

@@ -8,7 +8,7 @@ import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
-import { getOrg, getUser } from './backend/db/functions';
+import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
 import assert from 'assert';
 
 export type Providers = 'github';
@@ -35,6 +35,54 @@ export const auth = betterAuth({
 			},
 			subscription: {
 				enabled: true,
+				onSubscriptionUpdate: async ({ subscription }) => {
+					if (!subscription.referenceId.startsWith('org_')) return;
+
+					const org = await getOrg({ id: subscription.referenceId });
+
+					if (!org) return;
+
+					// only the owner
+					if (org.members.length <= 1) return;
+
+					const neededSeats = org.members.length - 1;
+
+					if (neededSeats <= (subscription.seats ?? 0)) {
+						return;
+					}
+
+					// already exhausted the courtesy month
+					if (
+						org.courtesyMonthEndedAt !== null &&
+						org.courtesyMonthEndedAt.valueOf() < Date.now()
+					) {
+						return;
+					}
+
+					// start a courtesy month
+					await startCourtesyMonth(org.id);
+				},
+				onSubscriptionDeleted: async ({ subscription }) => {
+					if (!subscription.referenceId.startsWith('org_')) return;
+
+					const org = await getOrg({ id: subscription.referenceId });
+
+					if (!org) return;
+
+					// only the owner
+					if (org.members.length <= 1) return;
+
+					// already exhausted the courtesy month
+					if (
+						org.courtesyMonthEndedAt !== null &&
+						org.courtesyMonthEndedAt.valueOf() < Date.now()
+					) {
+						return;
+					}
+
+					// start a courtesy month
+					await startCourtesyMonth(org.id);
+				},
 				authorizeReference: async ({ user, referenceId }) => {
 					const isOrg = referenceId.startsWith('org_');
 
