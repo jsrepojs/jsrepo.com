@@ -1,1 +1,0 @@
-ALTER TABLE "scope_transfer_request" DROP COLUMN "dismissed_at";

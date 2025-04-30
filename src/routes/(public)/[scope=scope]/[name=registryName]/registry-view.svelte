@@ -68,11 +68,11 @@
 		</h1>
 		<div class="relative flex flex-wrap place-items-center gap-2">
 			<span class="font-mono text-sm text-muted-foreground">
-				{data.version.version.version}
+				{data.version.version}
 			</span>
 			<FileIcon extension={data.registry.metaPrimaryLanguage} />
 			<span class="text-sm text-muted-foreground">
-				Published {toRelative(data.version.version.createdAt)}
+				Published {toRelative(data.version.createdAt)}
 			</span>
 		</div>
 		{#if data.registry.metaDescription}

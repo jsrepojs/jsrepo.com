@@ -1,1 +1,0 @@
-ALTER TABLE "user" ADD COLUMN "scopeLimit" integer DEFAULT 5 NOT NULL;

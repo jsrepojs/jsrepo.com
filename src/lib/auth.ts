@@ -8,6 +8,8 @@ import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
+import { getOrgById, getUser } from './backend/db/functions';
+import assert from 'assert';
 
 export type Providers = 'github';
 
@@ -34,9 +36,35 @@ export const auth = betterAuth({
 			subscription: {
 				enabled: true,
 				authorizeReference: async ({ user, referenceId }) => {
-					if (user.id === referenceId) return true;
+					const isOrg = referenceId.startsWith('org_');
 
-					return false;
+					const userWithSub = await getUser(user.id);
+
+					// user can only create and manage subscriptions to an org if they have a subscription
+					if (isOrg && userWithSub?.subscription === null) return false;
+
+					if (!isOrg) {
+						// don't create a duplicate subscription for the user
+						if (userWithSub?.subscription !== null) {
+							return false;
+						}
+
+						assert(
+							referenceId === user.id,
+							'user is trying to subscribe with a reference id that is not their own'
+						);
+
+						return true;
+					}
+
+					// check if user owns the org the id belongs to
+					const org = await getOrgById(referenceId);
+
+					if (org === null) return false;
+
+					if (org.ownerId !== user.id) return false;
+
+					return true;
 				},
 				plans
 			}

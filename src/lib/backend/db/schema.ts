@@ -30,7 +30,8 @@ export const user = pgTable(
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
 		banExpires: timestamp('bar_expires'),
-		stripeCustomerId: text('stripe_customer_id')
+		stripeCustomerId: text('stripe_customer_id'),
+		hasBeenDelinquent: boolean('has_been_delinquent').notNull().default(false)
 	},
 	(table) => {
 		return [
@@ -149,9 +150,7 @@ export const subscription = pgTable(
 	{
 		id: text('id').primaryKey(),
 		plan: text('plan').notNull(),
-		referenceId: text('reference_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
+		referenceId: text('reference_id').notNull(),
 		stripeCustomerId: text('stripe_customer_id'),
 		stripeSubscriptionId: text('stripe_subscription_id'),
 		status: text('status'),
@@ -177,7 +176,7 @@ export type Subscription = InferSelectModel<typeof subscription>;
 export const org = pgTable(
 	'org',
 	{
-		id: serial('id').primaryKey(),
+		id: text('id').primaryKey(),
 		name: varchar('name', { length: 20 }).notNull().unique(),
 		description: text('description'),
 		ownerId: text('owner_id')
@@ -202,7 +201,7 @@ export const orgMember = pgTable(
 	'org_members',
 	{
 		id: serial('id').primaryKey(),
-		orgId: integer('org_id')
+		orgId: text('org_id')
 			.notNull()
 			.references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id')
@@ -225,7 +224,7 @@ export const orgInvite = pgTable(
 	'org_invites',
 	{
 		id: serial('id').primaryKey(),
-		orgId: integer('org_id')
+		orgId: text('org_id')
 			.notNull()
 			.references(() => org.id, { onDelete: 'cascade' }),
 		email: text('email')
@@ -251,7 +250,7 @@ export const scope = pgTable(
 	{
 		id: serial('id').primaryKey(),
 		name: varchar('name', { length: 20 }).notNull().unique(),
-		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
+		orgId: text('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		claimedAt: timestamp('claimed_at').notNull().defaultNow()
@@ -275,9 +274,9 @@ export const scopeTransferRequest = pgTable(
 		scopeId: integer('scope_id')
 			.notNull()
 			.references(() => scope.id, { onDelete: 'cascade' }),
-		newOrgId: integer('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		newOrgId: text('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
 		newUserId: text('new_user_id').references(() => user.id, { onDelete: 'cascade' }),
-		oldOrgId: integer('old_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		oldOrgId: text('old_org_id').references(() => org.id, { onDelete: 'cascade' }),
 		oldUserId: text('old_user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),

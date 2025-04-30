@@ -1,1 +1,0 @@
-ALTER TABLE "version" RENAME COLUMN "hasReadme" TO "has_readme";

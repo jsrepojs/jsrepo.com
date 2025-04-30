@@ -18,6 +18,7 @@ import {
 	countDistinct,
 	not
 } from 'drizzle-orm';
+import { generateId } from 'better-auth';
 import { db } from '.';
 import * as tables from './schema';
 import type { PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
@@ -117,7 +118,14 @@ export async function getUser(userId: string): Promise<UserWithSubscription | nu
 			subscription: tables.subscription
 		})
 		.from(tables.user)
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
+		// only get an active subscription
+		.leftJoin(
+			tables.subscription,
+			and(
+				eq(tables.subscription.referenceId, tables.user.id),
+				eq(tables.subscription.status, 'active')
+			)
+		)
 		.where(eq(tables.user.id, userId));
 
 	if (result.length === 0) return null;
@@ -127,7 +135,7 @@ export async function getUser(userId: string): Promise<UserWithSubscription | nu
 
 export async function createScope(record: {
 	name: string;
-	orgId?: number | null;
+	orgId?: string | null;
 	userId?: string | null;
 }): Promise<number | null> {
 	const result = await db.insert(tables.scope).values(record).returning({ id: tables.scope.id });
@@ -653,8 +661,42 @@ function checkAccessQuery({
 	);
 }
 
-export async function getOrg(name: string) {
-	const result = await db.select().from(tables.org).where(eq(tables.org.name, name));
+export async function getOrgByName(name: string) {
+	const result = await db
+		.select({
+			...getTableColumns(tables.org),
+			subscription: tables.subscription
+		})
+		.from(tables.org)
+		.leftJoin(
+			tables.subscription,
+			and(
+				eq(tables.subscription.referenceId, tables.org.id),
+				eq(tables.subscription.status, 'active')
+			)
+		)
+		.where(eq(tables.org.name, name));
+
+	if (result.length === 0) return null;
+
+	return result[0];
+}
+
+export async function getOrgById(id: string) {
+	const result = await db
+		.select({
+			...getTableColumns(tables.org),
+			subscription: tables.subscription
+		})
+		.from(tables.org)
+		.leftJoin(
+			tables.subscription,
+			and(
+				eq(tables.subscription.referenceId, tables.org.id),
+				eq(tables.subscription.status, 'active')
+			)
+		)
+		.where(eq(tables.org.id, id));
 
 	if (result.length === 0) return null;
 
@@ -748,7 +790,7 @@ export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null
 
 		return 'user';
 	} else {
-		const org = await getOrg(search);
+		const org = await getOrgByName(search);
 
 		if (org === null) return null;
 
@@ -958,7 +1000,7 @@ export async function rejectScopeTransferRequest(id: number) {
 export type TransferOwnershipOptions = {
 	id: number;
 	scopeId: number;
-	newOrgId?: number | null;
+	newOrgId?: string | null;
 	newUserId?: string | null;
 };
 
@@ -1000,9 +1042,12 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 }
 
 export async function createOrg(
-	record: InferInsertModel<typeof tables.org>
+	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
-	const result = await db.insert(tables.org).values(record).returning();
+	const result = await db
+		.insert(tables.org)
+		.values({ ...record, id: `org_${generateId()}` })
+		.returning();
 
 	if (result.length === 0) return null;
 
@@ -1017,7 +1062,7 @@ export async function createOrgInvite(record: InferInsertModel<typeof tables.org
 	return result[0];
 }
 
-export async function getOrgInvitesForEmail(email: string, orgId: number | null = null) {
+export async function getOrgInvitesForEmail(email: string, orgId: string | null = null) {
 	const result = await db
 		.select({
 			...getTableColumns(tables.orgInvite),

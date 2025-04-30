@@ -30,7 +30,7 @@ type TransferRequest = TransferOwnershipOptions & {
 	createdById: string;
 	acceptedAt: Date | undefined;
 	oldUserId?: string | null;
-	oldOrgId?: number | null;
+	oldOrgId?: string | null;
 };
 
 export type TransferRequestResponse =

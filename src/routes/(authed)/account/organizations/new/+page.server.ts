@@ -2,7 +2,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getUser, nameIsBanned, getOrg, createOrg } from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, getOrgByName, createOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { checkUserSubscription } from '$lib/ts/stripe/client';
@@ -41,7 +41,7 @@ export const actions = {
 
 		const userPromise = getUser(session.user.id);
 
-		const ogOrg = await getOrg(form.data.name);
+		const ogOrg = await getOrgByName(form.data.name);
 
 		if (ogOrg !== null) {
 			return error(400, {
