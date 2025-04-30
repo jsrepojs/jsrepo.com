@@ -42,7 +42,7 @@
 				seats: newSeats,
 				referenceId: data.org.id,
 				successUrl: page.url.pathname,
-				cancelUrl: page.url.pathname,
+				cancelUrl: page.url.pathname
 			});
 
 			if (result.error !== null) {
@@ -67,6 +67,10 @@
 			}
 		}
 	});
+
+	const checkBearer = data.org.members.find(
+		(m) => m.user.stripeCustomerId === data.org.subscription?.stripeCustomerId
+	);
 </script>
 
 <svelte:head>
@@ -85,13 +89,13 @@
 			{/if}
 			<div class="flex flex-col gap-2">
 				<Meter min={0} max={seats} value={occupiedSeats} />
-				<div class="flex place-items-center justify-between text-sm gap-4">
-					<span class="text-muted-foreground text-start">
+				<div class="flex place-items-center justify-between gap-4 text-sm">
+					<span class="text-start text-muted-foreground">
 						<span class="text-foreground">{occupiedSeats}</span> of
 						<span class="text-foreground">{seats}</span>
 						seats used
 					</span>
-					<span class="text-muted-foreground text-end">
+					<span class="text-end text-muted-foreground">
 						<span class="text-foreground">{remainingSeats}</span>
 						{remainingSeats === 1 ? 'seat' : 'seats'} remaining.
 					</span>
@@ -102,7 +106,11 @@
 			<span class="text-sm text-muted-foreground">
 				You can manage your organizations seats here.
 			</span>
-			<Button disabled={data.member.role !== 'owner'} onclick={() => (manageSeatsOpen = true)}>
+			<Button
+				disabled={data.member.role !== 'owner' ||
+					(checkBearer !== undefined && checkBearer.userId !== data.user.id)}
+				onclick={() => (manageSeatsOpen = true)}
+			>
 				Manage
 			</Button>
 		</FieldSet.Footer>

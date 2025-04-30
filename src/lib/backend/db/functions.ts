@@ -1446,11 +1446,3 @@ export async function startCourtesyMonth(orgId: string) {
 	return result.length > 0;
 }
 
-export async function removeOrgMember(memberId: number) {
-	const result = await db
-		.delete(tables.orgMember)
-		.where(eq(tables.orgMember.id, memberId))
-		.returning();
-
-	return result.length > 0;
-}

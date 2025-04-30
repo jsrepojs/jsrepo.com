@@ -1,5 +1,9 @@
-import { getOrg, removeOrgMember } from '$lib/backend/db/functions.js';
+import { db } from '$lib/backend/db';
+import { getOrg } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
+import * as tables from '$lib/backend/db/schema.js';
+import { eq } from 'drizzle-orm';
+import { stripeClient } from '$lib/ts/stripe/index.js';
 
 export async function DELETE({ params, locals }) {
 	const session = await locals.auth();
@@ -15,9 +19,44 @@ export async function DELETE({ params, locals }) {
 
 	const owner = org.members.find((m) => m.userId === session.user.id && m.role === 'owner');
 
-	if (!owner) error(401, 'only the owner can do this');
+	if (!owner) error(401, 'only an owner can do this');
 
-	const result = await removeOrgMember(memberId);
+	const otherOwners = org.members.filter((m) => m.role === 'owner' && m.id !== memberId);
+
+	if (otherOwners.length === 0) {
+		error(400, 'you cannot remove yourself from an organization that has no other owners');
+	}
+
+	const checkBearer = org.members.find(
+		(m) => m.user.stripeCustomerId === org.subscription?.stripeCustomerId
+	);
+
+	const result = await db.transaction(async (tx) => {
+		const result = await tx
+			.delete(tables.orgMember)
+			.where(eq(tables.orgMember.id, memberId))
+			.returning();
+
+		if (result.length === 0) {
+			return tx.rollback();
+		}
+
+		// we need to cancel the subscription when deleting the user
+		if (checkBearer && checkBearer.id === memberId) {
+			// this should never happen
+			if (typeof org.subscription?.stripeSubscriptionId !== 'string') {
+				return tx.rollback();
+			}
+
+			try {
+				await stripeClient.subscriptions.cancel(org.subscription.stripeSubscriptionId);
+			} catch {
+				return tx.rollback();
+			}
+		}
+		
+		return true;
+	});
 
 	if (!result) error(500, 'error removing org member');
 
