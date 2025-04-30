@@ -179,19 +179,16 @@ export const org = pgTable(
 		id: text('id').primaryKey(),
 		name: varchar('name', { length: 20 }).notNull().unique(),
 		description: text('description'),
-		ownerId: text('owner_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
-		return [index('org_name_idx').on(table.name), index('org_owner_id_idx').on(table.ownerId)];
+		return [index('org_name_idx').on(table.name)];
 	}
 ).enableRLS();
 
 export type Org = InferSelectModel<typeof org>;
 
-export const orgMemberRole = pgEnum('org_roll', ['member', 'publisher', 'collaborator']);
+export const orgMemberRole = pgEnum('org_roll', ['member', 'publisher', 'owner']);
 
 export type OrgRole = (typeof orgMemberRole.enumValues)[number];
 
@@ -207,7 +204,7 @@ export const orgMember = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		role: orgMemberRole().notNull(),
+		role: orgMemberRole('role').notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {

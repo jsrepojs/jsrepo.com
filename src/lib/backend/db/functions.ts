@@ -19,6 +19,7 @@ import {
 	not
 } from 'drizzle-orm';
 import { generateId } from 'better-auth';
+import assert from 'assert';
 import { db } from '.';
 import * as tables from './schema';
 import type { PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
@@ -39,6 +40,11 @@ export type UserWithSubscription = tables.User & {
 	subscription: tables.Subscription | null;
 };
 
+export type FullOrg = tables.Org & {
+	subscription: tables.Subscription | null;
+	members: (tables.OrgMember & { user: tables.User })[];
+};
+
 export async function canPublishToScope(
 	user: UserWithSubscription,
 	scope: tables.Scope,
@@ -56,38 +62,19 @@ export async function canPublishToScope(
 	// scope is owned by a user but not you, sorry
 	if (scope.orgId === null) return false;
 
-	const significantMembers = await db
-		.select({
-			...getTableColumns(tables.user),
-			ownerId: tables.org.ownerId,
-			subscription: tables.subscription,
-			orgRole: tables.orgMember.role
-		})
-		.from(tables.org)
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.innerJoin(
-			tables.user,
-			or(eq(tables.user.id, tables.org.ownerId), eq(tables.user.id, tables.orgMember.userId))
-		)
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.where(
-			and(
-				eq(tables.org.id, scope.orgId),
-				or(eq(tables.user.id, user.id), eq(tables.user.id, tables.org.ownerId))
-			)
-		);
+	const org = await getOrg({ id: scope.orgId });
 
-	const orgUser = significantMembers.find((m) => m.id === user.id);
+	if (org === null) return false;
+
+	const member = org.members.find((m) => m.userId === user.id);
 
 	// not a part of the org or doesn't have publish access
-	if (!orgUser) return false;
+	if (!member) return false;
 
 	// if we aren't the owner and we can't publish on our own
-	if (orgUser.orgRole !== null && !canPublish(orgUser.orgRole)) return false;
+	if (member.role !== null && !canPublish(member.role)) return false;
 
-	const owner = significantMembers.find((m) => m.id === m.ownerId)!;
-
-	if (checkUserSubscription(owner) === null) return false;
+	if (org.subscription === null) return false;
 
 	return true;
 }
@@ -97,7 +84,7 @@ export function canPublish(role: tables.OrgRole) {
 
 	if (role === 'publisher') return true;
 
-	if (role === 'collaborator') return true;
+	if (role === 'owner') return true;
 
 	return false;
 }
@@ -150,8 +137,7 @@ export async function getRegistry(
 ): Promise<RegistryDetails | null> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const registries = await db
 		.select({
@@ -179,14 +165,13 @@ export async function getRegistry(
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
 				eq(tables.registry.name, registryName),
 
-				checkAccessQuery({ owner, ownerSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, checkSubscription: true })
 			)
 		)
 		.groupBy(
@@ -199,7 +184,6 @@ export async function getRegistry(
 			tables.scope.orgId,
 			tables.org.id,
 			tables.org.name,
-			tables.org.ownerId,
 			tables.version.id,
 			tables.version.registryId,
 			tables.version.tag,
@@ -256,8 +240,7 @@ export async function getVersion({
 	const isTag = !semver.valid(version);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const result = await db
 		.select({
@@ -274,8 +257,7 @@ export async function getVersion({
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
@@ -283,7 +265,7 @@ export async function getVersion({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
 				userId !== undefined
-					? checkAccessQuery({ owner, ownerSubscription, checkSubscription: true })
+					? checkAccessQuery({ orgSubscription, checkSubscription: true })
 					: undefined
 			)
 		);
@@ -381,8 +363,7 @@ export async function getFileContents({
 }: GetFileContentsOptions): Promise<string | null> {
 	const isTag = !semver.valid(version);
 
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const result = await db
 		.select({ content: tables.file.content })
@@ -394,8 +375,7 @@ export async function getFileContents({
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
@@ -403,7 +383,7 @@ export async function getFileContents({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				checkAccessQuery({ owner, ownerSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, checkSubscription: true })
 			)
 		);
 
@@ -430,8 +410,7 @@ export async function getFileContentsTheHardWay({
 }): Promise<{ content: string; private: boolean } | null> {
 	const isTag = !semver.valid(version);
 
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const result = await db
 		.select({ private: tables.registry.private, content: tables.file.content })
@@ -448,8 +427,7 @@ export async function getFileContentsTheHardWay({
 			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
 		)
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
@@ -457,7 +435,7 @@ export async function getFileContentsTheHardWay({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				checkAccessQuery({ owner, ownerSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, checkSubscription: true })
 			)
 		);
 
@@ -475,8 +453,7 @@ export async function getFiles(
 ): Promise<tables.File[]> {
 	const isTag = !semver.valid(version);
 
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const result = await db
 		.select({
@@ -494,8 +471,7 @@ export async function getFiles(
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
@@ -503,7 +479,7 @@ export async function getFiles(
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				inArray(tables.file.name, filesNames),
 
-				checkAccessQuery({ owner, ownerSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, checkSubscription: true })
 			)
 		);
 
@@ -535,7 +511,7 @@ export async function listMyScopes(userId: string) {
 			.from(tables.org)
 			.leftJoin(tables.orgMember, eq(tables.org.id, tables.orgMember.orgId))
 			.innerJoin(tables.scope, eq(tables.org.id, tables.scope.orgId))
-			.where(or(eq(tables.org.ownerId, userId), eq(tables.orgMember.userId, userId)))
+			.where(or(eq(tables.orgMember.userId, userId)))
 	]);
 
 	return {
@@ -549,7 +525,7 @@ export async function listMyOrganizations(userId: string) {
 		.selectDistinctOn([tables.org.id])
 		.from(tables.org)
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.where(or(eq(tables.org.ownerId, userId), eq(tables.orgMember.userId, userId)));
+		.where(eq(tables.orgMember.userId, userId));
 
 	return result;
 }
@@ -560,8 +536,7 @@ export async function listMyOrganizations(userId: string) {
  * @param scopeName
  */
 export async function getScopeRegistries(userId: string | null, scopeName: string) {
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	const result = await db
 		.select({
@@ -577,14 +552,13 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, scopeName),
 
 				// access check
-				checkAccessQuery({ owner, ownerSubscription, checkSubscription: false })
+				checkAccessQuery({ orgSubscription, checkSubscription: false })
 			)
 		);
 
@@ -609,12 +583,10 @@ export async function nameIsBanned(name: string) {
  * You also need owner (alias of tables.user), ownerSubscription (for the owner of the scope)
  */
 function checkAccessQuery({
-	owner,
-	ownerSubscription,
+	orgSubscription,
 	checkSubscription = true
 }: {
-	owner: typeof tables.user;
-	ownerSubscription: typeof tables.subscription;
+	orgSubscription: typeof tables.subscription;
 	checkSubscription: boolean;
 }) {
 	return or(
@@ -645,15 +617,15 @@ function checkAccessQuery({
 				isNotNull(tables.scope.orgId),
 
 				// check if we are part of the organization
-				or(eq(tables.org.ownerId, tables.user.id), eq(tables.orgMember.userId, tables.user.id)),
+				or(eq(tables.orgMember.userId, tables.user.id)),
 
 				// check the status of the owners subscription plan
 				checkSubscription
 					? and(
-							isNotNull(owner.id),
+							isNotNull(orgSubscription.id),
 							// owner has an active Pro plan
-							eq(ownerSubscription.plan, 'pro'),
-							eq(ownerSubscription.status, 'active')
+							eq(orgSubscription.plan, 'pro'),
+							eq(orgSubscription.status, 'active')
 						)
 					: undefined
 			)
@@ -661,11 +633,16 @@ function checkAccessQuery({
 	);
 }
 
-export async function getOrgByName(name: string) {
+export async function getOrg({
+	id,
+	name
+}: { id: string; name?: never } | { name: string; id?: never }): Promise<FullOrg | null> {
 	const result = await db
 		.select({
 			...getTableColumns(tables.org),
-			subscription: tables.subscription
+			subscription: tables.subscription,
+			member: tables.orgMember,
+			user: tables.user
 		})
 		.from(tables.org)
 		.leftJoin(
@@ -675,72 +652,17 @@ export async function getOrgByName(name: string) {
 				eq(tables.subscription.status, 'active')
 			)
 		)
-		.where(eq(tables.org.name, name));
+		.innerJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.innerJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
+		.where(id === undefined ? eq(tables.org.name, name) : eq(tables.org.id, id));
 
 	if (result.length === 0) return null;
 
-	return result[0];
-}
-
-export async function getOrgById(id: string) {
-	const result = await db
-		.select({
-			...getTableColumns(tables.org),
-			subscription: tables.subscription
-		})
-		.from(tables.org)
-		.leftJoin(
-			tables.subscription,
-			and(
-				eq(tables.subscription.referenceId, tables.org.id),
-				eq(tables.subscription.status, 'active')
-			)
-		)
-		.where(eq(tables.org.id, id));
-
-	if (result.length === 0) return null;
-
-	return result[0];
-}
-
-export type CompleteOrg = tables.Org & {
-	members: (tables.User & { orgRole: tables.OrgRole | null })[];
-	owner: tables.User;
-};
-
-export async function getOrgWithMembers(orgName: string): Promise<CompleteOrg | null> {
-	const tableOwner = aliasedTable(tables.user, 'owner');
-
-	const result = await db
-		.select({
-			...getTableColumns(tables.org),
-			member: tables.user,
-			orgRole: tables.orgMember.role,
-			owner: getTableColumns(tableOwner)
-		})
-		.from(tables.org)
-		.leftJoin(tableOwner, eq(tableOwner.id, tables.org.ownerId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.leftJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
-		.where(eq(tables.org.name, orgName));
-
-	if (result.length === 0) return null;
-
-	const members: CompleteOrg['members'] = [];
-
-	const owner = result[0].owner;
-
-	if (owner === null) return null;
-
-	members.push({ ...owner, orgRole: null });
-
-	for (const row of result) {
-		if (row.member !== null) {
-			members.push({ ...row.member, orgRole: row.orgRole });
-		}
-	}
-
-	return { ...result[0], owner, members } satisfies CompleteOrg;
+	return {
+		...result[0],
+		members: result.map((r) => ({ ...r.member, user: r.user })),
+		subscription: result[0].subscription
+	} satisfies FullOrg;
 }
 
 export async function getUserByEmail(email: string) {
@@ -757,8 +679,12 @@ export async function isScopeOwner(userId: string, scopeName: string): Promise<b
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(
+			tables.orgMember,
+			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId))
+		)
+		.leftJoin(
 			tables.user,
-			or(eq(tables.user.id, tables.scope.userId), eq(tables.user.id, tables.org.ownerId))
+			or(eq(tables.user.id, tables.scope.userId), eq(tables.orgMember.role, 'owner'))
 		)
 		.where(and(eq(tables.scope.name, scopeName), eq(tables.user.id, userId)));
 
@@ -790,7 +716,7 @@ export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null
 
 		return 'user';
 	} else {
-		const org = await getOrgByName(search);
+		const org = await getOrg({ name: search });
 
 		if (org === null) return null;
 
@@ -798,32 +724,39 @@ export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null
 	}
 }
 
-export async function getOrgWithOwner(name: string) {
+export async function getScopeWithOwner(name: string): Promise<
+	| (tables.Scope & {
+			user: tables.User | null;
+			org: (tables.Org & { members: tables.OrgMember[] }) | null;
+	  })
+	| null
+> {
 	const result = await db
-		.select()
-		.from(tables.org)
-		.innerJoin(tables.user, eq(tables.user.id, tables.org.ownerId))
-		.where(eq(tables.org.name, name));
-
-	if (result.length === 0) return null;
-
-	return result[0];
-}
-
-export async function getScopeWithOwner(name: string) {
-	const result = await db
-		.select()
+		.select({
+			...getTableColumns(tables.scope),
+			user: tables.user,
+			org: tables.org,
+			member: tables.orgMember
+		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.innerJoin(
-			tables.user,
-			or(eq(tables.user.id, tables.scope.userId), eq(tables.user.id, tables.org.ownerId))
-		)
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(tables.user, eq(tables.user.id, tables.scope.userId))
 		.where(eq(tables.scope.name, name));
 
 	if (result.length === 0) return null;
 
-	return result[0];
+	if (result[0].user !== null) {
+		return { ...result[0], user: result[0].user, org: null };
+	}
+
+	assert(result[0].org !== null, 'must be an org owned scope');
+
+	return {
+		...result[0],
+		user: null,
+		org: { ...result[0].org, members: result.map((r) => r.member!) }
+	};
 }
 
 /** You have scope access if 1 you are the owner or 2 you are a member of a team which is maintaining an active subscription.
@@ -831,8 +764,7 @@ export async function getScopeWithOwner(name: string) {
  * @param name
  */
 export async function hasScopeAccess(userId: string | null, name: string) {
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'owner_subscription');
 
 	const result = await db
 		.select({
@@ -842,8 +774,7 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
 				eq(tables.scope.name, name),
@@ -863,16 +794,16 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 
 						// either we are the owner or we are a member of the team with the subscription active
 						or(
-							// we are the owner
-							eq(tables.org.ownerId, userId ?? ''),
+							// we are an owner
+							and(eq(tables.orgMember.userId, userId ?? ''), eq(tables.orgMember.role, 'owner')),
 
 							// we are a member and subscription is paid
 							and(
 								eq(tables.orgMember.userId, userId ?? ''),
 
-								isNotNull(owner.id),
-								eq(ownerSubscription.plan, 'pro'),
-								eq(ownerSubscription.status, 'active')
+								isNotNull(orgSubscription.id),
+								eq(orgSubscription.plan, 'pro'),
+								eq(orgSubscription.status, 'active')
 							)
 						)
 					)
@@ -938,10 +869,18 @@ export async function getTransferRequestInbox(userId: string) {
 		.from(tables.scopeTransferRequest)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.scopeTransferRequest.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scopeTransferRequest.newOrgId))
+		.leftJoin(
+			tables.orgMember,
+			and(
+				eq(tables.scopeTransferRequest.newOrgId, tables.orgMember.orgId),
+				eq(tables.orgMember.userId, userId),
+				eq(tables.orgMember.role, 'owner')
+			)
+		)
 		.innerJoin(
 			tables.user,
 			or(
-				eq(tables.user.id, tables.org.ownerId),
+				eq(tables.user.id, tables.orgMember.userId),
 				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
 			)
 		)
@@ -966,10 +905,11 @@ export async function getScopeTransferRequest(id: number) {
 		.from(tables.scopeTransferRequest)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.scopeTransferRequest.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scopeTransferRequest.newOrgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(
 			tables.user,
 			or(
-				eq(tables.user.id, tables.org.ownerId),
+				and(eq(tables.user.id, tables.orgMember.id), eq(tables.orgMember.role, 'owner')),
 				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
 			)
 		)
@@ -1042,16 +982,36 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 }
 
 export async function createOrg(
+	userId: string,
 	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
-	const result = await db
-		.insert(tables.org)
-		.values({ ...record, id: `org_${generateId()}` })
-		.returning();
+	const result = await db.transaction(async (tx) => {
+		const orgs = await db
+			.insert(tables.org)
+			.values({ ...record, id: `org_${generateId()}` })
+			.returning();
 
-	if (result.length === 0) return null;
+		if (orgs.length === 0) {
+			tx.rollback();
+		}
 
-	return result[0];
+		const org = orgs[0];
+
+		const members = await db
+			.insert(tables.orgMember)
+			.values({ orgId: org.id, userId, role: 'owner' })
+			.returning();
+
+		if (members.length === 0) {
+			tx.rollback();
+		}
+
+		return org;
+	});
+
+	if (!result) return null;
+
+	return result;
 }
 
 export async function createOrgInvite(record: InferInsertModel<typeof tables.orgInvite>) {
@@ -1098,10 +1058,7 @@ export async function getPendingOrgInvites(orgName: string, userId: string | nul
 		.innerJoin(tables.org, eq(tables.org.id, tables.orgInvite.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		// restrict access to only those who are part of the org
-		.innerJoin(
-			member,
-			or(eq(member.id, tables.orgMember.userId), eq(member.id, tables.org.ownerId))
-		)
+		.innerJoin(member, eq(member.id, tables.orgMember.userId))
 		.innerJoin(tables.user, eq(tables.user.email, tables.orgInvite.email))
 		.where(
 			and(
@@ -1224,8 +1181,7 @@ export async function searchRegistries({
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
-	const owner = aliasedTable(tables.user, 'owner');
-	const ownerSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 
 	// Weighted score expression
 	const qNoAt = q?.replace(/^@/, '') ?? '';
@@ -1258,7 +1214,7 @@ export async function searchRegistries({
 		org ? eq(tables.org.name, org) : undefined,
 		scope ? eq(tables.scope.name, scope) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
-		checkAccessQuery({ owner, ownerSubscription, checkSubscription: true }),
+		checkAccessQuery({ orgSubscription, checkSubscription: true }),
 
 		// filter out results with 0 score
 		q
@@ -1302,8 +1258,7 @@ export async function searchRegistries({
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(whereClause)
 		.groupBy(
 			tables.registry.id,
@@ -1315,7 +1270,6 @@ export async function searchRegistries({
 			tables.scope.orgId,
 			tables.org.id,
 			tables.org.name,
-			tables.org.ownerId,
 			tables.version.id,
 			tables.version.registryId,
 			tables.version.tag,
@@ -1346,8 +1300,7 @@ export async function searchRegistries({
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(owner, eq(owner.id, tables.org.ownerId))
-		.leftJoin(ownerSubscription, eq(ownerSubscription.referenceId, owner.id))
+		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(whereClause);
 
 	const [data, countResult] = await Promise.all([dataQuery, countQuery]);
@@ -1442,7 +1395,6 @@ export async function listPublishableScopes(userId: string): Promise<tables.Scop
 				eq(tables.user.id, userId),
 				or(
 					eq(tables.user.id, tables.scope.userId),
-					eq(tables.user.id, tables.org.ownerId),
 					and(eq(tables.user.id, tables.orgMember.userId), not(eq(tables.orgMember.role, 'member')))
 				)
 			)

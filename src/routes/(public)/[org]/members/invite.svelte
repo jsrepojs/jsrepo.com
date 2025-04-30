@@ -3,18 +3,18 @@
 	import { Check, MailPlus, X } from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
-	import { orgMemberRoles, type Org, type OrgRole } from '$lib/backend/db/schema';
+	import { orgMemberRoles, type OrgRole } from '$lib/backend/db/schema';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import * as casing from '$lib/ts/casing';
 	import * as v from 'valibot';
-	import type { User } from 'better-auth';
 	import { invalidateAll } from '$app/navigation';
 	import type { InviteMemberRequest } from '../../../api/orgs/[org]/members/invite/+server';
+	import type { FullOrg } from '$lib/backend/db/functions';
 
 	type Props = {
-		org: Org & { members: User[] };
+		org: FullOrg;
 	};
 
 	let { org }: Props = $props();
@@ -57,7 +57,7 @@
 			return false;
 		}
 
-		const member = org.members.find((m) => m.email === email.trim());
+		const member = org.members.find((m) => m.user.email === email.trim());
 
 		if (member) return false;
 

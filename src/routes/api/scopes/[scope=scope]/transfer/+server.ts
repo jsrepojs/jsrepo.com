@@ -3,11 +3,12 @@ import {
 	acceptScopeTransferRequest,
 	createScopeTransferRequest,
 	dismissPendingScopeTransferRequests,
-	getOrgWithOwner,
+	getOrg,
 	getScopeWithOwner,
 	getUserByEmail,
 	isScopeOwner,
 	isUserOrOrg,
+	type FullOrg,
 	type TransferOwnershipOptions
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
@@ -15,12 +16,13 @@ import { posthog } from '$lib/ts/posthog.js';
 import {
 	resend,
 	scopeTransferredEmail,
-	scopeTransferredRequestedEmail,
-	scopeTransferredRequestedEmailToOldOwner
+	scopeTransferRequestedEmail,
+	scopeTransferRequestedEmailToOldOwner
 } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import assert from 'assert';
+import type { CreateEmailOptions } from 'resend';
 
 export type TransferRequestRequest = {
 	transferTo: string;
@@ -73,7 +75,7 @@ export async function POST({ request, params, locals }) {
 
 	const result = await db.transaction(async (tx) => {
 		// dismiss pending transfer requests
-		await dismissPendingScopeTransferRequests(tx, scope.scope.id);
+		await dismissPendingScopeTransferRequests(tx, scope.id);
 
 		if (userOrOrg === 'user') {
 			const user = await getUserByEmail(body.transferTo);
@@ -83,10 +85,10 @@ export async function POST({ request, params, locals }) {
 			selfTransfer = user.id === session.user.id;
 
 			const initialRequest = {
-				scopeId: scope.scope.id,
+				scopeId: scope.id,
 				newUserId: user.id,
-				oldUserId: scope.scope.userId,
-				oldOrgId: scope.scope.orgId,
+				oldUserId: scope.userId,
+				oldOrgId: scope.orgId,
 				createdById: session.user.id,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
@@ -102,40 +104,55 @@ export async function POST({ request, params, locals }) {
 			transferRequest = { id: requestId, ...initialRequest };
 
 			if (!selfTransfer) {
-				await Promise.all([
-					resend.emails.send(
-						scopeTransferredRequestedEmailToOldOwner({
-							scopeName: scopeName,
-							newOwner: user,
-							oldOwner: session.user,
-							newOwnerName: user.name
-						})
-					),
-					resend.emails.send(
-						scopeTransferredRequestedEmail({
-							scopeName: scopeName,
-							newOwner: user,
-							oldOwner: session.user,
-							newOwnerName: 'you'
-						})
-					)
-				]);
+				let oldOrg: FullOrg | null = null;
+
+				const emails: CreateEmailOptions[] = [];
+
+				emails.push(
+					scopeTransferRequestedEmail({
+						scopeName: scopeName,
+						newOwner: user,
+						oldOwner: session.user,
+						newOwnerName: user.name
+					})
+				);
+
+				// if we are transferring from an org we notify everyone
+				if (scope.orgId !== null) {
+					oldOrg = await getOrg({ id: scope.orgId });
+
+					assert(oldOrg !== null, 'it must exist');
+
+					for (const owner of oldOrg.members.filter((m) => m.role === 'owner')) {
+						emails.push(
+							scopeTransferRequestedEmailToOldOwner({
+								scopeName: scopeName,
+								oldOwner: owner.user,
+								newOwnerName: user.name
+							})
+						);
+					}
+				}
+
+				await Promise.all(emails.map((email) => resend.emails.send(email)));
 
 				return 'requested';
 			}
 		} else {
-			const orgAndOwner = await getOrgWithOwner(body.transferTo);
+			const newFullOrg = await getOrg({ name: body.transferTo });
 
-			assert(orgAndOwner !== null, 'we just got this');
+			assert(newFullOrg !== null, 'we just got this');
 
-			selfTransfer = orgAndOwner.user.id === session.user.id;
+			selfTransfer =
+				newFullOrg.members.find((m) => m.userId === session.user.id && m.role === 'owner') !==
+				undefined;
 
 			const initialRequest = {
-				scopeId: scope.scope.id,
-				newOrgId: orgAndOwner.org.id,
+				scopeId: scope.id,
+				newOrgId: newFullOrg.id,
 				createdById: session.user.id,
-				oldUserId: scope.scope.userId,
-				oldOrgId: scope.scope.orgId,
+				oldUserId: scope.userId,
+				oldOrgId: scope.orgId,
 				// if we are transferring to ourself auto accept
 				acceptedAt: selfTransfer ? new Date() : undefined
 			};
@@ -150,24 +167,41 @@ export async function POST({ request, params, locals }) {
 			transferRequest = { id: requestId, ...initialRequest };
 
 			if (!selfTransfer) {
-				await Promise.all([
-					resend.emails.send(
-						scopeTransferredRequestedEmailToOldOwner({
+				const owners = newFullOrg.members.filter((m) => m.role === 'owner');
+
+				let oldOrg: FullOrg | null = null;
+
+				const emails: CreateEmailOptions[] = [];
+
+				for (const owner of owners) {
+					emails.push(
+						scopeTransferRequestedEmail({
 							scopeName: scopeName,
-							newOwner: orgAndOwner.user,
+							newOwner: owner.user,
 							oldOwner: session.user,
-							newOwnerName: orgAndOwner.org.name
+							newOwnerName: newFullOrg.name
 						})
-					),
-					resend.emails.send(
-						scopeTransferredRequestedEmail({
-							scopeName: scopeName,
-							newOwner: orgAndOwner.user,
-							oldOwner: session.user,
-							newOwnerName: orgAndOwner.org.name
-						})
-					)
-				]);
+					);
+				}
+
+				// if we are transferring from an org we notify everyone
+				if (scope.orgId !== null) {
+					oldOrg = await getOrg({ id: scope.orgId });
+
+					assert(oldOrg !== null, 'it must exist');
+
+					for (const owner of oldOrg.members.filter((m) => m.role === 'owner')) {
+						emails.push(
+							scopeTransferRequestedEmailToOldOwner({
+								scopeName: scopeName,
+								oldOwner: owner.user,
+								newOwnerName: newFullOrg.name
+							})
+						);
+					}
+				}
+
+				await Promise.all(emails.map((email) => resend.emails.send(email)));
 
 				return 'requested';
 			}

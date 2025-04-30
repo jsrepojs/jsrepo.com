@@ -7,10 +7,6 @@
 	let { data } = $props();
 
 	const subscription = $derived(checkUserSubscription(data.user));
-	const ownedOrgs = $derived(data.organizations.filter((org) => org.org.ownerId === data.user.id));
-	const memberOrgs = $derived(
-		data.organizations.filter((org) => org.org_members?.userId === data.user.id)
-	);
 </script>
 
 <svelte:head>
@@ -25,18 +21,7 @@
 			</Button>
 		{/snippet}
 		<List.List>
-			{#each ownedOrgs as organization (organization.org.id)}
-				<List.Item>
-					<List.Link href="/{organization.org.name}">
-						{organization.org.name}
-					</List.Link>
-				</List.Item>
-			{/each}
-		</List.List>
-	</List.Root>
-	<List.Root title="Member Organizations">
-		<List.List>
-			{#each memberOrgs as organization (organization.org.id)}
+			{#each data.organizations as organization (organization.org.id)}
 				<List.Item>
 					<List.Link href="/{organization.org.name}">
 						{organization.org.name}

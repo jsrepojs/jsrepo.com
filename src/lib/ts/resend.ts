@@ -84,7 +84,7 @@ export function supportEmail(opts: {
 	};
 }
 
-export function scopeTransferredRequestedEmail(opts: {
+export function scopeTransferRequestedEmail(opts: {
 	scopeName: string;
 	newOwner: MinUser;
 	oldOwner: MinUser;
@@ -103,12 +103,11 @@ export function scopeTransferredRequestedEmail(opts: {
 	};
 }
 
-export function scopeTransferredRequestedEmailToOldOwner(opts: {
+export function scopeTransferRequestedEmailToOldOwner(opts: {
 	scopeName: string;
-	newOwner: MinUser;
 	oldOwner: MinUser;
 	newOwnerName: string;
-}): CreateEmailOptions {
+}) {
 	const html = `<p>You have submitted to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
 		
 <p>View and cancel this request on <a href="https://jsrepo.com/@${opts.scopeName}/-/settings">jsrepo.com</a> until it has been accepted.</p>`;

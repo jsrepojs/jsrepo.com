@@ -8,14 +8,14 @@ import type { Org, Scope, User } from './schema';
  */
 export function isSameScopeOwner(
 	userOrOrg: string,
-	opts: { scope: Scope; user: User; org: Org | null }
+	opts: Scope & { user: User | null; org: Org | null }
 ): boolean {
 	// error for self transfers
-	if (opts.scope.orgId !== null) {
+	if (opts.orgId !== null) {
 		if (opts.org?.name === userOrOrg) {
 			return true;
 		}
-	} else if (opts.scope.userId !== null) {
+	} else if (opts.user !== null) {
 		if (opts.user.email === userOrOrg) {
 			return true;
 		}
@@ -24,7 +24,7 @@ export function isSameScopeOwner(
 	return false;
 }
 
-export function getOwnerName(opts: { scope: Scope; user: User; org: Org | null }): string {
+export function getOwnerName(opts: { scope: Scope; user: User | null; org: Org | null }): string {
 	if (opts.scope.orgId !== null) {
 		if (opts.org === null) {
 			throw new Error('org must be defined');
@@ -32,6 +32,10 @@ export function getOwnerName(opts: { scope: Scope; user: User; org: Org | null }
 
 		return opts.org.name;
 	} else {
-		return opts.user.name!;
+		if (opts.user === null) {
+			throw new Error('must be defined');
+		}
+
+		return opts.user.name;
 	}
 }

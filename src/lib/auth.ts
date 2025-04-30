@@ -8,7 +8,7 @@ import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
-import { getOrgById, getUser } from './backend/db/functions';
+import { getOrg, getUser } from './backend/db/functions';
 import assert from 'assert';
 
 export type Providers = 'github';
@@ -58,11 +58,14 @@ export const auth = betterAuth({
 					}
 
 					// check if user owns the org the id belongs to
-					const org = await getOrgById(referenceId);
+					const org = await getOrg({ id: referenceId });
 
 					if (org === null) return false;
 
-					if (org.ownerId !== user.id) return false;
+					// user is not an owning member
+					if (!org.members.find((m) => m.userId === user.id && m.role === 'owner')) {
+						return false;
+					}
 
 					return true;
 				},

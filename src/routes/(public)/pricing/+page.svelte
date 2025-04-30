@@ -119,7 +119,7 @@
 									plan: name as PlanName,
 									annual: pricing === 'yearly',
 									successUrl: plan.successUrl,
-									userId: data.session.user.id
+									referenceId: data.session.user.id
 								});
 							}}
 							href={name === 'Free'

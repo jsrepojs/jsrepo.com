@@ -59,7 +59,7 @@
 		</div>
 		<div>
 			<!-- only owners can invite users because of payment restrictions -->
-			{#if data.member.orgRole === null}
+			{#if data.member.role === 'owner'}
 				<Invite org={data.org} />
 			{/if}
 		</div>
@@ -69,20 +69,19 @@
 	<List.Root>
 		<List.List>
 			{#each data.org.members as member (member.id)}
-				{@const role = member.orgRole ? casing.kebabToPascal(member.orgRole) : 'Owner'}
 				<List.Item class="hover:bg-card">
 					<div class="flex place-items-center gap-4">
 						<Avatar.Root class="size-9">
-							<Avatar.Image src={member.image} />
-							<Avatar.Fallback>{getInitials(member.name)}</Avatar.Fallback>
+							<Avatar.Image src={member.user.image} />
+							<Avatar.Fallback>{getInitials(member.user.name)}</Avatar.Fallback>
 						</Avatar.Root>
 						<div class="flex flex-col">
-							<span class="font-medium">{member.name}</span>
+							<span class="font-medium">{member.user.name}</span>
 							<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
-								{#if role === 'Owner'}
+								{#if member.role === 'owner'}
 									<Crown class="inline size-4" />
 								{/if}
-								{role}
+								{member.role}
 							</span>
 						</div>
 					</div>

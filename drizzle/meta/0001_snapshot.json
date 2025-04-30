@@ -1,6 +1,6 @@
 {
-	"id": "c69ad7dc-2ae0-4dac-8293-cd2663f18101",
-	"prevId": "00000000-0000-0000-0000-000000000000",
+	"id": "f65d6428-3e04-4522-b60d-3163ffd501a7",
+	"prevId": "c69ad7dc-2ae0-4dac-8293-cd2663f18101",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -614,12 +614,6 @@
 					"primaryKey": false,
 					"notNull": false
 				},
-				"owner_id": {
-					"name": "owner_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
 				"created_at": {
 					"name": "created_at",
 					"type": "timestamp",
@@ -643,34 +637,9 @@
 					"concurrently": false,
 					"method": "btree",
 					"with": {}
-				},
-				"org_owner_id_idx": {
-					"name": "org_owner_id_idx",
-					"columns": [
-						{
-							"expression": "owner_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
 				}
 			},
-			"foreignKeys": {
-				"org_owner_id_user_id_fk": {
-					"name": "org_owner_id_user_id_fk",
-					"tableFrom": "org",
-					"tableTo": "user",
-					"columnsFrom": ["owner_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
+			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
 				"org_name_unique": {
@@ -1974,7 +1943,7 @@
 		"public.org_roll": {
 			"name": "org_roll",
 			"schema": "public",
-			"values": ["member", "publisher", "collaborator"]
+			"values": ["member", "publisher", "owner"]
 		}
 	},
 	"schemas": {},

@@ -2,15 +2,12 @@ import {
 	createOrgInvite,
 	deleteOrgInvite,
 	getOrgInvitesForEmail,
-	getOrgWithMembers,
-	getUser,
+	getOrg,
 	getUserByEmail
 } from '$lib/backend/db/functions.js';
 import { orgMemberRoles, type OrgRole } from '$lib/backend/db/schema.js';
-import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 import { invitedToOrgEmail, resend } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
-import assert from 'assert';
 
 export type InviteMemberRequest = {
 	email: string;
@@ -24,13 +21,15 @@ export async function POST({ params, request, locals }) {
 
 	const orgName = params.org;
 
-	const org = await getOrgWithMembers(orgName);
+	const org = await getOrg({ name: orgName });
 
 	if (!org) error(404);
 
 	const memberCount = org.members.length;
 
-	if (org.ownerId !== session.user.id) error(401, 'only the owner can invite team members');
+	const member = org.members.find((m) => m.userId === session.user.id);
+
+	if (member?.role !== 'owner') error(401, 'only the owner can invite team members');
 
 	const body = (await request.json()) as InviteMemberRequest;
 
@@ -43,23 +42,20 @@ export async function POST({ params, request, locals }) {
 
 	if (body.email === session.user.email) error(400, 'you cannot invite yourself');
 
-	const alreadyAMember = org.members.find((m) => m.email === email) !== undefined;
+	const alreadyAMember = org.members.find((m) => m.user.email === email) !== undefined;
 
 	if (alreadyAMember) error(400, 'user is already a member of your org');
 
-	const [invites, invitedUser, owner] = await Promise.all([
+	const [invites, invitedUser] = await Promise.all([
 		getOrgInvitesForEmail(email, org.id),
-		getUserByEmail(email),
-		getUser(session.user.id)
+		getUserByEmail(email)
 	]);
 
-	assert(owner !== null, 'user must be defined');
-
-	if (checkUserSubscription(owner) === null) {
-		error(401, 'you need a Pro subscription to invite members to your organization');
+	if (org.subscription === null) {
+		error(401, 'you need to buy seats before inviting members to your organization');
 	}
 
-	if (!owner.subscription?.seats || memberCount + 1 > owner.subscription.seats) {
+	if (!org.subscription.seats || memberCount + 1 > org.subscription.seats) {
 		error(400, 'you need to purchase more seats');
 	}
 
@@ -87,11 +83,13 @@ export async function DELETE({ params, request, locals }) {
 
 	const orgName = params.org;
 
-	const org = await getOrgWithMembers(orgName);
+	const org = await getOrg({ name: orgName });
 
 	if (!org) error(404);
 
-	if (org.ownerId !== session.user.id) error(401, 'only the owner can cancel invites');
+	const member = org.members.find((m) => m.userId === session.user.id);
+
+	if (member?.role !== 'owner') error(401, 'only the owner can cancel invites');
 
 	const body = (await request.json()) as CancelInviteRequest;
 

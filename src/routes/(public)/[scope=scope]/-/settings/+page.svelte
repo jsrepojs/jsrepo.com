@@ -29,7 +29,7 @@
 			}
 
 			if (
-				isSameScopeOwner(userOrOrg, { scope: data.scope, user: data.owner, org: data.ownerOrg })
+				isSameScopeOwner(userOrOrg, { ...data.scope, user: data.scope.user, org: data.scope.org })
 			) {
 				return false;
 			}
@@ -84,7 +84,12 @@
 	});
 
 	const ownerName = $derived(
-		getOwnerName({ scope: data.scope, user: data.owner, org: data.ownerOrg })
+		getOwnerName({ scope: data.scope, user: data.scope.user, org: data.scope.org })
+	);
+
+	const isOwner = $derived(
+		data.scope.userId === $session.data?.user.id ||
+			data.scope.org?.members.find((m) => m.userId === $session.data?.user.id && m.role === 'owner')
 	);
 </script>
 
@@ -95,7 +100,7 @@
 			<small class="text-muted-foreground">Claimed {toRelative(data.scope.claimedAt)}</small>
 		</FieldSet.Content>
 	</FieldSet.Root>
-	{#if data.owner.id === $session.data?.user.id}
+	{#if isOwner}
 		{#if activeTransferRequest}
 			<FieldSet.Root variant="destructive">
 				<FieldSet.Content>
