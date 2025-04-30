@@ -43,6 +43,7 @@ export type UserWithSubscription = tables.User & {
 export type FullOrg = tables.Org & {
 	subscription: tables.Subscription | null;
 	members: (tables.OrgMember & { user: tables.User })[];
+	status: 'paid' | 'freebee' | 'delinquent';
 };
 
 export async function canPublishToScope(
@@ -74,7 +75,7 @@ export async function canPublishToScope(
 	// if we aren't the owner and we can't publish on our own
 	if (member.role !== null && !canPublish(member.role)) return false;
 
-	if (org.subscription === null) return false;
+	if (org.status === 'delinquent') return false;
 
 	return true;
 }
@@ -658,10 +659,36 @@ export async function getOrg({
 
 	if (result.length === 0) return null;
 
+	const org = result[0];
+	const members = result.map((r) => ({ ...r.member, user: r.user }));
+
+	let status: FullOrg['status'];
+
+	if (org.subscription === null) {
+		if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
+			status = 'freebee';
+		} else {
+			status = 'delinquent';
+		}
+	} else {
+		// give the org a free seat for the owner
+		const neededSeats = members.length - 1;
+
+		if ((org.subscription.seats ?? 0) >= neededSeats) {
+			status = 'paid'
+		} else {
+			if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
+				status = 'freebee';
+			} else {
+				status = 'delinquent'
+			}
+		}
+	}
+
 	return {
-		...result[0],
-		members: result.map((r) => ({ ...r.member, user: r.user })),
-		subscription: result[0].subscription
+		...org,
+		members,
+		status
 	} satisfies FullOrg;
 }
 
