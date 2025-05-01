@@ -10,8 +10,13 @@ import {
 	integer,
 	pgEnum,
 	index,
-	date
+	date,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
+
+export function lower(column: AnyPgColumn): SQL {
+	return sql`lower(${column})`;
+}
 
 // Auth Schema
 
@@ -191,7 +196,10 @@ export const org = pgTable(
 		courtesyMonthEndedAt: timestamp('courtesy_month_ended_at')
 	},
 	(table) => {
-		return [index('org_name_idx').on(table.name)];
+		return [
+			index('org_name_idx').on(lower(table.name)),
+			index('org_courtesy_month_ended_at_idx').on(table.courtesyMonthEndedAt)
+		];
 	}
 ).enableRLS();
 
@@ -219,7 +227,8 @@ export const orgMember = pgTable(
 	(table) => {
 		return [
 			index('org_member_org_id_idx').on(table.orgId),
-			index('org_member_user_id_idx').on(table.userId)
+			index('org_member_user_id_idx').on(table.userId),
+			index('org_member_role_idx').on(table.role)
 		];
 	}
 ).enableRLS();
@@ -264,7 +273,7 @@ export const scope = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
-			index('scope_name_idx').on(table.name),
+			index('scope_name_idx').on(lower(table.name)),
 			index('scope_org_id_idx').on(table.orgId),
 			index('scope_user_id_idx').on(table.userId)
 		];
@@ -326,7 +335,7 @@ export const registry = pgTable(
 	(table) => {
 		return [
 			unique().on(table.scopeId, table.name),
-			index('registry_name_idx').on(table.name),
+			index('registry_name_idx').on(lower(table.name)),
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),

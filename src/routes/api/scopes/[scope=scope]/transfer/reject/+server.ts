@@ -22,7 +22,7 @@ export async function PATCH({ request, params, locals }) {
 		error(404);
 	}
 
-	if (scopeName !== transferRequest.scope.name) {
+	if (scopeName.toLowerCase() !== transferRequest.scope.name.toLowerCase()) {
 		error(400, 'this transfer request references a different scope');
 	}
 

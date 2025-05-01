@@ -30,6 +30,7 @@ import * as v from 'valibot';
 import { posthog } from '$lib/ts/posthog';
 import { DAY } from '$lib/ts/time';
 import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
+import { lower } from './schema';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -92,7 +93,10 @@ export function canPublish(role: tables.OrgRole) {
 }
 
 export async function getScope(scope: string): Promise<tables.Scope | null> {
-	const scopes = await db.select().from(tables.scope).where(eq(tables.scope.name, scope));
+	const scopes = await db
+		.select()
+		.from(tables.scope)
+		.where(eq(lower(tables.scope.name), scope.toLowerCase()));
 
 	if (scopes.length === 0) return null;
 
@@ -170,8 +174,8 @@ export async function getRegistry(
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 
 				checkAccessQuery({ orgSubscription, checkSubscription: true })
 			)
@@ -214,7 +218,12 @@ export async function getVersions(
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, registryName)))
+		.where(
+			and(
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase())
+			)
+		)
 		.orderBy(desc(tables.version.createdAt));
 
 	if (versions.length === 0) return null;
@@ -262,8 +271,8 @@ export async function getVersion({
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
 				userId !== undefined
@@ -380,8 +389,8 @@ export async function getFileContents({
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
@@ -432,8 +441,8 @@ export async function getFileContentsTheHardWay({
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
@@ -476,8 +485,8 @@ export async function getFiles(
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				inArray(tables.file.name, filesNames),
 
@@ -557,7 +566,7 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, scopeName),
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 
 				// access check
 				checkAccessQuery({ orgSubscription, checkSubscription: false })
@@ -665,7 +674,9 @@ export async function getOrg({
 		)
 		.innerJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
-		.where(id === undefined ? eq(tables.org.name, name) : eq(tables.org.id, id));
+		.where(
+			id === undefined ? eq(lower(tables.org.name), name.toLowerCase()) : eq(tables.org.id, id)
+		);
 
 	if (result.length === 0) return null;
 
@@ -723,7 +734,7 @@ export async function isScopeOwner(userId: string, scopeName: string): Promise<b
 			tables.user,
 			or(eq(tables.user.id, tables.scope.userId), eq(tables.orgMember.role, 'owner'))
 		)
-		.where(and(eq(tables.scope.name, scopeName), eq(tables.user.id, userId)));
+		.where(and(eq(lower(tables.scope.name), scopeName.toLowerCase()), eq(tables.user.id, userId)));
 
 	return result.length > 0;
 }
@@ -779,7 +790,7 @@ export async function getScopeWithOwner(name: string): Promise<
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, tables.scope.userId))
-		.where(eq(tables.scope.name, name));
+		.where(eq(lower(tables.scope.name), name.toLowerCase()));
 
 	if (result.length === 0) return null;
 
@@ -814,7 +825,7 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.where(
 			and(
-				eq(tables.scope.name, name),
+				eq(lower(tables.scope.name), name.toLowerCase()),
 
 				// access check
 				or(
@@ -891,7 +902,7 @@ export async function getActiveTransferRequest(name: string) {
 		.leftJoin(toOrg, eq(toOrg.id, tables.scopeTransferRequest.newOrgId))
 		.where(
 			and(
-				eq(tables.scope.name, name),
+				eq(lower(tables.scope.name), name.toLowerCase()),
 
 				// only select those that are null
 				and(
@@ -1112,7 +1123,7 @@ export async function getPendingOrgInvites(orgName: string, userId: string | nul
 				// hasn't interacted
 				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt)),
 
-				eq(tables.org.name, orgName)
+				eq(lower(tables.org.name), orgName.toLowerCase())
 			)
 		);
 
@@ -1278,8 +1289,8 @@ export async function searchRegistries({
 			  )`
 					)
 			: undefined,
-		org ? eq(tables.org.name, org) : undefined,
-		scope ? eq(tables.scope.name, scope) : undefined,
+		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
+		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
 		checkAccessQuery({ orgSubscription, checkSubscription: true }),
 
@@ -1404,7 +1415,7 @@ export async function getOrgScopes(orgName: string) {
 		})
 		.from(tables.scope)
 		.innerJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.where(eq(tables.org.name, orgName));
+		.where(eq(lower(tables.org.name), orgName.toLowerCase()));
 
 	return result;
 }
@@ -1502,8 +1513,8 @@ export async function getPublicDownloads({
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.dailyRegistryFetch.registryId))
 		.where(
 			and(
-				eq(tables.scope.name, scope),
-				eq(tables.registry.name, registryName),
+				eq(lower(tables.scope.name), scope.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(tables.registry.private, false),
 				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
 				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
