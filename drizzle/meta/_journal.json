@@ -1,34 +1,41 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1746011167714,
-			"tag": "0000_cute_otto_octavius",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1746021251025,
-			"tag": "0001_sticky_moondragon",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1746043059119,
-			"tag": "0002_fuzzy_scourge",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1746101293632,
-			"tag": "0003_modern_pete_wisdom",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1746011167714,
+      "tag": "0000_cute_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1746021251025,
+      "tag": "0001_sticky_moondragon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746043059119,
+      "tag": "0002_fuzzy_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1746101293632,
+      "tag": "0003_modern_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1746110558256,
+      "tag": "0004_tense_ben_parker",
+      "breakpoints": true
+    }
+  ]
 }

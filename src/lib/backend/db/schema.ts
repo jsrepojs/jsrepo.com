@@ -11,7 +11,8 @@ import {
 	pgEnum,
 	index,
 	date,
-	type AnyPgColumn
+	type AnyPgColumn,
+	uniqueIndex
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -189,7 +190,7 @@ export const org = pgTable(
 	'org',
 	{
 		id: text('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
+		name: varchar('name', { length: 20 }).notNull(),
 		description: text('description'),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		courtesyMonthStartedAt: timestamp('courtesy_month_started_at'),
@@ -197,7 +198,7 @@ export const org = pgTable(
 	},
 	(table) => {
 		return [
-			index('org_name_idx').on(lower(table.name)),
+			uniqueIndex('org_name_idx').on(lower(table.name)),
 			index('org_courtesy_month_ended_at_idx').on(table.courtesyMonthEndedAt)
 		];
 	}
@@ -264,7 +265,7 @@ export const scope = pgTable(
 	'scope',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
+		name: varchar('name', { length: 20 }).notNull(),
 		orgId: text('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -273,7 +274,7 @@ export const scope = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
-			index('scope_name_idx').on(lower(table.name)),
+			uniqueIndex('scope_name_idx').on(lower(table.name)),
 			index('scope_org_id_idx').on(table.orgId),
 			index('scope_user_id_idx').on(table.userId)
 		];
@@ -334,7 +335,7 @@ export const registry = pgTable(
 	},
 	(table) => {
 		return [
-			unique().on(table.scopeId, table.name),
+			uniqueIndex('registry_scope_name_unique_idx').on(table.scopeId, lower(table.name)),
 			index('registry_name_idx').on(lower(table.name)),
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),
