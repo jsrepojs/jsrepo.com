@@ -28,7 +28,8 @@
 	});
 
 	// prevent invalid orgs
-	$formData.org = data.orgs.find((o) => o.org.name === (page.url.searchParams.get('org') ?? ''))?.org.name ?? '';
+	$formData.org =
+		data.orgs.find((o) => o.org.name === (page.url.searchParams.get('org') ?? ''))?.org.name ?? '';
 </script>
 
 <svelte:head>

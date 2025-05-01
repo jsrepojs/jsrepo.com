@@ -41,6 +41,23 @@ export async function DELETE({ params, locals }) {
 			return tx.rollback();
 		}
 
+		const members = await tx
+			.select()
+			.from(tables.orgMember)
+			.where(eq(tables.orgMember.orgId, org.id));
+
+		// update the members in the org on the subscription table
+		const subRes = await tx
+			.update(tables.subscription)
+			.set({ members: members.length })
+			.where(eq(tables.subscription.referenceId, org.id))
+			.returning();
+
+		if (subRes.length === 0) {
+			tx.rollback();
+			return false;
+		}
+
 		// we need to cancel the subscription when deleting the user
 		if (checkBearer && checkBearer.id === memberId) {
 			// this should never happen

@@ -10,6 +10,7 @@ import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
 import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
 import assert from 'assert';
+import { eq } from 'drizzle-orm';
 
 export type Providers = 'github';
 
@@ -35,6 +36,17 @@ export const auth = betterAuth({
 			},
 			subscription: {
 				enabled: true,
+				onSubscriptionComplete: async ({ subscription }) => {
+					if (!subscription.referenceId.startsWith('org_')) return;
+
+					const org = await getOrg({ id: subscription.referenceId });
+
+					// update members count
+					await db
+						.update(schema.subscription)
+						.set({ members: org?.members.length ?? 1 })
+						.where(eq(schema.subscription.id, subscription.id));
+				},
 				onSubscriptionUpdate: async ({ subscription }) => {
 					if (!subscription.referenceId.startsWith('org_')) return;
 

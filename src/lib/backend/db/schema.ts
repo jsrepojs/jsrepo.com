@@ -1,4 +1,4 @@
-import { sql, type InferSelectModel } from 'drizzle-orm';
+import { SQL, sql, type InferSelectModel } from 'drizzle-orm';
 import {
 	pgTable,
 	text,
@@ -157,7 +157,14 @@ export const subscription = pgTable(
 		periodStart: timestamp('period_start'),
 		periodEnd: timestamp('period_end'),
 		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
-		seats: integer('seats')
+		seats: integer('seats'),
+		// this needs to be kept in sync with the org
+		members: integer('org_members'),
+		hasEnoughSeats: boolean('has_enough_seats')
+			.generatedAlwaysAs(
+				(): SQL => sql`COALESCE(${subscription.seats} >= (${subscription.members} - 1), false)`
+			)
+			.notNull()
 	},
 	(table) => {
 		return [

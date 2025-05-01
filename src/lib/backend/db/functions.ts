@@ -16,7 +16,8 @@ import {
 	gte,
 	SQL,
 	countDistinct,
-	not
+	not,
+	gt
 } from 'drizzle-orm';
 import { generateId } from 'better-auth';
 import assert from 'assert';
@@ -28,7 +29,7 @@ import semver from 'semver';
 import * as v from 'valibot';
 import { posthog } from '$lib/ts/posthog';
 import { DAY } from '$lib/ts/time';
-import { checkUserSubscription } from '$lib/ts/stripe/client';
+import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -607,7 +608,7 @@ function checkAccessQuery({
 				checkSubscription
 					? and(
 							// has an active Pro plan
-							eq(tables.subscription.plan, 'pro'),
+							eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
 							eq(tables.subscription.status, 'active')
 						)
 					: undefined
@@ -618,15 +619,24 @@ function checkAccessQuery({
 				isNotNull(tables.scope.orgId),
 
 				// check if we are part of the organization
-				or(eq(tables.orgMember.userId, tables.user.id)),
+				eq(tables.orgMember.userId, tables.user.id),
 
 				// check the status of the owners subscription plan
 				checkSubscription
-					? and(
-							isNotNull(orgSubscription.id),
-							// owner has an active Pro plan
-							eq(orgSubscription.plan, 'pro'),
-							eq(orgSubscription.status, 'active')
+					? or(
+							// courtesy month
+							and(gt(tables.org.courtesyMonthEndedAt, new Date())),
+
+							// paid
+							and(
+								// check courtesy month as well
+
+								isNotNull(orgSubscription.id),
+								// owner has an active Pro plan
+								eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+								eq(orgSubscription.status, 'active'),
+								eq(orgSubscription.hasEnoughSeats, true)
+							)
 						)
 					: undefined
 			)
@@ -675,12 +685,12 @@ export async function getOrg({
 		const neededSeats = members.length - 1;
 
 		if ((org.subscription.seats ?? 0) >= neededSeats) {
-			status = 'paid'
+			status = 'paid';
 		} else {
 			if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
 				status = 'freebee';
 			} else {
-				status = 'delinquent'
+				status = 'delinquent';
 			}
 		}
 	}
@@ -818,19 +828,29 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 					// Org owned scope
 					and(
 						isNotNull(tables.scope.orgId),
+						// we are part of the org
+						eq(tables.orgMember.userId, userId ?? ''),
 
 						// either we are the owner or we are a member of the team with the subscription active
 						or(
 							// we are an owner
-							and(eq(tables.orgMember.userId, userId ?? ''), eq(tables.orgMember.role, 'owner')),
+							eq(tables.orgMember.role, 'owner'),
 
-							// we are a member and subscription is paid
-							and(
-								eq(tables.orgMember.userId, userId ?? ''),
+							// subscription is paid
+							or(
+								// courtesy month
+								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
 
-								isNotNull(orgSubscription.id),
-								eq(orgSubscription.plan, 'pro'),
-								eq(orgSubscription.status, 'active')
+								// paid
+								and(
+									// check courtesy month as well
+
+									isNotNull(orgSubscription.id),
+									// owner has an active Pro plan
+									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+									eq(orgSubscription.status, 'active'),
+									eq(orgSubscription.hasEnoughSeats, true)
+								)
 							)
 						)
 					)
@@ -1144,7 +1164,10 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 			.where(eq(tables.orgInvite.id, inviteId))
 			.returning();
 
-		if (invUpdate.length === 0) return false;
+		if (invUpdate.length === 0) {
+			tx.rollback();
+			return false;
+		}
 
 		const invitation = invUpdate[0];
 
@@ -1155,6 +1178,23 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 			.returning();
 
 		if (res.length === 0) {
+			tx.rollback();
+			return false;
+		}
+
+		const members = await tx
+			.select()
+			.from(tables.orgMember)
+			.where(eq(tables.orgMember.orgId, res[0].orgId));
+
+		// update the members in the org on the subscription table
+		const subRes = await tx
+			.update(tables.subscription)
+			.set({ members: members.length })
+			.where(eq(tables.subscription.referenceId, res[0].orgId))
+			.returning();
+
+		if (subRes.length === 0) {
 			tx.rollback();
 			return false;
 		}
@@ -1270,7 +1310,10 @@ export async function searchRegistries({
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.leftJoin(
+			tables.orgMember,
+			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
+		)
 		.leftJoin(
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
@@ -1284,8 +1327,17 @@ export async function searchRegistries({
 			)
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			tables.subscription,
+			and(
+				eq(tables.subscription.referenceId, tables.user.id),
+				eq(tables.subscription.status, 'active')
+			)
+		)
+		.leftJoin(
+			orgSubscription,
+			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
+		)
 		.where(whereClause)
 		.groupBy(
 			tables.registry.id,
@@ -1327,7 +1379,10 @@ export async function searchRegistries({
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			orgSubscription,
+			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
+		)
 		.where(whereClause);
 
 	const [data, countResult] = await Promise.all([dataQuery, countQuery]);

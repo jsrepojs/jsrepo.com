@@ -14,19 +14,21 @@
 <!-- seats warning banner -->
 {#if data.member && data.org.members.length - 1 > (data.org.subscription?.seats ?? 0)}
 	<div
-		class="container fixed left-0 top-[--header-height] w-full bg-destructive py-2 text-destructive-foreground"
+		class="fixed left-0 top-[--header-height] w-full bg-destructive py-2 text-destructive-foreground"
 	>
-		{#if data.org.courtesyMonthEndedAt !== null && data.org.courtesyMonthEndedAt?.valueOf() > Date.now()}
-			<span>
-				This organization has more members than seats. Remove a member or buy more seats before {data.org.courtesyMonthEndedAt.toDateString()}
-				to keep your team from losing access.
-			</span>
-		{:else}
-			<span>
-				This organization has more members than seats. Your team will have limited access until you
-				remove a member or buy more seats.
-			</span>
-		{/if}
+		<div class="container">
+			{#if data.org.courtesyMonthEndedAt !== null && data.org.courtesyMonthEndedAt?.valueOf() > Date.now()}
+				<span>
+					This organization has more members than seats. Remove a member or buy more seats before {data.org.courtesyMonthEndedAt.toDateString()}
+					to keep your team from losing access.
+				</span>
+			{:else}
+				<span>
+					This organization has more members than seats. Your team will have limited access until
+					you remove a member or buy more seats.
+				</span>
+			{/if}
+		</div>
 	</div>
 	<!-- surely there's a better way to do this but idk right now -->
 	<div class="py-2 opacity-0">

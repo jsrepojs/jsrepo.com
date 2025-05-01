@@ -138,7 +138,7 @@
 								<DropdownMenu.Group>
 									<DropdownMenu.Item
 										onSelect={() => removeMemberQuery.run(member)}
-										disabled={member.role !== 'owner' ||
+										disabled={member.role === 'owner' &&
 											data.org.members.filter((m) => m.id !== member.id && m.role === 'owner')
 												.length === 0}
 										class="text-destructive data-[highlighted]:text-destructive"
