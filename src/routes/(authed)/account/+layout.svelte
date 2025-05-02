@@ -20,15 +20,15 @@
 				<Avatar.Image src={user.image} />
 				<Avatar.Fallback>{getInitials(user.name)}</Avatar.Fallback>
 			</Avatar.Root>
-			<div class="flex flex-col">
+			<div class="flex flex-col md:place-items-center">
 				<span class="max-w-full truncate text-start text-xl font-medium md:text-center">
 					{user.name}
 				</span>
-				<span class="text-start text-muted-foreground md:text-center">Joined {joined}</span>
+				<div>
+					<SubBadge user={data.user} />
+				</div>
 			</div>
-			<div class="hidden sm:block">
-				<SubBadge user={data.user} />
-			</div>
+			
 		</div>
 		<Separator class="md:hidden" />
 		<div class="w-full md:col-start-2">

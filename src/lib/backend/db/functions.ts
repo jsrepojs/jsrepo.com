@@ -598,14 +598,16 @@ export async function nameIsBanned(name: string) {
  */
 function checkAccessQuery({
 	orgSubscription,
-	checkSubscription = true
+	checkSubscription = true,
+	readonlyAccess = false
 }: {
 	orgSubscription: typeof tables.subscription;
 	checkSubscription: boolean;
+	readonlyAccess?: boolean;
 }) {
 	return or(
-		// registry is not private
-		eq(tables.registry.private, false),
+		// if we are only checking readonly access then we don't continue if it's a public registry
+		readonlyAccess ? eq(tables.registry.private, false) : undefined,
 
 		// registry is private but they have access and have paid their subscription
 		or(
@@ -1241,6 +1243,10 @@ export type RegistrySearchOptions = {
 	offset: number | null;
 	limit: number | null;
 	orderBy: PgColumn | SQL | undefined | null;
+	/** When true any registry the user can view will be shown 
+	 * 
+	 * @default true */
+	readonlyAccess: boolean;
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1258,7 +1264,8 @@ export async function searchRegistries({
 	offset,
 	userId,
 	orderBy,
-	lang
+	lang,
+	readonlyAccess = true
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
@@ -1295,7 +1302,7 @@ export async function searchRegistries({
 		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
 		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
-		checkAccessQuery({ orgSubscription, checkSubscription: true }),
+		checkAccessQuery({ orgSubscription, checkSubscription: true, readonlyAccess }),
 
 		// filter out results with 0 score
 		q

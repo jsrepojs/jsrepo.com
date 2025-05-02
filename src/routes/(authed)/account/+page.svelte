@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowRight, Building, KeyRound, Plus, Settings, Telescope } from '@lucide/svelte';
+	import { ArrowRight, Building, KeyRound, Notebook, Plus, Settings, Telescope } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -12,6 +12,12 @@
 		description: 'Publish a registry to jsrepo.com.',
 		href: '/account/new-registry',
 		Icon: Plus
+	})}
+	{@render card({
+		title: 'Registries',
+		description: 'Manage your registries.',
+		href: '/account/registries',
+		Icon: Notebook
 	})}
 	{@render card({
 		title: 'Scopes',
