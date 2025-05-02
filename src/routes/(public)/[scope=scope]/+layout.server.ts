@@ -20,9 +20,7 @@ export async function load({ params, locals }) {
 	}
 
 	return {
-		scope: scope.scope,
-		owner: scope.user,
-		ownerOrg: scope.org,
+		scope: scope,
 		hasSettingsAccess
 	};
 }

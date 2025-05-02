@@ -78,7 +78,7 @@
 					First class CLI support
 				</h4>
 				<p class="text-muted-foreground">
-					Publish, add, and update your blocks all from one place with the jsrepo CLI.
+					Publish, add, and update your components all from one place with the jsrepo CLI.
 				</p>
 			</div>
 		</div>

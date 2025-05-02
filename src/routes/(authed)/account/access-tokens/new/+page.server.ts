@@ -5,6 +5,7 @@ import { schema } from './schema';
 import { error, fail } from '@sveltejs/kit';
 import { getApiKey } from '$lib/backend/db/functions';
 import { accessTokenCreatedEmail, resend } from '$lib/ts/resend';
+import type { APIKey } from '$lib/backend/db/schema';
 
 export async function load() {
 	const form = await superValidate(valibot(schema));
@@ -46,7 +47,7 @@ export const actions = {
 			headers: request.headers
 		});
 
-		await resend.emails.send(accessTokenCreatedEmail(session.user, result));
+		await resend.emails.send(accessTokenCreatedEmail(session.user, result as APIKey));
 
 		return message(form, result);
 	}

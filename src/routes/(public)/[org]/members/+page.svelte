@@ -3,13 +3,16 @@
 	import * as List from '$lib/components/site/list';
 	import { getInitials } from '$lib/ts/initials';
 	import * as casing from '$lib/ts/casing';
-	import { Crown, X } from '@lucide/svelte';
+	import { Crown, Ellipsis, X } from '@lucide/svelte';
 	import Invite from './invite.svelte';
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Button } from '$lib/components/ui/button';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import type { CancelInviteRequest } from '../../../api/orgs/[org]/members/invite/+server';
 	import { invalidateAll } from '$app/navigation';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { toast } from 'svelte-sonner';
+	import type { FullOrg } from '$lib/backend/db/functions';
 
 	let { data } = $props();
 
@@ -33,6 +36,43 @@
 			}
 		}
 	});
+
+	const removeMemberQuery = new UseQuery(
+		async ({ setLoadingKey }, member: FullOrg['members'][number]) => {
+			toast.promise(
+				// eslint-disable-next-line no-async-promise-executor
+				new Promise<void>(async (res, rej) => {
+					setLoadingKey(member.id.toString());
+
+					try {
+						const response = await fetch(`/api/orgs/${data.org.name}/members/${member.id}`, {
+							method: 'DELETE',
+							headers: { 'content-type': 'application/json' }
+						});
+
+						if (response.ok) {
+							await invalidateAll();
+						} else {
+							const err = await response.json();
+
+							toast.error('Error removing member', { description: err.message });
+
+							throw new Error(err.message);
+						}
+					} catch (err) {
+						rej(err);
+					} finally {
+						res();
+					}
+				}),
+				{
+					success: `Removed ${member.user.name} from ${data.org.name}!`,
+					loading: `Removing ${member.user.name} from ${data.org.name}`,
+					error: 'Error removing member'
+				}
+			);
+		}
+	);
 </script>
 
 <svelte:head>
@@ -41,7 +81,7 @@
 
 <!-- we can only view the options if we are part of the org -->
 {#if data.member}
-	<div class="flex place-items-center justify-between py-2">
+	<div class="flex place-items-center justify-between pb-2">
 		<div>
 			<ToggleGroup.Root type="single" bind:value={tab}>
 				<ToggleGroup.Item value="members">Members</ToggleGroup.Item>
@@ -59,7 +99,7 @@
 		</div>
 		<div>
 			<!-- only owners can invite users because of payment restrictions -->
-			{#if data.member.orgRole === null}
+			{#if data.member.role === 'owner'}
 				<Invite org={data.org} />
 			{/if}
 		</div>
@@ -69,23 +109,47 @@
 	<List.Root>
 		<List.List>
 			{#each data.org.members as member (member.id)}
-				{@const role = member.orgRole ? casing.kebabToPascal(member.orgRole) : 'Owner'}
 				<List.Item class="hover:bg-card">
 					<div class="flex place-items-center gap-4">
 						<Avatar.Root class="size-9">
-							<Avatar.Image src={member.image} />
-							<Avatar.Fallback>{getInitials(member.name)}</Avatar.Fallback>
+							<Avatar.Image src={member.user.image} />
+							<Avatar.Fallback>{getInitials(member.user.name)}</Avatar.Fallback>
 						</Avatar.Root>
 						<div class="flex flex-col">
-							<span class="font-medium">{member.name}</span>
+							<span class="font-medium">{member.user.name}</span>
 							<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
-								{#if role === 'Owner'}
+								{#if member.role === 'owner'}
 									<Crown class="inline size-4" />
 								{/if}
-								{role}
+								{member.role}
 							</span>
 						</div>
 					</div>
+					{#if data.member?.role === 'owner'}
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} variant="outline" size="sm">
+										<Ellipsis />
+									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end">
+								<DropdownMenu.Group>
+									<DropdownMenu.Item
+										onSelect={() => removeMemberQuery.run(member)}
+										disabled={member.role === 'owner' &&
+											data.org.members.filter((m) => m.id !== member.id && m.role === 'owner')
+												.length === 0}
+										class="text-destructive data-[highlighted]:text-destructive"
+									>
+										<X />
+										Remove from org
+									</DropdownMenu.Item>
+								</DropdownMenu.Group>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					{/if}
 				</List.Item>
 			{/each}
 		</List.List>

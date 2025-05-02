@@ -2,20 +2,17 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ChevronLeft, LogOut, Settings2 } from '@lucide/svelte';
+	import { ChevronLeft, LogOut, RefreshCcw, X } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
-	import { checkUserSubscription } from '$lib/ts/polar/client.js';
-	import { toRelative } from '$lib/ts/dates.js';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
 	import SubBadge from '$lib/components/site/sub-badge.svelte';
+	import { authClient } from '$lib/auth/client.js';
+	import { toRelative } from '$lib/ts/dates.js';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
-	const subscription = $derived(checkUserSubscription(data.user));
-	const endsAt = $derived(
-		data.user.polarSubscriptionPlanEnd ? toRelative(data.user.polarSubscriptionPlanEnd) : null
-	);
 	const scopesPromise = new UsePromise(data.scopes, null);
 </script>
 
@@ -38,24 +35,44 @@
 	</div>
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
-			<div>
+			<div class="flex flex-col gap-1">
 				<FieldSet.Title>Your Subscription</FieldSet.Title>
-				<p class="text-muted-foreground">
+				<p class="flex place-items-center gap-2 text-muted-foreground">
 					<SubBadge user={data.user} />
-					{endsAt ? `ends ${endsAt}` : ''}
+					{#if data.user.subscription && data.user.subscription.cancelAtPeriodEnd && data.user.subscription?.periodEnd}
+						<span class="text-sm text-muted-foreground">
+							Ends {toRelative(data.user.subscription.periodEnd)}
+						</span>
+					{/if}
 				</p>
 			</div>
-			{#if subscription !== null}
-				<Button href="/api/portal" variant="outline">
-					<Settings2 />
-					Manage
-				</Button>
+			{#if data.user.subscription !== null}
+				{#if data.user.subscription.cancelAtPeriodEnd}
+					<Button
+						onClickPromise={async () => {
+							await authClient.subscription.restore();
+
+							await invalidateAll();
+						}}
+					>
+						<RefreshCcw />
+						Un-cancel
+					</Button>
+				{:else}
+					<Button
+						onClickPromise={() => authClient.subscription.cancel({ returnUrl: '/account' })}
+						variant="outline"
+					>
+						<X />
+						Cancel
+					</Button>
+				{/if}
 			{:else}
-				<Button href="/pricing">Upgrade</Button>
+				<Button href="/pricing">Get Pro</Button>
 			{/if}
 		</FieldSet.Content>
 	</FieldSet.Root>
-	{#if subscription === null}
+	{#if data.user.subscription === null}
 		<FieldSet.Root>
 			<FieldSet.Content class="flex flex-col gap-2">
 				<FieldSet.Title>Your Usage</FieldSet.Title>

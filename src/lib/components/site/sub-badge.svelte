@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { User } from '$lib/backend/db/schema';
-	import { checkUserSubscription } from '$lib/ts/polar/client';
+	import { checkUserSubscription } from '$lib/ts/stripe/client';
 	import { Badge } from '$lib/components/ui/badge';
+	import type { UserWithSubscription } from '$lib/backend/db/functions';
 
 	type Props = {
-		user: User;
+		user: UserWithSubscription;
 	};
 
 	let { user }: Props = $props();
@@ -13,13 +13,7 @@
 </script>
 
 {#if subscription !== null}
-	{#if subscription === 'Pro'}
-		<Badge class="border-0 bg-gradient-to-br from-yellow-500 to-red-500 text-white">
-			{subscription}
-		</Badge>
-	{:else}
-		<Badge class="border-0 bg-gradient-to-br from-blue-500 to-red-500 text-white">
-			{subscription}
-		</Badge>
+	{#if subscription === 'pro'}
+		<Badge class="border-0 bg-gradient-to-br from-blue-500 to-red-500 text-white">Pro</Badge>
 	{/if}
 {/if}

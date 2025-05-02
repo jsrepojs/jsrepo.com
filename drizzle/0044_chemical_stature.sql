@@ -1,1 +1,0 @@
-ALTER TABLE "registry" ADD COLUMN "meta_primary_language" text;

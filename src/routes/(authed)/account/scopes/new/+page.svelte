@@ -5,6 +5,8 @@
 	import { ChevronLeft } from '@lucide/svelte';
 	import { generateSlug } from 'random-word-slugs';
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
+	import { page } from '$app/state';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data } = $props();
 
@@ -24,6 +26,10 @@
 	const placeholder = generateSlug(2, {
 		categories: { noun: ['animals', 'science', 'transportation', 'thing', 'food', 'profession'] }
 	});
+
+	// prevent invalid orgs
+	$formData.org =
+		data.orgs.find((o) => o.org.name === (page.url.searchParams.get('org') ?? ''))?.org.name ?? '';
 </script>
 
 <svelte:head>
@@ -62,6 +68,24 @@
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
+	</Form.Field>
+	<Form.Field {form} name="org">
+		<Form.Control>
+			{#snippet children({ props })}
+				<Form.Label>Org</Form.Label>
+				<Select.Root type="single" {...props} bind:value={$formData.org}>
+					<Select.Trigger>
+						{$formData.org === '' ? '--' : $formData.org}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="">--</Select.Item>
+						{#each data.orgs as org (org.org.id)}
+							<Select.Item value={org.org.name}>{org.org.name}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			{/snippet}
+		</Form.Control>
 	</Form.Field>
 	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
 	{#if error}

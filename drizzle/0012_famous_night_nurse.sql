@@ -1,1 +1,0 @@
-ALTER TABLE "user" ADD COLUMN "polar_subscription_plan_id" text;

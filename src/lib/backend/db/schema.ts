@@ -1,4 +1,4 @@
-import { sql, type InferSelectModel } from 'drizzle-orm';
+import { SQL, sql, type InferSelectModel } from 'drizzle-orm';
 import {
 	pgTable,
 	text,
@@ -10,8 +10,14 @@ import {
 	integer,
 	pgEnum,
 	index,
-	date
+	date,
+	type AnyPgColumn,
+	uniqueIndex
 } from 'drizzle-orm/pg-core';
+
+export function lower(column: AnyPgColumn): SQL {
+	return sql`lower(${column})`;
+}
 
 // Auth Schema
 
@@ -26,16 +32,17 @@ export const user = pgTable(
 		createdAt: timestamp('created_at').notNull(),
 		updatedAt: timestamp('updated_at').notNull(),
 		scopeLimit: integer().notNull().default(5),
-		polarCustomerId: text('polar_customer_id'),
-		polarSubscriptionPlanId: text('polar_subscription_plan_id'),
-		polarSubscriptionPlanEnd: timestamp('polar_subscription_plan_end'),
 		role: text('role').notNull().default('user'),
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
-		banExpires: timestamp('bar_expires')
+		banExpires: timestamp('bar_expires'),
+		stripeCustomerId: text('stripe_customer_id')
 	},
 	(table) => {
-		return [index('user_email_idx').on(table.email)];
+		return [
+			index('user_email_idx').on(table.email),
+			index('user_stripe_customer_id_idx').on(table.stripeCustomerId)
+		];
 	}
 ).enableRLS();
 
@@ -134,36 +141,113 @@ export const apikey = pgTable(
 		createdAt: timestamp('created_at').notNull(),
 		updatedAt: timestamp('updated_at').notNull(),
 		permissions: text('permissions'),
-		metadata: text('metadata')
+		metadata: text('metadata'),
+		deviceHardwareId: text('device_hardware_id'),
+		deviceSessionId: text('device_session_id'),
+		deviceActivated: boolean('device_activated'),
+		mustBeActivatedBefore: timestamp('must_be_activated_before')
 	},
 	(table) => {
-		return [index('apikey_key_idx').on(table.key)];
+		return [
+			index('apikey_key_idx').on(table.key),
+			index('apikey_device_session_id_idx').on(table.deviceSessionId),
+			index('apikey_device_hardware_id_idx').on(table.deviceHardwareId)
+		];
 	}
 ).enableRLS();
 
 export type APIKey = InferSelectModel<typeof apikey>;
+
+export const anonSession = pgTable('anon_session', {
+	id: text('id').primaryKey(),
+	hardwareId: text('hardware_id').notNull(),
+	// expires in 5 minutes
+	expires: timestamp('expires').notNull(),
+	authorizedToUserId: text('authorized_to_user_id').references(() => user.id, {
+		onDelete: 'cascade'
+	})
+}).enableRLS();
+
+export type AnonSession = InferSelectModel<typeof anonSession>;
+
+export const anonSessionCode = pgTable(
+	'anon_session_code',
+	{
+		id: serial('id').primaryKey(),
+		anonSessionId: text('anon_session_id')
+			.notNull()
+			.references(() => anonSession.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		codeHash: text('code_hash').notNull()
+	},
+	(table) => {
+		return [
+			index('anon_session_code_session_id_idx').on(table.anonSessionId),
+			index('anon_session_code_user_id_idx').on(table.userId)
+		];
+	}
+).enableRLS();
+
+export type AnonSessionCode = InferSelectModel<typeof anonSessionCode>;
+
+export const subscription = pgTable(
+	'subscription',
+	{
+		id: text('id').primaryKey(),
+		plan: text('plan').notNull(),
+		referenceId: text('reference_id').notNull(),
+		stripeCustomerId: text('stripe_customer_id'),
+		stripeSubscriptionId: text('stripe_subscription_id'),
+		status: text('status'),
+		periodStart: timestamp('period_start'),
+		periodEnd: timestamp('period_end'),
+		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
+		seats: integer('seats'),
+		// this needs to be kept in sync with the org
+		members: integer('org_members'),
+		hasEnoughSeats: boolean('has_enough_seats')
+			.generatedAlwaysAs(
+				(): SQL => sql`COALESCE(${subscription.seats} >= (${subscription.members} - 1), false)`
+			)
+			.notNull()
+	},
+	(table) => {
+		return [
+			index('subscription_reference_id_idx').on(table.referenceId),
+			index('subscription_customer_id_idx').on(table.stripeCustomerId),
+			index('subscription_subscription_id_idx').on(table.stripeSubscriptionId),
+			index('subscription_plan_idx').on(table.plan)
+		];
+	}
+).enableRLS();
+
+export type Subscription = InferSelectModel<typeof subscription>;
 
 // ---
 
 export const org = pgTable(
 	'org',
 	{
-		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
+		id: text('id').primaryKey(),
+		name: varchar('name', { length: 20 }).notNull(),
 		description: text('description'),
-		ownerId: text('owner_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		courtesyMonthStartedAt: timestamp('courtesy_month_started_at'),
+		courtesyMonthEndedAt: timestamp('courtesy_month_ended_at')
 	},
 	(table) => {
-		return [index('org_name_idx').on(table.name), index('org_owner_id_idx').on(table.ownerId)];
+		return [
+			uniqueIndex('org_name_idx').on(lower(table.name)),
+			index('org_courtesy_month_ended_at_idx').on(table.courtesyMonthEndedAt)
+		];
 	}
 ).enableRLS();
 
 export type Org = InferSelectModel<typeof org>;
 
-export const orgMemberRole = pgEnum('org_roll', ['member', 'publisher', 'collaborator']);
+export const orgMemberRole = pgEnum('org_roll', ['member', 'publisher', 'owner']);
 
 export type OrgRole = (typeof orgMemberRole.enumValues)[number];
 
@@ -173,19 +257,20 @@ export const orgMember = pgTable(
 	'org_members',
 	{
 		id: serial('id').primaryKey(),
-		orgId: integer('org_id')
+		orgId: text('org_id')
 			.notNull()
 			.references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		role: orgMemberRole().notNull(),
+		role: orgMemberRole('role').notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
 		return [
 			index('org_member_org_id_idx').on(table.orgId),
-			index('org_member_user_id_idx').on(table.userId)
+			index('org_member_user_id_idx').on(table.userId),
+			index('org_member_role_idx').on(table.role)
 		];
 	}
 ).enableRLS();
@@ -196,7 +281,7 @@ export const orgInvite = pgTable(
 	'org_invites',
 	{
 		id: serial('id').primaryKey(),
-		orgId: integer('org_id')
+		orgId: text('org_id')
 			.notNull()
 			.references(() => org.id, { onDelete: 'cascade' }),
 		email: text('email')
@@ -221,8 +306,8 @@ export const scope = pgTable(
 	'scope',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
-		orgId: integer('org_id').references(() => org.id, { onDelete: 'cascade' }),
+		name: varchar('name', { length: 20 }).notNull(),
+		orgId: text('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		claimedAt: timestamp('claimed_at').notNull().defaultNow()
@@ -230,7 +315,7 @@ export const scope = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
-			index('scope_name_idx').on(table.name),
+			uniqueIndex('scope_name_idx').on(lower(table.name)),
 			index('scope_org_id_idx').on(table.orgId),
 			index('scope_user_id_idx').on(table.userId)
 		];
@@ -246,9 +331,9 @@ export const scopeTransferRequest = pgTable(
 		scopeId: integer('scope_id')
 			.notNull()
 			.references(() => scope.id, { onDelete: 'cascade' }),
-		newOrgId: integer('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		newOrgId: text('new_org_id').references(() => org.id, { onDelete: 'cascade' }),
 		newUserId: text('new_user_id').references(() => user.id, { onDelete: 'cascade' }),
-		oldOrgId: integer('old_org_id').references(() => org.id, { onDelete: 'cascade' }),
+		oldOrgId: text('old_org_id').references(() => org.id, { onDelete: 'cascade' }),
 		oldUserId: text('old_user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdById: text('created_by_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -291,8 +376,8 @@ export const registry = pgTable(
 	},
 	(table) => {
 		return [
-			unique().on(table.scopeId, table.name),
-			index('registry_name_idx').on(table.name),
+			uniqueIndex('registry_scope_name_unique_idx').on(table.scopeId, lower(table.name)),
+			index('registry_name_idx').on(lower(table.name)),
 			index('registry_private_idx').on(table.private),
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),

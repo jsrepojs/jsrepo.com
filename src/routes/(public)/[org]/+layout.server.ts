@@ -1,14 +1,14 @@
-import { getOrgWithMembers } from '$lib/backend/db/functions.js';
+import { getOrg } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
 
 export async function load({ params, locals }) {
 	const session = await locals.auth();
 
-	const org = await getOrgWithMembers(params.org);
+	const org = await getOrg({ name: params.org });
 
 	if (!org) error(404);
 
-	const member = org.members.find((u) => u.id === session?.user.id);
+	const member = org.members.find((m) => m.userId === session?.user.id);
 
 	return {
 		org,

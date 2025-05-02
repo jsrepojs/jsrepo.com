@@ -17,14 +17,12 @@
 		"migrations:migrate": "drizzle-kit migrate"
 	},
 	"devDependencies": {
-		"@better-auth/stripe": "^1.2.7",
+		"@better-auth/stripe": "1.2.8-beta.3",
 		"@eslint/compat": "^1.2.8",
 		"@eslint/js": "^9.25.1",
 		"@fontsource-variable/jetbrains-mono": "^5.2.5",
 		"@fontsource-variable/oxanium": "^5.2.5",
 		"@lucide/svelte": "^0.503.0",
-		"@polar-sh/sdk": "^0.32.11",
-		"@polar-sh/sveltekit": "^0.4.0",
 		"@shikijs/langs": "^3.3.0",
 		"@shikijs/themes": "^3.3.0",
 		"@sveltejs/adapter-vercel": "^5.5.2",
@@ -40,7 +38,8 @@
 		"@vercel/functions": "^2.0.0",
 		"autoprefixer": "^10.4.20",
 		"badge-maker": "^4.1.0",
-		"better-auth": "^1.2.7",
+		"bcryptjs": "^3.0.2",
+		"better-auth": "1.2.8-beta.3",
 		"bits-ui": "1.3.19",
 		"clsx": "^2.1.1",
 		"drizzle-kit": "^0.31.0",
@@ -56,6 +55,7 @@
 		"luxon": "^3.6.1",
 		"mode-watcher": "^1.0.2",
 		"motion-start": "^0.1.5",
+		"nanoid": "^5.1.5",
 		"postgres": "^3.4.5",
 		"posthog-js": "^1.236.7",
 		"posthog-node": "^4.13.0",
@@ -76,7 +76,7 @@
 		"runed": "^0.25.0",
 		"semver": "^7.7.1",
 		"shiki": "^3.3.0",
-		"stripe": "^18.0.0",
+		"stripe": "18.0.0",
 		"svelte": "^5.28.2",
 		"svelte-check": "^4.0.0",
 		"svelte-inview": "^4.0.4",
@@ -101,7 +101,7 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
-			"core-js",
+			"bcrypt",
 			"esbuild"
 		]
 	}

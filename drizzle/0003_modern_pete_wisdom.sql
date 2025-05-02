@@ -1,0 +1,2 @@
+ALTER TABLE "subscription" ADD COLUMN "org_members" integer;--> statement-breakpoint
+ALTER TABLE "subscription" ADD COLUMN "has_enough_seats" boolean GENERATED ALWAYS AS (COALESCE("subscription"."seats" >= ("subscription"."org_members" - 1), false)) STORED NOT NULL;

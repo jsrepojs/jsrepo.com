@@ -2,10 +2,10 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getUser, nameIsBanned, getOrg, createOrg } from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, createOrg, getOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
-import { checkUserSubscription } from '$lib/ts/polar/client';
 import { redirectToLogin } from '$lib/auth/redirect';
+import { checkUserSubscription } from '$lib/ts/stripe/client';
 
 export async function load({ locals, url }) {
 	const form = await superValidate(valibot(schema));
@@ -18,8 +18,8 @@ export async function load({ locals, url }) {
 
 	assert(user !== null, 'user must be defined');
 
-	if (checkUserSubscription(user) !== 'Team') {
-		redirect(303, `/checkout/team`);
+	if (checkUserSubscription(user) === null) {
+		redirect(303, `/pricing`);
 	}
 
 	return {
@@ -41,7 +41,7 @@ export const actions = {
 
 		const userPromise = getUser(session.user.id);
 
-		const ogOrg = await getOrg(form.data.name);
+		const ogOrg = await getOrg({ name: form.data.name });
 
 		if (ogOrg !== null) {
 			return error(400, {
@@ -53,9 +53,9 @@ export const actions = {
 
 		assert(user !== null, 'User must be defined');
 
-		if (checkUserSubscription(user) !== 'Team') {
+		if (checkUserSubscription(user) === null) {
 			// we will rudely redirect them since they aren't supposed to be here anyways
-			redirect(303, '/checkout/team');
+			redirect(303, '/pricing');
 		}
 
 		if (await nameIsBanned(form.data.name)) {
@@ -64,10 +64,9 @@ export const actions = {
 			});
 		}
 
-		const org = await createOrg({
+		const org = await createOrg(session.user.id, {
 			name: form.data.name,
-			description: form.data.description,
-			ownerId: session.user.id
+			description: form.data.description
 		});
 
 		if (org === null) {

@@ -7,15 +7,27 @@ import {
 	getScope,
 	getUser,
 	nameIsBanned,
-	listMyScopes
+	listMyScopes,
+	listMyOrganizations,
+	getOrg,
+	type FullOrg
 } from '$lib/backend/db/functions';
 import assert from 'assert';
-import { checkUserSubscription } from '$lib/ts/polar/client';
+import { checkUserSubscription } from '$lib/ts/stripe/client';
+import { redirectToLogin } from '$lib/auth/redirect';
+import { immediate } from '$lib/ts/promises';
 
-export async function load() {
+export async function load({ locals, url }) {
+	const session = await locals.auth();
+
+	if (!session) redirectToLogin(url);
+
+	const orgs = await listMyOrganizations(session.user.id);
+
 	const form = await superValidate(valibot(schema));
 
 	return {
+		orgs,
 		form
 	};
 }
@@ -32,6 +44,14 @@ export const actions = {
 			return fail(400, { form });
 		}
 
+		let orgPromise: Promise<FullOrg | null>;
+
+		if (form.data.org === '') {
+			orgPromise = immediate(null);
+		} else {
+			orgPromise = getOrg({ name: form.data.org });
+		}
+
 		const promises = Promise.all([getUser(session.user.id), listMyScopes(session.user.id)]);
 
 		const scope = await getScope(form.data.name);
@@ -43,12 +63,29 @@ export const actions = {
 		}
 
 		const [user, scopes] = await promises;
+		const org = await orgPromise;
+
+		if (org === null && form.data.org !== '') {
+			return error(400, {
+				message: 'This organization does not exist'
+			});
+		}
+
+		if (org !== null) {
+			if (!org.members.find((m) => m.userId === session.user.id)) {
+				return error(401, {
+					message: 'You can only claim scopes for organizations you are a member of.'
+				});
+			}
+		}
 
 		assert(user !== null, 'User must be defined');
 
-		if (scopes.userScopes.length >= user.scopeLimit) {
-			if (!checkUserSubscription(user)) {
-				return error(400, { message: 'You are at your scope limit!' });
+		if (org === null) {
+			if (scopes.userScopes.length >= user.scopeLimit) {
+				if (!checkUserSubscription(user)) {
+					return error(400, { message: 'You are at your scope limit!' });
+				}
 			}
 		}
 
@@ -58,7 +95,11 @@ export const actions = {
 			});
 		}
 
-		const id = await createScope({ name: form.data.name, userId: session.user.id });
+		const id = await createScope({
+			name: form.data.name,
+			userId: org === null ? session.user.id : undefined,
+			orgId: org === null ? undefined : org.id
+		});
 
 		if (id === null) {
 			return error(500, 'There was an error creating the scope.');

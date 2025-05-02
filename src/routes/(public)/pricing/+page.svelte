@@ -1,6 +1,49 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Check } from '@lucide/svelte';
+	// import * as Tabs from '$lib/components/ui/tabs';
+	import { cn } from '$lib/utils/utils';
+	import { redirectToLogin } from '$lib/auth/redirect';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { authClient } from '$lib/auth/client.js';
+
+	let { data } = $props();
+
+	type Plan = {
+		monthly: number | null;
+		yearly: number | null;
+		features: string[];
+		cta: string;
+		per?: string;
+		preferred?: boolean;
+		successUrl?: string;
+	};
+
+	const plans: Record<'Pro' | 'Free', Plan> = {
+		Free: {
+			yearly: null,
+			monthly: null,
+			cta: 'Get Started For Free',
+			features: ['Publish and install code from public registries', '5 registry scopes']
+		},
+		Pro: {
+			yearly: 100,
+			monthly: 10,
+			per: 'user',
+			cta: 'Get Started',
+			features: [
+				'Publish and install code from private registries',
+				'Unlimited registry scopes',
+				'Organizations',
+				'Work with a team'
+			],
+			successUrl: '/account/organizations',
+			preferred: true
+		}
+	} as const;
+
+	let pricing = $state<'monthly' | 'yearly'>('monthly');
 </script>
 
 <svelte:head>
@@ -8,56 +51,96 @@
 </svelte:head>
 
 <div class="flex flex-col">
-	<div class="mt-28 flex flex-col place-items-center">
+	<div class="mt-[10svh] flex flex-col place-items-center gap-2">
 		<h1 class="text-6xl font-bold">Pricing</h1>
-		<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 py-8 lg:grid-cols-3">
-			<div
-				class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-1 lg:h-[400px]"
-			>
-				<div class="w-full text-center">
-					<h4 class="text-center text-4xl font-bold">Free</h4>
-					<span class="text-center text-2xl font-medium"> $0 / month </span>
-				</div>
-				<Button href="/login" variant="outline">Get Started for Free</Button>
-				{@render feature_list({
-					features: ['Publish and install code from public registries', '5 registry scopes']
-				})}
-			</div>
-			<div
-				class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border-2 border-primary bg-gradient-to-br from-card p-6 lg:col-start-2 lg:h-[400px]"
-			>
-				<div class="w-full text-center">
-					<h4 class="text-center text-4xl font-bold">Pro</h4>
-					<span class="text-center text-2xl font-medium"> $10 / month </span>
-				</div>
-				<Button href="/checkout/pro">Get Started</Button>
-				{@render feature_list({
-					features: [
-						'Unlimited registry scopes',
-						'Publish and install code from private registries'
-					]
-				})}
-			</div>
-			<div
-				class="flex h-full w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:col-start-3 lg:h-[400px]"
-			>
-				<div class="w-full text-center">
-					<h4 class="text-center text-4xl font-bold">Team</h4>
-					<span class="text-center text-2xl font-medium"> $25 / month* </span>
-				</div>
-				<Button href="/checkout/team" variant="outline">Get Stared</Button>
-				{@render feature_list({
-					features: [
-						'Unlimited registry scopes',
-						'Publish and install code from private registries',
-						'Create and invite team members to organizations'
-					]
-				})}
+		<p class="text-center text-lg text-muted-foreground">Decide what's right for you.</p>
+		<div class="flex flex-col place-items-center justify-center gap-4 py-8">
+			<!-- <Tabs.Root bind:value={pricing}>
+				<Tabs.List>
+					<Tabs.Trigger value="monthly">Monthly</Tabs.Trigger>
+					<Tabs.Trigger value="yearly" class="w-36">
+						Yearly
+						<span
+							class="text-nowrap rounded-lg bg-primary/20 px-1.5 py-0.5 text-xs text-primary/80"
+						>
+							-20 %
+						</span>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root> -->
+			<div class="grid w-fit max-w-6xl grid-cols-1 place-items-center gap-4 lg:grid-cols-2">
+				{#each Object.entries(plans) as [name, plan], i (name)}
+					<div
+						class={cn(
+							`col-start-1 flex h-full !lg:[--col-start:${i + 1}] w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/50 p-6 lg:h-[450px]`,
+							{
+								'border-primary': plan.preferred
+							}
+						)}
+						style="grid-column-start: var(--col-start);"
+					>
+						<div class="flex w-full flex-col gap-2 text-left">
+							<h3 class="flex place-items-center gap-2 text-left text-2xl">
+								{name}
+								{#if pricing === 'yearly' && plan.yearly !== null}
+									<span
+										class="text-nowrap rounded-lg bg-primary/20 px-1.5 py-0.5 text-xs text-primary/80"
+									>
+										-20 %
+									</span>
+								{/if}
+							</h3>
+							<div class="flex flex-col">
+								<span class="flex place-items-end gap-1 text-left text-5xl font-medium">
+									{#if pricing === 'monthly'}
+										${plan.monthly ? plan.monthly : 0}
+									{:else}
+										${plan.yearly ? plan.yearly : 0}
+									{/if}
+									{#if plan.per}
+										<span class="mb-1 text-sm text-muted-foreground">
+											per {plan.per}
+										</span>
+									{/if}
+								</span>
+								<span>per {pricing === 'monthly' ? 'month' : 'year'}</span>
+							</div>
+						</div>
+						{@render feature_list({
+							features: plan.features
+						})}
+						<Button
+							onClickPromise={async () => {
+								if (name === 'Free') return;
+
+								if (!data.session) return;
+
+								const user = await data.userPromise;
+
+								if (user?.subscription !== null) {
+									await goto('/account');
+									return;
+								}
+
+								await authClient.subscription.upgrade({
+									plan: name,
+									successUrl: plan.successUrl,
+									referenceId: data.session.user.id
+								});
+							}}
+							href={name === 'Free'
+								? '/login'
+								: data.session === null
+									? redirectToLogin(page.url)
+									: undefined}
+							variant={plan.preferred ? 'default' : 'outline'}
+						>
+							{plan.cta}
+						</Button>
+					</div>
+				{/each}
 			</div>
 		</div>
-		<span class="text-sm text-muted-foreground">
-			*Pricing may change as we are still just getting started.
-		</span>
 	</div>
 	<div class="my-20 flex flex-col place-items-center justify-center gap-2">
 		<h2 class="text-center text-3xl font-bold">Can't decide?</h2>
@@ -69,7 +152,7 @@
 </div>
 
 {#snippet feature_list({ features }: { features: string[] })}
-	<ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
 		{#each features as feature (feature)}
 			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
 				<span class="flex h-[var(--line-height)] place-items-center justify-center">

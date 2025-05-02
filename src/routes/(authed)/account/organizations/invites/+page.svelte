@@ -7,6 +7,7 @@
 	import type { AcceptInviteRequest } from '../../../../api/orgs/[org]/members/invite/accept/+server.js';
 	import type { RejectInviteRequest } from '../../../../api/orgs/[org]/members/invite/reject/+server.js';
 	import * as casing from '$lib/ts/casing';
+	import { toast } from 'svelte-sonner';
 
 	let { data } = $props();
 
@@ -31,9 +32,13 @@
 
 				if (response.ok) {
 					await invalidateAll();
+				} else {
+					const err = await response.json();
+
+					toast.error('Error rejecting invitation', { description: err.message });
 				}
 			} else {
-				const response = await fetch(`/api/orgs/@${orgName}/members/invite/accept`, {
+				const response = await fetch(`/api/orgs/${orgName}/members/invite/accept`, {
 					method: 'PATCH',
 					headers: {
 						'content-type': 'application/json'
@@ -43,6 +48,12 @@
 
 				if (response.ok) {
 					await invalidateAll();
+
+					toast.success(`Joined ${orgName}!`);
+				} else {
+					const err = await response.json();
+
+					toast.error('Error accepting invitation', { description: err.message });
 				}
 			}
 		}

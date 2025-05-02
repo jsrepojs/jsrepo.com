@@ -8,7 +8,7 @@
 	import type { TransferRequestResponse } from '../../../../api/scopes/[scope=scope]/transfer/+server.js';
 	import { authClient } from '$lib/auth/client.js';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
-	import { getOwnerName, isSameScopeOwner } from '$lib/backend/db/client-functions.js';
+	import { isSameScopeOwner } from '$lib/backend/db/client-functions.js';
 	import { goto, invalidateAll } from '$app/navigation';
 	import type { CancelTransferRequestRequest } from '../../../../api/scopes/[scope=scope]/transfer/cancel/+server.js';
 	import { toRelative } from '$lib/ts/dates.js';
@@ -29,7 +29,7 @@
 			}
 
 			if (
-				isSameScopeOwner(userOrOrg, { scope: data.scope, user: data.owner, org: data.ownerOrg })
+				isSameScopeOwner(userOrOrg, { ...data.scope, user: data.scope.user, org: data.scope.org })
 			) {
 				return false;
 			}
@@ -83,19 +83,29 @@
 		await invalidateAll();
 	});
 
-	const ownerName = $derived(
-		getOwnerName({ scope: data.scope, user: data.owner, org: data.ownerOrg })
+	const isOwner = $derived(
+		data.scope.userId === $session.data?.user.id ||
+			data.scope.org?.members.find((m) => m.userId === $session.data?.user.id && m.role === 'owner')
 	);
 </script>
 
 <div class="flex flex-col gap-4">
 	<FieldSet.Root>
 		<FieldSet.Content>
-			<FieldSet.Title>Owned by {ownerName}</FieldSet.Title>
+			<FieldSet.Title>
+				Owned by
+				{#if data.scope.org}
+					<a href="/{data.scope.org.name}" class="underline-offset-2 hover:underline">
+						{data.scope.org.name}
+					</a>
+				{:else}
+					{data.scope.user?.name}
+				{/if}
+			</FieldSet.Title>
 			<small class="text-muted-foreground">Claimed {toRelative(data.scope.claimedAt)}</small>
 		</FieldSet.Content>
 	</FieldSet.Root>
-	{#if data.owner.id === $session.data?.user.id}
+	{#if isOwner}
 		{#if activeTransferRequest}
 			<FieldSet.Root variant="destructive">
 				<FieldSet.Content>

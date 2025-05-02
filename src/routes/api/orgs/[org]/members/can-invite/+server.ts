@@ -1,8 +1,4 @@
-import {
-	getOrgInvitesForEmail,
-	getOrgWithMembers,
-	getUserByEmail
-} from '$lib/backend/db/functions.js';
+import { getOrgInvitesForEmail, getOrg, getUserByEmail } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
 export async function GET({ params, url, locals }) {
@@ -15,11 +11,11 @@ export async function GET({ params, url, locals }) {
 
 	if (email === null) error(400, 'expected email query param');
 
-	const org = await getOrgWithMembers(orgName);
+	const org = await getOrg({ name: orgName });
 
 	if (!org) error(404);
 
-	const alreadyAMember = org.members.find((m) => m.email === email) !== undefined;
+	const alreadyAMember = org.members.find((m) => m.user.email === email) !== undefined;
 
 	if (alreadyAMember) error(400, 'user is already a member of your org');
 

@@ -1,19 +1,21 @@
 import { betterAuth } from 'better-auth';
-import { apiKey, createAuthMiddleware, admin } from 'better-auth/plugins';
+import { apiKey, admin } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from '$env/static/private';
-import { polar } from './ts/polar';
-import { getUser } from './backend/db/functions';
-import assert from 'assert';
-import { posthog } from './ts/posthog';
-import { eq } from 'drizzle-orm';
+import { BETTER_AUTH_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
 import { resend, welcomeEmail } from './ts/resend';
+import { stripe } from '@better-auth/stripe';
+import { stripeClient } from './ts/stripe';
+import { plans } from './ts/stripe/client';
+import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
+import assert from 'assert';
+import { eq, like, and, gt } from 'drizzle-orm';
 
 export type Providers = 'github';
 
 export const auth = betterAuth({
+	secret: BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema
@@ -25,7 +27,132 @@ export const auth = betterAuth({
 				enabled: false
 			}
 		}),
-		admin()
+		admin(),
+		stripe({
+			stripeClient,
+			stripeWebhookSecret: STRIPE_WEBHOOK_SECRET,
+			createCustomerOnSignUp: true,
+			onCustomerCreate: async ({ user }) => {
+				await resend.emails.send(welcomeEmail(user));
+			},
+			subscription: {
+				enabled: true,
+				onSubscriptionComplete: async ({ subscription }) => {
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
+
+						// update members count
+						await db
+							.update(schema.subscription)
+							.set({ members: org?.members.length ?? 1 })
+							.where(eq(schema.subscription.id, subscription.id));
+					}
+				},
+				onSubscriptionUpdate: async ({ subscription }) => {
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
+
+						if (!org) return;
+
+						// only the owner
+						if (org.members.length <= 1) return;
+
+						const neededSeats = org.members.length - 1;
+
+						if (neededSeats <= (subscription.seats ?? 0)) {
+							return;
+						}
+
+						// already exhausted the courtesy month
+						if (
+							org.courtesyMonthEndedAt !== null &&
+							org.courtesyMonthEndedAt.valueOf() < Date.now()
+						) {
+							return;
+						}
+
+						// start a courtesy month
+						await startCourtesyMonth(org.id);
+					}
+				},
+				onSubscriptionDeleted: async ({ subscription }) => {
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
+
+						if (!org) return;
+
+						// only the owner
+						if (org.members.length <= 1) return;
+
+						// already exhausted the courtesy month
+						if (
+							org.courtesyMonthEndedAt !== null &&
+							org.courtesyMonthEndedAt.valueOf() < Date.now()
+						) {
+							return;
+						}
+
+						// start a courtesy month
+						await startCourtesyMonth(org.id);
+					} else {
+						// get any org subs this user is responsible for
+						const orgSubscriptions = await db
+							.select()
+							.from(schema.subscription)
+							.where(
+								and(
+									eq(schema.subscription.stripeCustomerId, subscription.stripeCustomerId ?? ''),
+									eq(schema.subscription.status, 'active'),
+									like(schema.subscription.referenceId, 'org_%'),
+									gt(schema.subscription.members, 0)
+								)
+							);
+
+						if (orgSubscriptions.length === 0) return;
+
+						// start a courtesy month for any orgs that the user owns
+						await Promise.all(orgSubscriptions.map((sub) => startCourtesyMonth(sub.referenceId)));
+					}
+				},
+				authorizeReference: async ({ user, referenceId }) => {
+					const isOrg = referenceId.startsWith('org_');
+
+					const userWithSub = await getUser(user.id);
+
+					// user can only create and manage subscriptions to an org if they have a subscription
+					if (isOrg && userWithSub?.subscription === null) return false;
+
+					if (!isOrg) {
+						// don't create a duplicate subscription for the user
+						if (userWithSub?.subscription !== null) {
+							return false;
+						}
+
+						assert(
+							referenceId === user.id,
+							'user is trying to subscribe with a reference id that is not their own'
+						);
+
+						return true;
+					}
+
+					// check if user owns the org the id belongs to
+					const org = await getOrg({ id: referenceId });
+
+					if (org === null) return false;
+
+					const member = org.members.find((m) => m.userId === user.id && m.role === 'owner');
+
+					// user is not an owning member
+					if (!member) {
+						return false;
+					}
+
+					return true;
+				},
+				plans
+			}
+		})
 	],
 	socialProviders: {
 		github: {
@@ -38,79 +165,5 @@ export const auth = betterAuth({
 			enabled: true,
 			maxAge: 5 * 60
 		}
-	},
-	hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			// there's no good way to determine if a user has an account and is banned or if the user doesn't exist
-			// if (ctx.context.returned instanceof APIError) {
-			// 	const returned = ctx.context.returned;
-
-			// 	if (returned.body?.code === "BANNED_USER") {
-			// 		throw ctx.redirect('/account-suspended')
-			// 	}
-			// }
-
-			// create polar customer id and sync subscription on sign in
-			if (ctx.path.startsWith('/callback')) {
-				const newSession = ctx.context.newSession;
-
-				if (newSession) {
-					let user: schema.User | null = null;
-
-					try {
-						user = await getUser(newSession.user.id);
-
-						assert(user !== null, 'User must be defined');
-
-						// create a new polar customer id on the first sign in
-						if (user.polarCustomerId === null) {
-							const res = resend.emails.send(welcomeEmail(user));
-
-							const result = await polar.customers.create({
-								externalId: newSession.user.id,
-								name: newSession.user.name,
-								email: newSession.user.email
-							});
-
-							await db
-								.update(schema.user)
-								.set({ polarCustomerId: result.id })
-								.where(eq(schema.user.id, user.id));
-
-							await res;
-						} else {
-							// sync the current subscription with the database
-							// it should already by synced by the webhooks but this is a precautionary measure
-							const result = await polar.customers.getState({ id: user.polarCustomerId });
-
-							// we should only ever have 1 active subscription
-							if (result.activeSubscriptions.length > 0) {
-								const subscription = result.activeSubscriptions[0];
-
-								// if the active subscription doesn't match the polar db then update it
-								if (subscription.productId === user.polarSubscriptionPlanId) {
-									await db
-										.update(schema.user)
-										.set({ polarSubscriptionPlanId: subscription.productId })
-										.where(eq(schema.user.id, user.id));
-								}
-							} else if (
-								user.polarSubscriptionPlanId !== null ||
-								user.polarSubscriptionPlanEnd !== null
-							) {
-								// remove the subscription plan id if the user isn't subscribed
-								await db
-									.update(schema.user)
-									.set({ polarSubscriptionPlanId: null, polarSubscriptionPlanEnd: null })
-									.where(eq(schema.user.id, user.id));
-							}
-						}
-					} catch (err) {
-						posthog.captureException(err, user?.id, { path: ctx.path });
-						await posthog.shutdown();
-					}
-				}
-			}
-		})
 	}
 });

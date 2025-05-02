@@ -9,7 +9,11 @@
 		<h1 class="text-center font-mono font-bold" style="font-size: 150px;">
 			{page.status}
 		</h1>
-		<p class="text-center text-muted-foreground">Whoops, something went wrong!</p>
+		{#if page.status !== 404}
+			<p class="text-center text-muted-foreground">Whoops, something went wrong!</p>
+		{:else}
+			<p class="text-center text-muted-foreground">Seems like you lost your way!</p>
+		{/if}
 		<div class="flex flex-wrap place-items-center justify-center gap-6 py-4 text-muted-foreground">
 			<BlurFade delay={100 / 1000}>
 				<a href="/" class="transition-all hover:text-foreground"> Home </a>
