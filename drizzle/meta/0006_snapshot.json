@@ -1,6 +1,6 @@
 {
-	"id": "36977867-6a3b-4ed2-ab34-bb41cedb3c8f",
-	"prevId": "97536c68-3c00-40d6-a4a1-2118b43b7d93",
+	"id": "f8030b27-3c8d-425e-a249-24eb3d33074d",
+	"prevId": "642a5b53-325b-460e-adc3-66022d6fd142",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -115,6 +115,38 @@
 					"onUpdate": "no action"
 				}
 			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": true
+		},
+		"public.anon_session": {
+			"name": "anon_session",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"code": {
+					"name": "code",
+					"type": "varchar(6)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"expires": {
+					"name": "expires",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": false,
+					"default": "'2025-05-01 18:29:27.079'"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
 			"policies": {},
@@ -250,6 +282,18 @@
 					"type": "text",
 					"primaryKey": false,
 					"notNull": false
+				},
+				"device_session_id": {
+					"name": "device_session_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"device_activated": {
+					"name": "device_activated",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": false
 				}
 			},
 			"indexes": {
@@ -258,6 +302,21 @@
 					"columns": [
 						{
 							"expression": "key",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"apikey_device_session_id_idx": {
+					"name": "apikey_device_session_id_idx",
+					"columns": [
+						{
+							"expression": "device_session_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"

@@ -1,6 +1,6 @@
 {
-	"id": "36977867-6a3b-4ed2-ab34-bb41cedb3c8f",
-	"prevId": "97536c68-3c00-40d6-a4a1-2118b43b7d93",
+	"id": "ce826a9e-16b3-4deb-b073-6c6a07c25b13",
+	"prevId": "d5c41c0e-8c64-46a0-a032-161056de8ed8",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -250,6 +250,24 @@
 					"type": "text",
 					"primaryKey": false,
 					"notNull": false
+				},
+				"device_hardware_id": {
+					"name": "device_hardware_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"device_session_id": {
+					"name": "device_session_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"device_activated": {
+					"name": "device_activated",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": false
 				}
 			},
 			"indexes": {
@@ -258,6 +276,36 @@
 					"columns": [
 						{
 							"expression": "key",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"apikey_device_session_id_idx": {
+					"name": "apikey_device_session_id_idx",
+					"columns": [
+						{
+							"expression": "device_session_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"apikey_device_hardware_id_idx": {
+					"name": "apikey_device_hardware_id_idx",
+					"columns": [
+						{
+							"expression": "device_hardware_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"

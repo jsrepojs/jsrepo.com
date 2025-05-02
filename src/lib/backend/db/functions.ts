@@ -19,7 +19,7 @@ import {
 	not,
 	gt
 } from 'drizzle-orm';
-import { generateId } from 'better-auth';
+import { generateId, type User } from 'better-auth';
 import assert from 'assert';
 import { db } from '.';
 import * as tables from './schema';
@@ -28,9 +28,13 @@ import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import * as v from 'valibot';
 import { posthog } from '$lib/ts/posthog';
-import { DAY } from '$lib/ts/time';
+import { DAY, MINUTE } from '$lib/ts/time';
 import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
 import { lower } from './schema';
+import { customAlphabet, nanoid } from 'nanoid';
+import * as crypto from '$lib/ts/crypto';
+import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
+import { auth } from '$lib/auth';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -498,12 +502,11 @@ export async function getFiles(
 }
 
 export async function listApiKeys(userId: string) {
+	const { key: _, ...columnsWithoutKey } = getTableColumns(tables.apikey);
+
 	const keys = await db
 		.select({
-			id: tables.apikey.id,
-			name: tables.apikey.name,
-			expiresAt: tables.apikey.expiresAt,
-			createdAt: tables.apikey.createdAt
+			...columnsWithoutKey
 		})
 		.from(tables.apikey)
 		.where(eq(tables.apikey.userId, userId))
@@ -1537,4 +1540,192 @@ export async function startCourtesyMonth(orgId: string) {
 		.returning();
 
 	return result.length > 0;
+}
+
+export async function createAnonSession(hardwareId: string): Promise<tables.AnonSession | null> {
+	const sessions = await db
+		.insert(tables.anonSession)
+		.values({ id: nanoid(), hardwareId, expires: new Date(Date.now() + 15 * MINUTE) })
+		.returning();
+
+	if (sessions.length === 0) return null;
+
+	return sessions[0];
+}
+
+export async function getAnonSession(id: string): Promise<tables.AnonSession | null> {
+	const sessions = await db.select().from(tables.anonSession).where(eq(tables.anonSession.id, id));
+
+	if (sessions.length === 0) return null;
+
+	return sessions[0];
+}
+
+export async function createAnonSessionCode(user: User, anonSessionId: string) {
+	return await db.transaction(async (tx) => {
+		const code = customAlphabet('1234567890', 6)();
+		const codeHash = crypto.hash(code);
+
+		// ensure session isn't expired and it hasn't been authorized
+		const sessions = await tx
+			.select()
+			.from(tables.anonSession)
+			.where(
+				and(
+					eq(tables.anonSession.id, anonSessionId),
+					gt(tables.anonSession.expires, new Date()),
+					isNull(tables.anonSession.authorizedToUserId)
+				)
+			);
+
+		if (sessions.length === 0) return false;
+
+		// revoke old codes
+		await tx
+			.delete(tables.anonSessionCode)
+			.where(
+				and(
+					eq(tables.anonSessionCode.anonSessionId, anonSessionId),
+					eq(tables.anonSessionCode.userId, user.id)
+				)
+			);
+
+		const codes = await tx
+			.insert(tables.anonSessionCode)
+			.values({
+				anonSessionId,
+				userId: user.id,
+				codeHash
+			})
+			.returning();
+
+		if (codes.length === 0) {
+			tx.rollback();
+		}
+
+		const result = await resend.emails.send({
+			from: SUPPORT_EMAIL,
+			to: [user.email],
+			subject: 'Device Authorization Code',
+			text: `Your jsrepo.com device authorization code is ${code}`
+		});
+
+		if (result.error !== null) {
+			tx.rollback();
+		}
+
+		return true;
+	});
+}
+
+export async function hasAnonSessionCode(userId: string, sessionId: string): Promise<boolean> {
+	const codes = await db
+		.select()
+		.from(tables.anonSessionCode)
+		.where(
+			and(
+				eq(tables.anonSessionCode.anonSessionId, sessionId),
+				eq(tables.anonSessionCode.userId, userId)
+			)
+		);
+
+	if (codes.length === 0) return false;
+
+	return true;
+}
+
+export async function getAnonSessionCodes(
+	userId: string,
+	sessionId: string
+): Promise<tables.AnonSessionCode[]> {
+	return await db
+		.select()
+		.from(tables.anonSessionCode)
+		.where(
+			and(
+				eq(tables.anonSessionCode.userId, userId),
+				eq(tables.anonSessionCode.anonSessionId, sessionId)
+			)
+		);
+}
+
+export async function useAnonSessionCode(
+	code: tables.AnonSessionCode,
+	headers: Headers
+): Promise<tables.APIKey | null> {
+	return await db.transaction(async (tx) => {
+		// update the session so it can't be used again
+		const sessions = await tx
+			.update(tables.anonSession)
+			.set({ authorizedToUserId: code.userId })
+			.where(
+				and(
+					eq(tables.anonSession.id, code.anonSessionId),
+
+					// if this session is already authorized then we can't re-auth
+					isNull(tables.anonSession.authorizedToUserId)
+				)
+			)
+			.returning();
+
+		if (sessions.length === 0) {
+			return null;
+		}
+
+		const session = sessions[0];
+
+		let keyId = '';
+
+		try {
+			const { id } = await auth.api.createApiKey({
+				body: {
+					permissions: {
+						registries: ['publish']
+					},
+					userId: code.userId
+				},
+				headers: headers
+			});
+
+			keyId = id;
+		} catch {
+			tx.rollback();
+		}
+
+		const apiKeys = await tx
+			.update(tables.apikey)
+			.set({
+				deviceHardwareId: session.hardwareId,
+				deviceSessionId: session.id,
+				deviceActivated: false,
+				mustBeActivatedBefore: new Date(Date.now() + MINUTE)
+			})
+			.where(eq(tables.apikey.id, keyId))
+			.returning();
+
+		if (apiKeys.length === 0) {
+			tx.rollback();
+		}
+
+		return apiKeys[0];
+	});
+}
+
+export async function activateKey(sessionId: string, hardwareId: string): Promise<string | null> {
+	const keys = await db
+		.update(tables.apikey)
+		.set({ deviceActivated: true })
+		.where(
+			and(
+				eq(tables.apikey.deviceSessionId, sessionId),
+				eq(tables.apikey.deviceActivated, false),
+				eq(tables.apikey.deviceHardwareId, hardwareId),
+				gt(tables.apikey.mustBeActivatedBefore, new Date())
+			)
+		)
+		.returning();
+
+	if (keys.length === 0) return null;
+
+	return keys[0].key;
 }

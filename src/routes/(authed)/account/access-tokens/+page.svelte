@@ -9,6 +9,7 @@
 	import { newTokenContext } from '$lib/context.svelte.js';
 	import { Snippet } from '$lib/components/ui/snippet/index.js';
 	import * as List from '$lib/components/site/list';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
@@ -30,6 +31,9 @@
 
 	let deleteDialogOpen = $state(false);
 
+	const regularTokens = $derived(data.apiKeys.filter((key) => !key.deviceActivated));
+	const deviceTokens = $derived(data.apiKeys.filter((key) => key.deviceActivated));
+
 	async function deleteApiKey() {
 		if (!keyToDelete) return;
 
@@ -39,14 +43,7 @@
 
 		if (result.data?.success) {
 			// fetch tokens
-			const keys = await authClient.apiKey.list();
-
-			if (keys.data !== null) {
-				apiKeys = keys.data.sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
-				if (newKey?.id === keyToDelete.id) {
-					newKey = null;
-				}
-			}
+			await invalidateAll();
 		}
 
 		deletingKey = false;
@@ -85,9 +82,32 @@
 					<Snippet text={newKey.key} variant="secondary" />
 				{/if}
 				<List.List>
-					{#each apiKeys as apiKey (apiKey.id)}
+					{#each regularTokens as apiKey (apiKey.id)}
 						<List.Item class="flex place-items-center justify-between">
 							<span class="text-lg font-medium">{apiKey.name}</span>
+							<div class="flex place-items-center gap-2">
+								<span class="text-sm text-muted-foreground">
+									Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
+								</span>
+								<Dialog.Trigger
+									onclick={() => (keyToDelete = apiKey)}
+									class={cn(
+										buttonVariants({ variant: 'outline', size: 'icon' }),
+										'size-5 text-destructive hover:text-destructive'
+									)}
+								>
+									<X />
+								</Dialog.Trigger>
+							</div>
+						</List.Item>
+					{/each}
+				</List.List>
+			</List.Root>
+			<List.Root title="Your Device Tokens">
+				<List.List>
+					{#each deviceTokens as apiKey (apiKey.id)}
+						<List.Item class="flex place-items-center justify-between">
+							<span class="text-lg font-medium">{apiKey.deviceHardwareId}</span>
 							<div class="flex place-items-center gap-2">
 								<span class="text-sm text-muted-foreground">
 									Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}

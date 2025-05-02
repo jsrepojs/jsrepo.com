@@ -142,14 +142,56 @@ export const apikey = pgTable(
 		createdAt: timestamp('created_at').notNull(),
 		updatedAt: timestamp('updated_at').notNull(),
 		permissions: text('permissions'),
-		metadata: text('metadata')
+		metadata: text('metadata'),
+		deviceHardwareId: text('device_hardware_id'),
+		deviceSessionId: text('device_session_id'),
+		deviceActivated: boolean('device_activated'),
+		mustBeActivatedBefore: timestamp('must_be_activated_before')
 	},
 	(table) => {
-		return [index('apikey_key_idx').on(table.key)];
+		return [
+			index('apikey_key_idx').on(table.key),
+			index('apikey_device_session_id_idx').on(table.deviceSessionId),
+			index('apikey_device_hardware_id_idx').on(table.deviceHardwareId)
+		];
 	}
 ).enableRLS();
 
 export type APIKey = InferSelectModel<typeof apikey>;
+
+export const anonSession = pgTable('anon_session', {
+	id: text('id').primaryKey(),
+	hardwareId: text('hardware_id').notNull(),
+	// expires in 5 minutes
+	expires: timestamp('expires').notNull(),
+	authorizedToUserId: text('authorized_to_user_id').references(() => user.id, {
+		onDelete: 'cascade'
+	})
+}).enableRLS();
+
+export type AnonSession = InferSelectModel<typeof anonSession>;
+
+export const anonSessionCode = pgTable(
+	'anon_session_code',
+	{
+		id: serial('id').primaryKey(),
+		anonSessionId: text('anon_session_id')
+			.notNull()
+			.references(() => anonSession.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		codeHash: text('code_hash').notNull()
+	},
+	(table) => {
+		return [
+			index('anon_session_code_session_id_idx').on(table.anonSessionId),
+			index('anon_session_code_user_id_idx').on(table.userId)
+		];
+	}
+).enableRLS();
+
+export type AnonSessionCode = InferSelectModel<typeof anonSessionCode>;
 
 export const subscription = pgTable(
 	'subscription',
