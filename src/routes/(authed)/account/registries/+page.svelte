@@ -13,9 +13,7 @@
 <div class="flex flex-col gap-4">
 	<List.Root title="Your Registries">
 		{#snippet actions()}
-			<Button
-				href="/account/new-registry"
-			>
+			<Button href="/account/new-registry">
 				<Plus /> New
 			</Button>
 		{/snippet}

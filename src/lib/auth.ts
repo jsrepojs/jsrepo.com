@@ -3,18 +3,19 @@ import { apiKey, admin } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
+import { BETTER_AUTH_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
 import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
 import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
 import assert from 'assert';
-import { eq } from 'drizzle-orm';
+import { eq, like, and, gt } from 'drizzle-orm';
 
 export type Providers = 'github';
 
 export const auth = betterAuth({
+	secret: BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema
@@ -37,63 +38,81 @@ export const auth = betterAuth({
 			subscription: {
 				enabled: true,
 				onSubscriptionComplete: async ({ subscription }) => {
-					if (!subscription.referenceId.startsWith('org_')) return;
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
 
-					const org = await getOrg({ id: subscription.referenceId });
-
-					// update members count
-					await db
-						.update(schema.subscription)
-						.set({ members: org?.members.length ?? 1 })
-						.where(eq(schema.subscription.id, subscription.id));
+						// update members count
+						await db
+							.update(schema.subscription)
+							.set({ members: org?.members.length ?? 1 })
+							.where(eq(schema.subscription.id, subscription.id));
+					}
 				},
 				onSubscriptionUpdate: async ({ subscription }) => {
-					if (!subscription.referenceId.startsWith('org_')) return;
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
 
-					const org = await getOrg({ id: subscription.referenceId });
+						if (!org) return;
 
-					if (!org) return;
+						// only the owner
+						if (org.members.length <= 1) return;
 
-					// only the owner
-					if (org.members.length <= 1) return;
+						const neededSeats = org.members.length - 1;
 
-					const neededSeats = org.members.length - 1;
+						if (neededSeats <= (subscription.seats ?? 0)) {
+							return;
+						}
 
-					if (neededSeats <= (subscription.seats ?? 0)) {
-						return;
+						// already exhausted the courtesy month
+						if (
+							org.courtesyMonthEndedAt !== null &&
+							org.courtesyMonthEndedAt.valueOf() < Date.now()
+						) {
+							return;
+						}
+
+						// start a courtesy month
+						await startCourtesyMonth(org.id);
 					}
-
-					// already exhausted the courtesy month
-					if (
-						org.courtesyMonthEndedAt !== null &&
-						org.courtesyMonthEndedAt.valueOf() < Date.now()
-					) {
-						return;
-					}
-
-					// start a courtesy month
-					await startCourtesyMonth(org.id);
 				},
 				onSubscriptionDeleted: async ({ subscription }) => {
-					if (!subscription.referenceId.startsWith('org_')) return;
+					if (subscription.referenceId.startsWith('org_')) {
+						const org = await getOrg({ id: subscription.referenceId });
 
-					const org = await getOrg({ id: subscription.referenceId });
+						if (!org) return;
 
-					if (!org) return;
+						// only the owner
+						if (org.members.length <= 1) return;
 
-					// only the owner
-					if (org.members.length <= 1) return;
+						// already exhausted the courtesy month
+						if (
+							org.courtesyMonthEndedAt !== null &&
+							org.courtesyMonthEndedAt.valueOf() < Date.now()
+						) {
+							return;
+						}
 
-					// already exhausted the courtesy month
-					if (
-						org.courtesyMonthEndedAt !== null &&
-						org.courtesyMonthEndedAt.valueOf() < Date.now()
-					) {
-						return;
+						// start a courtesy month
+						await startCourtesyMonth(org.id);
+					} else {
+						// get any org subs this user is responsible for
+						const orgSubscriptions = await db
+							.select()
+							.from(schema.subscription)
+							.where(
+								and(
+									eq(schema.subscription.stripeCustomerId, subscription.stripeCustomerId ?? ''),
+									eq(schema.subscription.status, 'active'),
+									like(schema.subscription.referenceId, 'org_%'),
+									gt(schema.subscription.members, 0)
+								)
+							);
+
+						if (orgSubscriptions.length === 0) return;
+
+						// start a courtesy month for any orgs that the user owns
+						await Promise.all(orgSubscriptions.map((sub) => startCourtesyMonth(sub.referenceId)));
 					}
-
-					// start a courtesy month
-					await startCourtesyMonth(org.id);
 				},
 				authorizeReference: async ({ user, referenceId }) => {
 					const isOrg = referenceId.startsWith('org_');

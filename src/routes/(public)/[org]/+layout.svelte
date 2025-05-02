@@ -12,37 +12,23 @@
 </script>
 
 <!-- seats warning banner -->
-{#if data.member && data.org.members.length - 1 > (data.org.subscription?.seats ?? 0)}
+{#if data.member && data.org.status.type !== 'paid'}
 	<div
 		class="fixed left-0 top-[--header-height] w-full bg-destructive py-2 text-destructive-foreground"
 	>
 		<div class="container">
-			{#if data.org.courtesyMonthEndedAt !== null && data.org.courtesyMonthEndedAt?.valueOf() > Date.now()}
-				<span>
-					This organization has more members than seats. Remove a member or buy more seats before {data.org.courtesyMonthEndedAt.toDateString()}
-					to keep your team from losing access.
-				</span>
-			{:else}
-				<span>
-					This organization has more members than seats. Your team will have limited access until
-					you remove a member or buy more seats.
-				</span>
-			{/if}
+			<span>
+				{data.org.status.message}
+			</span>
 		</div>
 	</div>
 	<!-- surely there's a better way to do this but idk right now -->
 	<div class="py-2 opacity-0">
-		{#if data.org.courtesyMonthEndedAt !== null && data.org.courtesyMonthEndedAt?.valueOf() > Date.now()}
+		<div>
 			<span>
-				This organization has more members than seats. Remove a member or buy more seats before {data.org.courtesyMonthEndedAt.toDateString()}
-				to keep your team from losing access.
+				{data.org.status.message}
 			</span>
-		{:else}
-			<span>
-				This organization has more members than seats. Your team will have limited access until you
-				remove a member or buy more seats.
-			</span>
-		{/if}
+		</div>
 	</div>
 {/if}
 <div class="flex flex-col py-6">

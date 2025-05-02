@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { ArrowRight, Building, KeyRound, Notebook, Plus, Settings, Telescope } from '@lucide/svelte';
+	import {
+		ArrowRight,
+		Building,
+		KeyRound,
+		Notebook,
+		Plus,
+		Settings,
+		Telescope
+	} from '@lucide/svelte';
 </script>
 
 <svelte:head>

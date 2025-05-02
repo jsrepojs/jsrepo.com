@@ -20,8 +20,6 @@
 		expiresAt: Date | null;
 	};
 
-	let apiKeys = $state(data.apiKeys);
-
 	const newKeyCtx = newTokenContext.get();
 
 	let newKey = $state($state.snapshot(newKeyCtx.current));

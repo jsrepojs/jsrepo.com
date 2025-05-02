@@ -36,8 +36,7 @@ export const user = pgTable(
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
 		banExpires: timestamp('bar_expires'),
-		stripeCustomerId: text('stripe_customer_id'),
-		hasBeenDelinquent: boolean('has_been_delinquent').notNull().default(false)
+		stripeCustomerId: text('stripe_customer_id')
 	},
 	(table) => {
 		return [

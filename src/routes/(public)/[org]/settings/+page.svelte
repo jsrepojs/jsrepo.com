@@ -55,6 +55,9 @@
 		} else {
 			const response = await fetch(`/api/orgs/${data.org.name}/seats`, {
 				method: 'PATCH',
+				headers: {
+					'content-type': 'application/json'
+				},
 				body: JSON.stringify({ seats: newSeats })
 			});
 

@@ -17,7 +17,8 @@ import {
 	SQL,
 	countDistinct,
 	not,
-	gt
+	gt,
+	notLike
 } from 'drizzle-orm';
 import { generateId, type User } from 'better-auth';
 import assert from 'assert';
@@ -49,7 +50,12 @@ export type UserWithSubscription = tables.User & {
 export type FullOrg = tables.Org & {
 	subscription: tables.Subscription | null;
 	members: (tables.OrgMember & { user: tables.User })[];
-	status: 'paid' | 'freebee' | 'delinquent';
+	status: {
+		type: 'paid' | 'freebee' | 'delinquent';
+		message?: string;
+	};
+	billPayer: tables.User | null;
+	billPayerSubscription: tables.Subscription | null;
 };
 
 export async function canPublishToScope(
@@ -81,7 +87,7 @@ export async function canPublishToScope(
 	// if we aren't the owner and we can't publish on our own
 	if (member.role !== null && !canPublish(member.role)) return false;
 
-	if (org.status === 'delinquent') return false;
+	if (org.status.type === 'delinquent') return false;
 
 	return true;
 }
@@ -148,6 +154,7 @@ export async function getRegistry(
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const registries = await db
 		.select({
@@ -176,12 +183,21 @@ export async function getRegistry(
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 
-				checkAccessQuery({ orgSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
 		)
 		.groupBy(
@@ -256,13 +272,19 @@ export async function getVersion({
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({
 			...getTableColumns(tables.version),
 			scope: tables.scope,
 			registry: tables.registry,
-			releasedBy: releasedBy
+			releasedBy: {
+				id: releasedBy.id,
+				name: releasedBy.name,
+				image: releasedBy.image,
+				createdAt: releasedBy.createdAt
+			}
 		})
 		.from(tables.version)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.version.registryId))
@@ -273,6 +295,15 @@ export async function getVersion({
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
@@ -280,7 +311,7 @@ export async function getVersion({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
 				userId !== undefined
-					? checkAccessQuery({ orgSubscription, checkSubscription: true })
+					? checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 					: undefined
 			)
 		);
@@ -379,6 +410,7 @@ export async function getFileContents({
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({ content: tables.file.content })
@@ -391,6 +423,15 @@ export async function getFileContents({
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
@@ -398,7 +439,7 @@ export async function getFileContents({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				checkAccessQuery({ orgSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
 		);
 
@@ -426,6 +467,7 @@ export async function getFileContentsTheHardWay({
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({ private: tables.registry.private, content: tables.file.content })
@@ -443,6 +485,15 @@ export async function getFileContentsTheHardWay({
 		)
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
@@ -450,7 +501,7 @@ export async function getFileContentsTheHardWay({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				checkAccessQuery({ orgSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
 		);
 
@@ -469,6 +520,7 @@ export async function getFiles(
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({
@@ -487,6 +539,15 @@ export async function getFiles(
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
@@ -494,7 +555,7 @@ export async function getFiles(
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				inArray(tables.file.name, filesNames),
 
-				checkAccessQuery({ orgSubscription, checkSubscription: true })
+				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
 		);
 
@@ -551,6 +612,7 @@ export async function listMyOrganizations(userId: string) {
  */
 export async function getScopeRegistries(userId: string | null, scopeName: string) {
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({
@@ -567,12 +629,21 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 
 				// access check
-				checkAccessQuery({ orgSubscription, checkSubscription: false })
+				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: false })
 			)
 		);
 
@@ -598,10 +669,12 @@ export async function nameIsBanned(name: string) {
  */
 function checkAccessQuery({
 	orgSubscription,
+	billPayerSubscription,
 	checkSubscription = true,
 	readonlyAccess = false
 }: {
 	orgSubscription: typeof tables.subscription;
+	billPayerSubscription: typeof tables.subscription;
 	checkSubscription: boolean;
 	readonlyAccess?: boolean;
 }) {
@@ -649,7 +722,8 @@ function checkAccessQuery({
 								// owner has an active Pro plan
 								eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
 								eq(orgSubscription.status, 'active'),
-								eq(orgSubscription.hasEnoughSeats, true)
+								eq(orgSubscription.hasEnoughSeats, true),
+								isNotNull(billPayerSubscription.id)
 							)
 						)
 					: undefined
@@ -662,12 +736,23 @@ export async function getOrg({
 	id,
 	name
 }: { id: string; name?: never } | { name: string; id?: never }): Promise<FullOrg | null> {
-	const result = await db
+	const billPayer = aliasedTable(tables.user, 'bill_payer');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+
+	const result: (tables.Org & {
+		subscription: tables.Subscription | null;
+		member: tables.OrgMember;
+		user: tables.User;
+		billPayer: tables.User | null;
+		billPayerSubscription: tables.Subscription | null;
+	})[] = await db
 		.select({
 			...getTableColumns(tables.org),
 			subscription: tables.subscription,
 			member: tables.orgMember,
-			user: tables.user
+			user: tables.user,
+			billPayer: billPayer,
+			billPayerSubscription: billPayerSubscription
 		})
 		.from(tables.org)
 		.leftJoin(
@@ -679,6 +764,14 @@ export async function getOrg({
 		)
 		.innerJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
+		.leftJoin(billPayer, eq(billPayer.stripeCustomerId, tables.subscription.stripeCustomerId))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.referenceId, billPayer.id),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			id === undefined ? eq(lower(tables.org.name), name.toLowerCase()) : eq(tables.org.id, id)
 		);
@@ -688,25 +781,55 @@ export async function getOrg({
 	const org = result[0];
 	const members = result.map((r) => ({ ...r.member, user: r.user }));
 
-	let status: FullOrg['status'];
+	let status: FullOrg['status'] = { type: 'paid' };
 
-	if (org.subscription === null) {
-		if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
-			status = 'freebee';
+	const billPayerUnpaid = org.billPayer !== null && org.billPayerSubscription === null;
+
+	// give the org a free seat for the owner
+	const neededSeats = members.length - 1;
+	const seats = org.subscription?.seats ?? 0;
+
+	if (org.subscription === null || billPayerUnpaid) {
+		if (billPayerUnpaid) {
+			if (org.courtesyMonthEndedAt !== null && org.courtesyMonthEndedAt.valueOf() > Date.now()) {
+				status = {
+					type: 'freebee',
+					message: `The person paying the bill for this org is not maintaining an active subscription. Subscribe to the Pro plan before ${org.courtesyMonthEndedAt?.toDateString()} to prevent your team from losing access.`
+				};
+			} else {
+				status = {
+					type: 'delinquent',
+					message:
+						'The person paying the bill for this org is not maintaining an active subscription. Subscribe to pro to allow your team to regain access.'
+				};
+			}
 		} else {
-			status = 'delinquent';
+			if (neededSeats > 0) {
+				if (org.courtesyMonthEndedAt !== null && org.courtesyMonthEndedAt.valueOf() > Date.now()) {
+					status = {
+						type: 'freebee',
+						message: `You need to purchase at least ${neededSeats} seat(s) before ${org.courtesyMonthEndedAt?.toDateString()} or your team will lose access.`
+					};
+				} else {
+					status = {
+						type: 'delinquent',
+						message: `You need to purchase at least ${neededSeats} seat(s) for your team to regain access.`
+					};
+				}
+			}
 		}
 	} else {
-		// give the org a free seat for the owner
-		const neededSeats = members.length - 1;
-
-		if ((org.subscription.seats ?? 0) >= neededSeats) {
-			status = 'paid';
-		} else {
+		if (seats < neededSeats) {
 			if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
-				status = 'freebee';
+				status = {
+					type: 'freebee',
+					message: `You currently have more members than seats. Please purchase ${neededSeats - seats} seat(s) before ${org.courtesyMonthEndedAt?.toDateString()} to prevent your team from losing access.`
+				};
 			} else {
-				status = 'delinquent';
+				status = {
+					type: 'delinquent',
+					message: `You currently have more members than seats. Please ${neededSeats - seats} seat(s) for your team to regain access.`
+				};
 			}
 		}
 	}
@@ -818,6 +941,7 @@ export async function getScopeWithOwner(name: string): Promise<
  */
 export async function hasScopeAccess(userId: string | null, name: string) {
 	const orgSubscription = aliasedTable(tables.subscription, 'owner_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
 		.select({
@@ -828,6 +952,15 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), name.toLowerCase()),
@@ -859,13 +992,13 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 
 								// paid
 								and(
-									// check courtesy month as well
-
 									isNotNull(orgSubscription.id),
+
 									// owner has an active Pro plan
 									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
 									eq(orgSubscription.status, 'active'),
-									eq(orgSubscription.hasEnoughSeats, true)
+									eq(orgSubscription.hasEnoughSeats, true),
+									isNotNull(billPayerSubscription.id)
 								)
 							)
 						)
@@ -1243,8 +1376,8 @@ export type RegistrySearchOptions = {
 	offset: number | null;
 	limit: number | null;
 	orderBy: PgColumn | SQL | undefined | null;
-	/** When true any registry the user can view will be shown 
-	 * 
+	/** When true any registry the user can view will be shown
+	 *
 	 * @default true */
 	readonlyAccess: boolean;
 };
@@ -1270,6 +1403,7 @@ export async function searchRegistries({
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
+	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	// Weighted score expression
 	const qNoAt = q?.replace(/^@/, '') ?? '';
@@ -1302,7 +1436,12 @@ export async function searchRegistries({
 		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
 		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
-		checkAccessQuery({ orgSubscription, checkSubscription: true, readonlyAccess }),
+		checkAccessQuery({
+			orgSubscription,
+			billPayerSubscription,
+			checkSubscription: true,
+			readonlyAccess
+		}),
 
 		// filter out results with 0 score
 		q
@@ -1359,6 +1498,15 @@ export async function searchRegistries({
 			orgSubscription,
 			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
 		)
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
+		)
 		.where(whereClause)
 		.groupBy(
 			tables.registry.id,
@@ -1403,6 +1551,15 @@ export async function searchRegistries({
 		.leftJoin(
 			orgSubscription,
 			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
+		)
+		.leftJoin(
+			billPayerSubscription,
+			and(
+				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
+				notLike(billPayerSubscription.referenceId, 'org_%'),
+				eq(billPayerSubscription.plan, 'pro'),
+				eq(billPayerSubscription.status, 'active')
+			)
 		)
 		.where(whereClause);
 
@@ -1543,7 +1700,7 @@ export async function startCourtesyMonth(orgId: string) {
 	const result = await db
 		.update(tables.org)
 		.set({ courtesyMonthStartedAt: start, courtesyMonthEndedAt: end })
-		.where(eq(tables.org.id, orgId))
+		.where(and(eq(tables.org.id, orgId), isNull(tables.org.courtesyMonthEndedAt)))
 		.returning();
 
 	return result.length > 0;

@@ -80,7 +80,7 @@
 					{/snippet}
 				</Form.Control>
 			</Form.Field>
-			<div class="flex w-full flex-col gap-2 place-items-center">
+			<div class="flex w-full flex-col place-items-center gap-2">
 				<Form.Button class="w-full" loading={$submitting} disabled={$formData.code.length !== 6}>
 					Continue
 				</Form.Button>

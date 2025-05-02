@@ -1,14 +1,12 @@
 <script lang="ts">
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
-	import { toRelative } from '$lib/ts/dates.js';
 	import { Separator } from '$lib/components/ui/separator';
 	import SubBadge from '$lib/components/site/sub-badge.svelte';
 
 	let { data, children } = $props();
 
 	const user = $derived(data.session.user);
-	const joined = $derived(toRelative(user.createdAt));
 </script>
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] flex-col gap-4 pb-4 pt-10">
@@ -28,7 +26,6 @@
 					<SubBadge user={data.user} />
 				</div>
 			</div>
-			
 		</div>
 		<Separator class="md:hidden" />
 		<div class="w-full md:col-start-2">
