@@ -81,9 +81,11 @@ export const actions = {
 
 		assert(user !== null, 'User must be defined');
 
-		if (scopes.userScopes.length >= user.scopeLimit) {
-			if (!checkUserSubscription(user)) {
-				return error(400, { message: 'You are at your scope limit!' });
+		if (org === null) {
+			if (scopes.userScopes.length >= user.scopeLimit) {
+				if (!checkUserSubscription(user)) {
+					return error(400, { message: 'You are at your scope limit!' });
+				}
 			}
 		}
 
