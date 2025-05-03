@@ -145,7 +145,8 @@ export const apikey = pgTable(
 		deviceHardwareId: text('device_hardware_id'),
 		deviceSessionId: text('device_session_id'),
 		deviceActivated: boolean('device_activated'),
-		mustBeActivatedBefore: timestamp('must_be_activated_before')
+		mustBeActivatedBefore: timestamp('must_be_activated_before'),
+		deviceTempApiKey: text('device_temp_api_key'),
 	},
 	(table) => {
 		return [

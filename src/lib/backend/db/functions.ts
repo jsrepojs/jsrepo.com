@@ -477,7 +477,10 @@ export async function getFileContentsTheHardWay({
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
-		.leftJoin(tables.apikey, eq(tables.apikey.key, apiKey ?? ''))
+		.leftJoin(
+			tables.apikey,
+			and(eq(tables.apikey.key, apiKey ?? ''), eq(tables.apikey.enabled, true))
+		)
 		.leftJoin(tables.session, eq(tables.session.token, sessionToken ?? ''))
 		.leftJoin(
 			tables.user,
@@ -570,7 +573,14 @@ export async function listApiKeys(userId: string) {
 			...columnsWithoutKey
 		})
 		.from(tables.apikey)
-		.where(eq(tables.apikey.userId, userId))
+		.where(
+			and(
+				eq(tables.apikey.userId, userId),
+
+				// only show activated device keys
+				or(isNull(tables.apikey.deviceSessionId), eq(tables.apikey.deviceActivated, true))
+			)
+		)
 		.orderBy(tables.apikey.createdAt);
 
 	return keys ?? [];
@@ -1839,19 +1849,21 @@ export async function useAnonSessionCode(
 		const session = sessions[0];
 
 		let keyId = '';
+		let tempKey = '';
 
 		try {
-			const { id } = await auth.api.createApiKey({
+			const { id, key } = await auth.api.createApiKey({
 				body: {
 					permissions: {
 						registries: ['publish']
 					},
-					userId: code.userId
+					userId: code.userId,
 				},
 				headers: headers
 			});
 
 			keyId = id;
+			tempKey = key;
 		} catch {
 			tx.rollback();
 		}
@@ -1862,7 +1874,9 @@ export async function useAnonSessionCode(
 				deviceHardwareId: session.hardwareId,
 				deviceSessionId: session.id,
 				deviceActivated: false,
-				mustBeActivatedBefore: new Date(Date.now() + MINUTE)
+				mustBeActivatedBefore: new Date(Date.now() + MINUTE),
+				enabled: false,
+				deviceTempApiKey: tempKey
 			})
 			.where(eq(tables.apikey.id, keyId))
 			.returning();
@@ -1877,8 +1891,8 @@ export async function useAnonSessionCode(
 
 export async function activateKey(sessionId: string, hardwareId: string): Promise<string | null> {
 	const keys = await db
-		.update(tables.apikey)
-		.set({ deviceActivated: true })
+		.select()
+		.from(tables.apikey)
 		.where(
 			and(
 				eq(tables.apikey.deviceSessionId, sessionId),
@@ -1886,10 +1900,16 @@ export async function activateKey(sessionId: string, hardwareId: string): Promis
 				eq(tables.apikey.deviceHardwareId, hardwareId),
 				gt(tables.apikey.mustBeActivatedBefore, new Date())
 			)
-		)
-		.returning();
+		);
 
 	if (keys.length === 0) return null;
 
-	return keys[0].key;
+	const key = keys[0];
+
+	await db
+		.update(tables.apikey)
+		.set({ deviceActivated: true, enabled: true, deviceTempApiKey: null })
+		.where(eq(tables.apikey.id, key.id));
+
+	return key.deviceTempApiKey;
 }

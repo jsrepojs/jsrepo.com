@@ -15,6 +15,9 @@ importers:
       '@better-auth/stripe':
         specifier: 1.2.8-beta.3
         version: 1.2.8-beta.3
+      '@better-auth/utils':
+        specifier: ^0.2.4
+        version: 0.2.4
       '@eslint/compat':
         specifier: ^1.2.8
         version: 1.2.8(eslint@9.25.1(jiti@1.21.7))
