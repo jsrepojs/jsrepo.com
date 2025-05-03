@@ -6,7 +6,7 @@
 
 	let { data, children } = $props();
 
-	const user = $derived(data.session.user);
+	const user = $derived(data.user);
 </script>
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] flex-col gap-4 pb-4 pt-10">
@@ -20,7 +20,7 @@
 			</Avatar.Root>
 			<div class="flex flex-col md:place-items-center">
 				<span class="max-w-full truncate text-start text-xl font-medium md:text-center">
-					{user.name}
+					{user.username}
 				</span>
 				<div>
 					<SubBadge user={data.user} />

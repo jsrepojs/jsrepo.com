@@ -1172,7 +1172,10 @@ export async function createOrg(
 	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
 	const result = await db.transaction(async (tx) => {
-		const names = await db.insert(tables.owner_identifier).values({ name: record.name }).returning();
+		const names = await db
+			.insert(tables.owner_identifier)
+			.values({ name: record.name })
+			.returning();
 
 		if (names.length === 0) {
 			tx.rollback();
@@ -1907,4 +1910,41 @@ export async function ownerIdentifierExists(name: string) {
 		.where(eq(tables.owner_identifier.name, name));
 
 	return result.length > 0;
+}
+
+export async function updateUsername(
+	userId: string,
+	username: string,
+	oldUsername?: string
+): Promise<boolean> {
+	return await db.transaction(async (tx) => {
+		if (oldUsername !== undefined) {
+			const result = await tx
+				.delete(tables.owner_identifier)
+				.where(eq(tables.owner_identifier.name, oldUsername))
+				.returning();
+
+			if (result.length === 0) {
+				tx.rollback();
+			}
+		}
+
+		const names = await tx.insert(tables.owner_identifier).values({ name: username }).returning();
+
+		if (names.length === 0) {
+			tx.rollback();
+		}
+
+		const user = await tx
+			.update(tables.user)
+			.set({ username })
+			.where(eq(tables.user.id, userId))
+			.returning();
+
+		if (user.length === 0) {
+			tx.rollback();
+		}
+
+		return true;
+	});
 }
