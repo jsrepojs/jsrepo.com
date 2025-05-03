@@ -3,8 +3,6 @@
 	import { Check } from '@lucide/svelte';
 	// import * as Tabs from '$lib/components/ui/tabs';
 	import { cn } from '$lib/utils/utils';
-	import { redirectToLogin } from '$lib/auth/redirect';
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth/client.js';
 
@@ -130,9 +128,9 @@
 							}}
 							href={name === 'Free'
 								? '/login'
-								: data.session === null
-									? redirectToLogin(page.url)
-									: undefined}
+								: (data.session === null
+									? `/login?redirect_to=pricing`
+									: undefined)}
 							variant={plan.preferred ? 'default' : 'outline'}
 						>
 							{plan.cta}
