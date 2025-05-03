@@ -78,15 +78,7 @@
 			/>
 		</Steps.Step>
 		<Steps.Step title="Authenticate to the jsrepo CLI">
-			<p>
-				If you don't already have one, generate an access token <a
-					href="/account/access-tokens/new"
-					class="font-medium text-foreground underline underline-offset-2"
-				>
-					here
-				</a>.
-			</p>
-			<Snippet text="jsrepo auth jsrepo --token <token>" />
+			<Snippet text="jsrepo auth" />
 		</Steps.Step>
 		<Steps.Step title="Publish your registry">
 			<Snippet text="jsrepo publish" />

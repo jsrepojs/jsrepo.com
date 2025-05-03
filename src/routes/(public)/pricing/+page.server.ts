@@ -6,7 +6,7 @@ export async function load({ locals }) {
 
 	let userPromise: Promise<UserWithSubscription | null>;
 
-	if (session) {
+	if (session !== null) {
 		userPromise = getUser(session.user.id);
 	} else {
 		userPromise = immediate(null);
