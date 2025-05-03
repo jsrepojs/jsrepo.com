@@ -1,4 +1,8 @@
-import { getOrgInvitesForEmail, getOrg, getUserByEmail } from '$lib/backend/db/functions.js';
+import {
+	getOrgInvitesForUserId,
+	getOrg,
+	getUser
+} from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
 export async function GET({ params, url, locals }) {
@@ -7,26 +11,23 @@ export async function GET({ params, url, locals }) {
 	if (!session) error(401);
 
 	const orgName = params.org;
-	const email = url.searchParams.get('email');
+	const username = url.searchParams.get('username');
 
-	if (email === null) error(400, 'expected email query param');
+	if (username === null) error(400, 'expected username query param');
 
-	const org = await getOrg({ name: orgName });
+	const [org, user] = await Promise.all([getOrg({ name: orgName }), getUser({ username })]);
 
 	if (!org) error(404);
 
-	const alreadyAMember = org.members.find((m) => m.user.email === email) !== undefined;
+	if (!user) error(400, 'invited user does not exist');
+
+	const alreadyAMember = org.members.find((m) => m.user.username === username) !== undefined;
 
 	if (alreadyAMember) error(400, 'user is already a member of your org');
 
-	const [invites, invitedUser] = await Promise.all([
-		getOrgInvitesForEmail(email, org.id),
-		getUserByEmail(email)
-	]);
+	const invites = await getOrgInvitesForUserId(user.id, org.id);
 
-	if (invites.length > 0) error(400, `cannot reinvite ${email}`);
-
-	if (!invitedUser) error(400, 'invited email is not associated with an account!');
+	if (invites.length > 0) error(400, `cannot reinvite ${username}`);
 
 	return json({});
 }

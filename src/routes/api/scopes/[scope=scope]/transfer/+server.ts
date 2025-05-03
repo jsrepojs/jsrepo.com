@@ -5,7 +5,6 @@ import {
 	dismissPendingScopeTransferRequests,
 	getOrg,
 	getScopeWithOwner,
-	getUserByEmail,
 	isScopeOwner,
 	getUserOrOrg,
 	type FullOrg,
@@ -78,9 +77,7 @@ export async function POST({ request, params, locals }) {
 		await dismissPendingScopeTransferRequests(tx, scope.id);
 
 		if (userOrOrg.user !== null) {
-			const user = await getUserByEmail(body.transferTo);
-
-			assert(user !== null, 'we just got this');
+			const user = userOrOrg.user;
 
 			selfTransfer = user.id === session.user.id;
 

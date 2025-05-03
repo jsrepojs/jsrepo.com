@@ -2,12 +2,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import {
-	getUser,
-	nameIsBanned,
-	getUserOrOrg,
-	updateUsername
-} from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, getUserOrOrg, updateUsername } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
 
@@ -18,7 +13,7 @@ export async function load({ locals, url }) {
 
 	if (!session) redirectToLogin(url);
 
-	const user = await getUser(session.user.id);
+	const user = await getUser({ id: session.user.id });
 
 	assert(user !== null, 'user must exist');
 
@@ -44,7 +39,7 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const userPromise = getUser(session.user.id);
+		const userPromise = getUser({ id: session.user.id });
 
 		const exists = await getUserOrOrg(form.data.username);
 

@@ -296,9 +296,9 @@ export const orgInvite = pgTable(
 		orgId: text('org_id')
 			.notNull()
 			.references(() => org.id, { onDelete: 'cascade' }),
-		email: text('email')
+		userId: text('user_id')
 			.notNull()
-			.references(() => user.email, { onDelete: 'cascade', onUpdate: 'cascade' }),
+			.references(() => user.id, { onDelete: 'cascade' }),
 		role: orgMemberRole().notNull(),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		acceptedAt: timestamp('accepted_at'),
@@ -306,7 +306,7 @@ export const orgInvite = pgTable(
 	},
 	(table) => {
 		return [
-			index('org_invites_email_idx').on(table.email),
+			index('org_invites_user_id_idx').on(table.userId),
 			index('org_invites_org_id_idx').on(table.orgId)
 		];
 	}

@@ -8,7 +8,7 @@ export async function load({ url, locals }) {
 
 	if (!session) redirectToLogin(url);
 
-	const user = await getUser(session.user.id);
+	const user = await getUser({ id: session.user.id });
 
 	assert(user !== null, 'User should exist!');
 

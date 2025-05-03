@@ -20,7 +20,10 @@ export async function PATCH({ locals, params, request }) {
 
 	const orgName = params.org;
 
-	const [org, user] = await Promise.all([getOrg({ name: orgName }), getUser(session.user.id)]);
+	const [org, user] = await Promise.all([
+		getOrg({ name: orgName }),
+		getUser({ id: session.user.id })
+	]);
 
 	assert(user !== null, 'user must be defined');
 

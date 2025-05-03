@@ -14,7 +14,7 @@ export async function load({ locals, url }) {
 
 	if (!session) redirectToLogin(url);
 
-	const user = await getUser(session.user.id);
+	const user = await getUser({ id: session.user.id });
 
 	assert(user !== null, 'user must be defined');
 
@@ -39,7 +39,7 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const userPromise = getUser(session.user.id);
+		const userPromise = getUser({ id: session.user.id });
 
 		const userOrOrg = await getUserOrOrg(form.data.name);
 

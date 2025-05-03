@@ -112,8 +112,17 @@ export async function getScope(scope: string): Promise<tables.Scope | null> {
 	return scopes[0];
 }
 
+type GetUserOptions =
+	| { id: string; email?: undefined; username?: undefined }
+	| { email: string; id?: undefined; username?: undefined }
+	| { username: string; email?: undefined; id?: undefined };
+
 /** This has sensitive info that shouldn't be displayed to users */
-export async function getUser(userId: string): Promise<UserWithSubscription | null> {
+export async function getUser({
+	id,
+	email,
+	username
+}: GetUserOptions): Promise<UserWithSubscription | null> {
 	const result = await db
 		.select({
 			...getTableColumns(tables.user),
@@ -128,7 +137,13 @@ export async function getUser(userId: string): Promise<UserWithSubscription | nu
 				eq(tables.subscription.status, 'active')
 			)
 		)
-		.where(eq(tables.user.id, userId));
+		.where(
+			and(
+				id ? eq(tables.user.id, id) : undefined,
+				email ? eq(tables.user.email, email) : undefined,
+				username ? eq(tables.user.username, username) : undefined
+			)
+		);
 
 	if (result.length === 0) return null;
 
@@ -850,14 +865,6 @@ export async function getOrg({
 	} satisfies FullOrg;
 }
 
-export async function getUserByEmail(email: string) {
-	const result = await db.select().from(tables.user).where(eq(tables.user.email, email));
-
-	if (result.length === 0) return null;
-
-	return result[0];
-}
-
 export async function isScopeOwner(userId: string, scopeName: string): Promise<boolean> {
 	const result = await db
 		.select()
@@ -1217,7 +1224,7 @@ export async function createOrgInvite(record: InferInsertModel<typeof tables.org
 	return result[0];
 }
 
-export async function getOrgInvitesForEmail(email: string, orgId: string | null = null) {
+export async function getOrgInvitesForUserId(invitedUserId: string, orgId: string | null = null) {
 	const result = await db
 		.select({
 			...getTableColumns(tables.orgInvite),
@@ -1227,7 +1234,7 @@ export async function getOrgInvitesForEmail(email: string, orgId: string | null 
 		.innerJoin(tables.org, eq(tables.org.id, tables.orgInvite.orgId))
 		.where(
 			and(
-				eq(tables.orgInvite.email, email),
+				eq(tables.orgInvite.userId, invitedUserId),
 
 				// hasn't interacted
 				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt)),
@@ -1254,7 +1261,7 @@ export async function getPendingOrgInvites(orgName: string, userId: string | nul
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		// restrict access to only those who are part of the org
 		.innerJoin(member, eq(member.id, tables.orgMember.userId))
-		.innerJoin(tables.user, eq(tables.user.email, tables.orgInvite.email))
+		.innerJoin(tables.user, eq(tables.user.id, tables.orgInvite.userId))
 		.where(
 			and(
 				// hasn't interacted
