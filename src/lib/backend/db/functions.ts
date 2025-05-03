@@ -1903,13 +1903,19 @@ export async function activateKey(sessionId: string, hardwareId: string): Promis
 	return key.deviceTempApiKey;
 }
 
-export async function ownerIdentifierExists(name: string) {
+export async function getUserOrOrg(name: string) {
 	const result = await db
-		.select()
+		.select({ user: tables.user, org: tables.org })
 		.from(tables.owner_identifier)
+		.leftJoin(tables.user, eq(tables.user.username, tables.owner_identifier.name))
+		.leftJoin(tables.org, eq(tables.org.name, tables.owner_identifier.name))
 		.where(eq(tables.owner_identifier.name, name));
 
-	return result.length > 0;
+	if (result.length === 0 || (result[0].user === null && result[0].org === null)) {
+		return null;
+	}
+
+	return result[0];
 }
 
 export async function updateUsername(

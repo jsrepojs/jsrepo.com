@@ -5,6 +5,8 @@
 	import { Check, X } from '@lucide/svelte';
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
+	import * as Avatar from '$lib/components/ui/avatar';
+	import { getInitials } from '$lib/ts/initials.js';
 
 	let { data } = $props();
 
@@ -47,37 +49,45 @@
 	<title>Choose your Username - jsrepo</title>
 </svelte:head>
 
-<form method="POST" use:enhance class="flex flex-col gap-2">
-	<Form.Field {form} name="username">
-		<Form.Control>
-			{#snippet children({ props })}
-				<Form.Label>Username</Form.Label>
-				<div class="relative">
-					<Input
-						{...props}
-						aria-invalid={nameInvalid}
-						oninput={() => {
-							$formData.username = $formData.username.replace(/[^-a-z0-9]/gi, '');
-							searchUserOrOrgQuery.runDB();
-						}}
-						maxlength={50}
-						bind:value={$formData.username}
-						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
-					/>
-					{#if searchUserOrOrgQuery.data !== undefined}
-						{#if searchUserOrOrgQuery.data}
-							<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
-						{:else if $formData.username.length > 0}
-							<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+<div class="flex min-h-[calc(100svh-var(--header-height))] place-items-center justify-center">
+	<form method="POST" use:enhance class="flex w-full max-w-xs flex-col place-items-center gap-2">
+		<div>
+			<h1 class="text-center text-2xl font-bold">Choose a username</h1>
+			<p class="text-center text-muted-foreground">
+				Before you continue choose a username.
+			</p>
+		</div>
+		<Form.Field {form} name="username" class="w-full">
+			<Form.Control>
+				{#snippet children({ props })}
+					<div class="relative w-full">
+						<Input
+							{...props}
+							aria-invalid={nameInvalid}
+							oninput={() => {
+								$formData.username = $formData.username.replace(/[^-a-z0-9]/gi, '');
+								searchUserOrOrgQuery.runDB();
+							}}
+							placeholder="Username"
+							maxlength={50}
+							bind:value={$formData.username}
+							class="w-full aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						/>
+						{#if searchUserOrOrgQuery.data !== undefined}
+							{#if searchUserOrOrgQuery.data}
+								<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
+							{:else if $formData.username.length > 0}
+								<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+							{/if}
 						{/if}
-					{/if}
-				</div>
-			{/snippet}
-		</Form.Control>
-		<Form.FieldErrors />
-	</Form.Field>
-	<Form.Button loading={$submitting} disabled={!canSubmit}>Continue</Form.Button>
-	{#if error}
-		<span class="text-sm text-destructive">{error}</span>
-	{/if}
-</form>
+					</div>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+		<Form.Button loading={$submitting} disabled={!canSubmit} class="w-full">Continue</Form.Button>
+		{#if error}
+			<span class="text-sm text-destructive">{error}</span>
+		{/if}
+	</form>
+</div>

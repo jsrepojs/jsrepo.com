@@ -2,7 +2,7 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getUser, nameIsBanned, createOrg, ownerIdentifierExists } from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, createOrg, getUserOrOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { checkUserSubscription } from '$lib/ts/stripe/client';
@@ -41,9 +41,9 @@ export const actions = {
 
 		const userPromise = getUser(session.user.id);
 
-		const exists = await ownerIdentifierExists(form.data.name);
+		const userOrOrg = await getUserOrOrg(form.data.name);
 
-		if (exists) {
+		if (userOrOrg !== null) {
 			return error(400, {
 				message: `This name is taken!`
 			});

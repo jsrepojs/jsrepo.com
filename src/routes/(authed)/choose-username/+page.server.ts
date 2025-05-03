@@ -5,7 +5,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	getUser,
 	nameIsBanned,
-	ownerIdentifierExists,
+	getUserOrOrg,
 	updateUsername
 } from '$lib/backend/db/functions';
 import assert from 'assert';
@@ -18,7 +18,16 @@ export async function load({ locals, url }) {
 
 	if (!session) redirectToLogin(url);
 
+	const user = await getUser(session.user.id);
+
+	assert(user !== null, 'user must exist');
+
+	if (user.username !== null) {
+		redirect(303, '/account');
+	}
+
 	return {
+		user,
 		form
 	};
 }
@@ -37,7 +46,7 @@ export const actions = {
 
 		const userPromise = getUser(session.user.id);
 
-		const exists = await ownerIdentifierExists(form.data.username);
+		const exists = await getUserOrOrg(form.data.username);
 
 		if (exists) {
 			return error(400, {

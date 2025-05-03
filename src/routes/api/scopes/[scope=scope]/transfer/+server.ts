@@ -7,7 +7,7 @@ import {
 	getScopeWithOwner,
 	getUserByEmail,
 	isScopeOwner,
-	isUserOrOrg,
+	getUserOrOrg,
 	type FullOrg,
 	type TransferOwnershipOptions
 } from '$lib/backend/db/functions.js';
@@ -66,7 +66,7 @@ export async function POST({ request, params, locals }) {
 		error(400, 'cannot transfer to the same owner');
 	}
 
-	const userOrOrg = await isUserOrOrg(body.transferTo);
+	const userOrOrg = await getUserOrOrg(body.transferTo);
 
 	if (userOrOrg === null) error(400, `\`${body.transferTo}\` is not an user or org`);
 
@@ -77,7 +77,7 @@ export async function POST({ request, params, locals }) {
 		// dismiss pending transfer requests
 		await dismissPendingScopeTransferRequests(tx, scope.id);
 
-		if (userOrOrg === 'user') {
+		if (userOrOrg.user !== null) {
 			const user = await getUserByEmail(body.transferTo);
 
 			assert(user !== null, 'we just got this');
@@ -217,7 +217,7 @@ export async function POST({ request, params, locals }) {
 		await resend.emails.send(
 			scopeTransferredEmail({
 				newOwner: session.user,
-				newOwnerName: userOrOrg === 'org' ? body.transferTo : 'you',
+				newOwnerName: userOrOrg.org !== null ? body.transferTo : 'you',
 				scopeName
 			})
 		);
