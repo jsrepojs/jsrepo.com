@@ -42,6 +42,10 @@
 		if (result.data?.success) {
 			// fetch tokens
 			await invalidateAll();
+
+			if (keyToDelete.id === newKey?.id) {
+				newKey = null;
+			}
 		}
 
 		deletingKey = false;

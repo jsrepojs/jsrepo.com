@@ -2,5 +2,5 @@ import * as v from 'valibot';
 
 export const schema = v.object({
 	name: v.pipe(v.string(), v.minLength(1)),
-	expiresIn: v.nullable(v.number())
+	expiresIn: v.number()
 });

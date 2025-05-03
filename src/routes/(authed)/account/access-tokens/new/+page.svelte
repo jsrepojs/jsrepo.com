@@ -41,7 +41,7 @@
 		},
 		{
 			label: 'Never',
-			value: 'never'
+			value: '0'
 		}
 	];
 
@@ -120,10 +120,10 @@
 						{...props}
 						type="single"
 						bind:value={
-							() => $formData.expiresIn?.toString() ?? 'never',
+							() => $formData.expiresIn?.toString() ?? '0',
 							(v) => {
-								if (v === 'never') {
-									$formData.expiresIn = null;
+								if (v === '0') {
+									$formData.expiresIn = 0;
 								} else {
 									$formData.expiresIn = parseInt(v);
 								}
@@ -132,7 +132,7 @@
 					>
 						<Select.Trigger class="max-w-56">
 							{expiresInOptions.find(
-								(o) => o.value === ($formData.expiresIn?.toString() ?? 'never')
+								(o) => o.value === ($formData.expiresIn?.toString() ?? '0')
 							)?.label}
 						</Select.Trigger>
 						<Select.Content>
