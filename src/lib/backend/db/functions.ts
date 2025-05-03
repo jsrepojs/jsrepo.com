@@ -27,7 +27,6 @@ import * as tables from './schema';
 import type { PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
-import * as v from 'valibot';
 import { posthog } from '$lib/ts/posthog';
 import { DAY, MINUTE } from '$lib/ts/time';
 import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
@@ -891,25 +890,6 @@ export async function createScopeTransferRequest(
 	return result[0]?.id;
 }
 
-export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null> {
-	const result = v.safeParse(v.pipe(v.string(), v.email()), search);
-
-	if (result.success) {
-		// is email
-		const user = await getUserByEmail(search);
-
-		if (user === null) return null;
-
-		return 'user';
-	} else {
-		const org = await getOrg({ name: search });
-
-		if (org === null) return null;
-
-		return 'org';
-	}
-}
-
 export async function getScopeWithOwner(name: string): Promise<
 	| (tables.Scope & {
 			user: tables.User | null;
@@ -1192,6 +1172,12 @@ export async function createOrg(
 	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
 	const result = await db.transaction(async (tx) => {
+		const names = await db.insert(tables.owner_identifier).values({ name: record.name }).returning();
+
+		if (names.length === 0) {
+			tx.rollback();
+		}
+
 		const orgs = await db
 			.insert(tables.org)
 			.values({ ...record, id: `org_${generateId()}` })
@@ -1857,7 +1843,7 @@ export async function useAnonSessionCode(
 					permissions: {
 						registries: ['publish']
 					},
-					userId: code.userId,
+					userId: code.userId
 				},
 				headers: headers
 			});
@@ -1912,4 +1898,13 @@ export async function activateKey(sessionId: string, hardwareId: string): Promis
 		.where(eq(tables.apikey.id, key.id));
 
 	return key.deviceTempApiKey;
+}
+
+export async function ownerIdentifierExists(name: string) {
+	const result = await db
+		.select()
+		.from(tables.owner_identifier)
+		.where(eq(tables.owner_identifier.name, name));
+
+	return result.length > 0;
 }

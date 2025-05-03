@@ -1,4 +1,4 @@
-/** Regex for slugs in the application orgs, scopes, registry names etc.
+/** Regex for slugs in the application orgs, usernames, scopes, registry names etc.
  * Names that don't match this regex will be rejected.
  *
  * ### Valid

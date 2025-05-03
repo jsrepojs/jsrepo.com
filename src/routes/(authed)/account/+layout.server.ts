@@ -1,5 +1,6 @@
 import { redirectToLogin } from '$lib/auth/redirect';
 import { getUser } from '$lib/backend/db/functions.js';
+import { redirect } from '@sveltejs/kit';
 import assert from 'assert';
 
 export async function load({ url, locals }) {
@@ -10,6 +11,10 @@ export async function load({ url, locals }) {
 	const user = await getUser(session.user.id);
 
 	assert(user !== null, 'User should exist!');
+
+	// if (!user.username) {
+	// 	redirect(303,'/choose-username')
+	// }
 
 	return {
 		session,

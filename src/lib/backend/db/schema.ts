@@ -27,6 +27,9 @@ export const user = pgTable(
 		id: text('id').primaryKey(),
 		name: text('name').notNull(),
 		email: text('email').notNull().unique(),
+		username: varchar('username', { length: 50 })
+			.unique()
+			.references(() => owner_identifier.name, { onUpdate: 'cascade' }),
 		emailVerified: boolean('email_verified').notNull(),
 		image: text('image'),
 		createdAt: timestamp('created_at').notNull(),
@@ -41,12 +44,17 @@ export const user = pgTable(
 	(table) => {
 		return [
 			index('user_email_idx').on(table.email),
+			index('user_username_idx').on(table.username),
 			index('user_stripe_customer_id_idx').on(table.stripeCustomerId)
 		];
 	}
 ).enableRLS();
 
 export type User = InferSelectModel<typeof user>;
+
+export const owner_identifier = pgTable('owner_identifier', {
+	name: varchar('name', { length: 50 }).primaryKey()
+}).enableRLS();
 
 export const session = pgTable(
 	'session',
@@ -146,7 +154,7 @@ export const apikey = pgTable(
 		deviceSessionId: text('device_session_id'),
 		deviceActivated: boolean('device_activated'),
 		mustBeActivatedBefore: timestamp('must_be_activated_before'),
-		deviceTempApiKey: text('device_temp_api_key'),
+		deviceTempApiKey: text('device_temp_api_key')
 	},
 	(table) => {
 		return [
@@ -232,7 +240,10 @@ export const org = pgTable(
 	'org',
 	{
 		id: text('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull(),
+		name: varchar('name', { length: 50 })
+			.notNull()
+			.unique()
+			.references(() => owner_identifier.name, { onUpdate: 'cascade' }),
 		description: text('description'),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		courtesyMonthStartedAt: timestamp('courtesy_month_started_at'),
