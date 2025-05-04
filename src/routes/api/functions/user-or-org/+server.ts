@@ -1,4 +1,4 @@
-import { isUserOrOrg } from '$lib/backend/db/functions.js';
+import { getUserOrOrg } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
 export async function GET({ url }) {
@@ -8,11 +8,11 @@ export async function GET({ url }) {
 		error(400, 'invalid search!');
 	}
 
-	const result = await isUserOrOrg(search);
+	const result = await getUserOrOrg(search);
 
 	if (result === null) {
 		error(404);
 	}
 
-	return json({ type: result });
+	return json({});
 }

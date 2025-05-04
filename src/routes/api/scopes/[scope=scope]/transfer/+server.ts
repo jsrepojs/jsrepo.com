@@ -5,11 +5,11 @@ import {
 	dismissPendingScopeTransferRequests,
 	getOrg,
 	getScopeWithOwner,
-	getUserByEmail,
 	isScopeOwner,
-	isUserOrOrg,
+	getUserOrOrg,
 	type FullOrg,
-	type TransferOwnershipOptions
+	type TransferOwnershipOptions,
+	getUser
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
@@ -66,7 +66,12 @@ export async function POST({ request, params, locals }) {
 		error(400, 'cannot transfer to the same owner');
 	}
 
-	const userOrOrg = await isUserOrOrg(body.transferTo);
+	const [userOrOrg, transferringUser] = await Promise.all([
+		getUserOrOrg(body.transferTo),
+		getUser({ id: session.user.id })
+	]);
+
+	assert(transferringUser !== null, 'must be defined');
 
 	if (userOrOrg === null) error(400, `\`${body.transferTo}\` is not an user or org`);
 
@@ -77,10 +82,8 @@ export async function POST({ request, params, locals }) {
 		// dismiss pending transfer requests
 		await dismissPendingScopeTransferRequests(tx, scope.id);
 
-		if (userOrOrg === 'user') {
-			const user = await getUserByEmail(body.transferTo);
-
-			assert(user !== null, 'we just got this');
+		if (userOrOrg.user !== null) {
+			const user = userOrOrg.user;
 
 			selfTransfer = user.id === session.user.id;
 
@@ -112,8 +115,8 @@ export async function POST({ request, params, locals }) {
 					scopeTransferRequestedEmail({
 						scopeName: scopeName,
 						newOwner: user,
-						oldOwner: session.user,
-						newOwnerName: user.name
+						oldOwner: transferringUser,
+						newOwnerName: 'you'
 					})
 				);
 
@@ -128,7 +131,7 @@ export async function POST({ request, params, locals }) {
 							scopeTransferRequestedEmailToOldOwner({
 								scopeName: scopeName,
 								oldOwner: owner.user,
-								newOwnerName: user.name
+								newOwnerName: user.username ?? user.name
 							})
 						);
 					}
@@ -178,7 +181,7 @@ export async function POST({ request, params, locals }) {
 						scopeTransferRequestedEmail({
 							scopeName: scopeName,
 							newOwner: owner.user,
-							oldOwner: session.user,
+							oldOwner: transferringUser,
 							newOwnerName: newFullOrg.name
 						})
 					);
@@ -217,7 +220,7 @@ export async function POST({ request, params, locals }) {
 		await resend.emails.send(
 			scopeTransferredEmail({
 				newOwner: session.user,
-				newOwnerName: userOrOrg === 'org' ? body.transferTo : 'you',
+				newOwnerName: userOrOrg.org !== null ? body.transferTo : 'you',
 				scopeName
 			})
 		);

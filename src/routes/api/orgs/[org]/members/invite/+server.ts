@@ -1,55 +1,56 @@
 import {
 	createOrgInvite,
 	deleteOrgInvite,
-	getOrgInvitesForEmail,
+	getOrgInvitesForUserId,
 	getOrg,
-	getUserByEmail
+	getUser
 } from '$lib/backend/db/functions.js';
-import { orgMemberRoles, type OrgRole } from '$lib/backend/db/schema.js';
+import { orgMemberRoles } from '$lib/backend/db/schema.js';
+import { validateRequest } from '$lib/ts/http/request.js';
 import { invitedToOrgEmail, resend } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
+import * as v from 'valibot';
 
-export type InviteMemberRequest = {
-	email: string;
-	role: OrgRole;
-};
+const inviteMemberRequestSchema = v.object({
+	username: v.string(),
+	role: v.union([v.literal('member'), v.literal('publisher'), v.literal('owner')])
+});
+
+export type InviteMemberRequest = v.InferOutput<typeof inviteMemberRequestSchema>;
 
 export async function POST({ params, request, locals }) {
+	const body = await validateRequest(inviteMemberRequestSchema, request);
+
 	const session = await locals.auth();
 
 	if (!session) error(401);
 
 	const orgName = params.org;
 
-	const org = await getOrg({ name: orgName });
+	const [org, invitedUser] = await Promise.all([
+		getOrg({ name: orgName }),
+		getUser({ username: body.username })
+	]);
 
 	if (!org) error(404);
 
+	if (!invitedUser) error(400, 'user does not exist with this username');
+
 	const memberCount = org.members.length;
 
-	const member = org.members.find((m) => m.userId === session.user.id);
+	const self = org.members.find((m) => m.userId === session.user.id);
 
-	if (member?.role !== 'owner') error(401, 'only the owner can invite team members');
-
-	const body = (await request.json()) as InviteMemberRequest;
-
-	if (!body.email) error(400, 'expected email in the request body');
-	if (!body.role) error(400, 'expected role in the request body');
-
-	const email = body.email.trim();
+	if (self?.role !== 'owner') error(401, 'your must be an owner to invite team members');
 
 	if (!orgMemberRoles.includes(body.role)) error(400, 'invalid member role');
 
-	if (body.email === session.user.email) error(400, 'you cannot invite yourself');
+	if (body.username === self.user.username) error(400, 'you cannot invite yourself');
 
-	const alreadyAMember = org.members.find((m) => m.user.email === email) !== undefined;
+	const alreadyAMember = org.members.find((m) => m.user.username === body.username) !== undefined;
 
 	if (alreadyAMember) error(400, 'user is already a member of your org');
 
-	const [invites, invitedUser] = await Promise.all([
-		getOrgInvitesForEmail(email, org.id),
-		getUserByEmail(email)
-	]);
+	const invites = await getOrgInvitesForUserId(invitedUser.id, org.id);
 
 	if (org.subscription === null) {
 		error(401, 'you need to buy seats before inviting members to your organization');
@@ -60,24 +61,28 @@ export async function POST({ params, request, locals }) {
 		error(400, 'you need to purchase more seats');
 	}
 
-	if (invites.length > 0) error(400, `cannot reinvite ${email}`);
+	if (invites.length > 0) error(400, `cannot reinvite ${body.username}`);
 
-	if (!invitedUser) error(400, 'invited email is not associated with an account!');
+	const invite = await createOrgInvite({ userId: invitedUser.id, orgId: org.id, role: body.role });
 
-	const invite = await createOrgInvite({ email, orgId: org.id, role: body.role });
+	if (!invite) error(500, `error inviting ${body.username}`);
 
-	if (!invite) error(500, `error inviting ${email}`);
-
-	await resend.emails.send(invitedToOrgEmail({ owner: session.user, orgName, invited: email }));
+	await resend.emails.send(
+		invitedToOrgEmail({ owner: self.user, orgName, invited: invitedUser.email })
+	);
 
 	return json({});
 }
 
-export type CancelInviteRequest = {
-	inviteId: number;
-};
+const cancelInviteRequestSchema = v.object({
+	inviteId: v.number()
+});
+
+export type CancelInviteRequest = v.InferOutput<typeof cancelInviteRequestSchema>;
 
 export async function DELETE({ params, request, locals }) {
+	const body = await validateRequest(cancelInviteRequestSchema, request);
+
 	const session = await locals.auth();
 
 	if (!session) error(401);
@@ -88,13 +93,9 @@ export async function DELETE({ params, request, locals }) {
 
 	if (!org) error(404);
 
-	const member = org.members.find((m) => m.userId === session.user.id);
+	const self = org.members.find((m) => m.userId === session.user.id);
 
-	if (member?.role !== 'owner') error(401, 'only the owner can cancel invites');
-
-	const body = (await request.json()) as CancelInviteRequest;
-
-	if (!body.inviteId) error(400, 'expected requestId in the request body');
+	if (self?.role !== 'owner') error(401, 'only the owner can cancel invites');
 
 	const deleted = await deleteOrgInvite(body.inviteId);
 

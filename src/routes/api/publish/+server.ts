@@ -63,7 +63,7 @@ export async function POST({ request }) {
 
 	assert(verifyResult.key !== null);
 
-	const userPromise = getUser(verifyResult.key.userId);
+	const userPromise = getUser({ id: verifyResult.key.userId });
 
 	if (request.body === null) {
 		error(400, 'body is required');

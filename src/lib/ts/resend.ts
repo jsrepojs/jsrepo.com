@@ -87,10 +87,10 @@ export function supportEmail(opts: {
 export function scopeTransferRequestedEmail(opts: {
 	scopeName: string;
 	newOwner: MinUser;
-	oldOwner: MinUser;
+	oldOwner: MinUser & { username: string | null };
 	newOwnerName: string;
 }): CreateEmailOptions {
-	const html = `<p>${opts.oldOwner.name} wants to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
+	const html = `<p>${opts.oldOwner.username ?? opts.oldOwner.name} wants to transfer @${opts.scopeName} to ${opts.newOwnerName}.</p>
 		
 <p>View and confirm the request on <a href="https://jsrepo.com/account/scopes/transfer-requests">jsrepo.com</a></p>`;
 
@@ -140,18 +140,18 @@ export function scopeTransferredEmail(opts: {
 }
 
 export function invitedToOrgEmail(opts: {
-	owner: MinUser;
+	owner: MinUser & { username: string | null };
 	invited: string;
 	orgName: string;
 }): CreateEmailOptions {
-	const html = `<p>${opts.owner.name} invited you to join ${opts.orgName}!</p>
+	const html = `<p>${opts.owner.username ?? opts.owner.name} invited you to join ${opts.orgName}!</p>
 	
 <p>View and accept your invitation on <a href="https://jsrepo.com/account/organizations/invites">jsrepo.com</a></p>`;
 
 	return {
 		from: SUPPORT_EMAIL,
 		to: [opts.invited],
-		subject: `${opts.owner.name} invited you to join ${opts.orgName}!`,
+		subject: `${opts.owner.username} invited you to join ${opts.orgName}!`,
 		html,
 		text: htmlToText(html)
 	};

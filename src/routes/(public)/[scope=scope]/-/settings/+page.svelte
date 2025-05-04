@@ -99,7 +99,7 @@
 						{data.scope.org.name}
 					</a>
 				{:else}
-					{data.scope.user?.name}
+					{data.scope.user?.username ?? data.scope.user?.name}
 				{/if}
 			</FieldSet.Title>
 			<small class="text-muted-foreground">Claimed {toRelative(data.scope.claimedAt)}</small>
@@ -135,10 +135,10 @@
 				<FieldSet.Content class="flex flex-col gap-2">
 					<FieldSet.Title>Transfer Ownership</FieldSet.Title>
 					<div class="space-y-1">
-						<Label>Email or Organization</Label>
+						<Label>Username or Organization</Label>
 						<div class="relative w-full max-w-sm">
 							<Input
-								placeholder="Users email or name of the organization"
+								placeholder="Username or name of the organization"
 								bind:value={userOrOrg}
 								oninput={searchUserOrOrgQuery.runDB}
 							/>

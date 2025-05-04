@@ -8,7 +8,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import * as casing from '$lib/ts/casing';
-	import * as v from 'valibot';
 	import { invalidateAll } from '$app/navigation';
 	import type { InviteMemberRequest } from '../../../api/orgs/[org]/members/invite/+server';
 	import type { FullOrg } from '$lib/backend/db/functions';
@@ -22,7 +21,7 @@
 	let open = $state(false);
 
 	// form fields
-	let email = $state('');
+	let username = $state('');
 	let role = $state<OrgRole>('member');
 
 	const inviteQuery = new UseQuery(async () => {
@@ -31,7 +30,7 @@
 			headers: {
 				'content-type': 'application/json'
 			},
-			body: JSON.stringify({ email, role } satisfies InviteMemberRequest)
+			body: JSON.stringify({ username, role } satisfies InviteMemberRequest)
 		});
 
 		if (!response.ok) {
@@ -42,26 +41,20 @@
 
 		await invalidateAll();
 		open = false;
-		email = '';
+		username = '';
 		role = 'member';
 	});
 
-	const validateEmailQuery = new UseQuery(async () => {
-		if (email.trim().length === 0) {
+	const validateUsernameQuery = new UseQuery(async () => {
+		if (username.trim().length === 0) {
 			return undefined;
 		}
 
-		const result = v.safeParse(v.pipe(v.string(), v.email()), email);
-
-		if (!result.success) {
-			return false;
-		}
-
-		const member = org.members.find((m) => m.user.email === email.trim());
+		const member = org.members.find((m) => m.user.username === username.trim());
 
 		if (member) return false;
 
-		const response = await fetch(`/api/orgs/${org.name}/members/can-invite?email=${email}`);
+		const response = await fetch(`/api/orgs/${org.name}/members/can-invite?username=${username}`);
 
 		if (!response.ok) {
 			const error = await response.json();
@@ -72,7 +65,7 @@
 		return response.ok;
 	});
 
-	const canSubmit = $derived(validateEmailQuery.data === true);
+	const canSubmit = $derived(validateUsernameQuery.data === true);
 </script>
 
 <Dialog.Root bind:open>
@@ -94,18 +87,17 @@
 		</Dialog.Header>
 		<div class="flex flex-col gap-2">
 			<div>
-				<Label>Email</Label>
+				<Label>Username</Label>
 				<div class="relative">
 					<Input
-						type="email"
-						bind:value={email}
-						oninput={validateEmailQuery.runDB}
-						placeholder="johnnydoe1@example.com"
-						aria-invalid={validateEmailQuery.data === false}
+						bind:value={username}
+						oninput={validateUsernameQuery.runDB}
+						placeholder="Username"
+						aria-invalid={validateUsernameQuery.data === false}
 						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
 					/>
-					{#if validateEmailQuery.data !== undefined}
-						{#if validateEmailQuery.data}
+					{#if validateUsernameQuery.data !== undefined}
+						{#if validateUsernameQuery.data}
 							<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
 						{:else}
 							<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
@@ -131,8 +123,8 @@
 			<small class="text-wrap text-start text-destructive">
 				{#if inviteQuery.error}
 					{inviteQuery.error}
-				{:else if validateEmailQuery.error}
-					{validateEmailQuery.error}
+				{:else if validateUsernameQuery.error}
+					{validateUsernameQuery.error}
 				{/if}
 			</small>
 			<div class="flex place-items-center gap-2">

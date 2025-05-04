@@ -122,7 +122,7 @@ export const auth = betterAuth({
 				authorizeReference: async ({ user, referenceId }) => {
 					const isOrg = referenceId.startsWith('org_');
 
-					const userWithSub = await getUser(user.id);
+					const userWithSub = await getUser({ id: user.id });
 
 					// user can only create and manage subscriptions to an org if they have a subscription
 					if (isOrg && userWithSub?.subscription === null) return false;

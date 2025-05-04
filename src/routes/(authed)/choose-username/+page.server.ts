@@ -2,10 +2,9 @@ import { superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
 import { schema } from './schema';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getUser, nameIsBanned, createOrg, getUserOrOrg } from '$lib/backend/db/functions';
+import { getUser, nameIsBanned, getUserOrOrg, updateUsername } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
-import { checkUserSubscription } from '$lib/ts/stripe/client';
 
 export async function load({ locals, url }) {
 	const form = await superValidate(valibot(schema));
@@ -16,13 +15,14 @@ export async function load({ locals, url }) {
 
 	const user = await getUser({ id: session.user.id });
 
-	assert(user !== null, 'user must be defined');
+	assert(user !== null, 'user must exist');
 
-	if (checkUserSubscription(user) === null) {
-		redirect(303, `/pricing`);
+	if (user.username !== null) {
+		redirect(303, '/account');
 	}
 
 	return {
+		user,
 		form
 	};
 }
@@ -41,11 +41,11 @@ export const actions = {
 
 		const userPromise = getUser({ id: session.user.id });
 
-		const userOrOrg = await getUserOrOrg(form.data.name);
+		const exists = await getUserOrOrg(form.data.username);
 
-		if (userOrOrg !== null) {
+		if (exists) {
 			return error(400, {
-				message: `This name is taken!`
+				message: `This username is taken!`
 			});
 		}
 
@@ -53,26 +53,24 @@ export const actions = {
 
 		assert(user !== null, 'User must be defined');
 
-		if (checkUserSubscription(user) === null) {
-			// we will rudely redirect them since they aren't supposed to be here anyways
-			redirect(303, '/pricing');
-		}
-
-		if (await nameIsBanned(form.data.name)) {
+		if (user.username !== null) {
 			return error(400, {
-				message: `We'd appreciate if you didn't use ${form.data.name} as the name of your organization.`
+				message: 'This is only for the first time you pick a username'
 			});
 		}
 
-		const org = await createOrg(session.user.id, {
-			name: form.data.name,
-			description: form.data.description
-		});
-
-		if (org === null) {
-			return error(500, 'There was an error creating the organization.');
+		if (await nameIsBanned(form.data.username)) {
+			return error(400, {
+				message: `We'd appreciate if you didn't use ${form.data.username} as your username.`
+			});
 		}
 
-		redirect(303, `/${form.data.name}`);
+		const result = await updateUsername(session.user.id, form.data.username);
+
+		if (!result) {
+			return error(500, 'There was an error updating your username.');
+		}
+
+		redirect(303, `/account`);
 	}
 };

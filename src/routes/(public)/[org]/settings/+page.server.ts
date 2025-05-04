@@ -8,7 +8,10 @@ export async function load({ params, locals }) {
 		return error(404);
 	}
 
-	const [org, user] = await Promise.all([getOrg({ name: params.org }), getUser(session?.user.id)]);
+	const [org, user] = await Promise.all([
+		getOrg({ name: params.org }),
+		getUser({ id: session?.user.id })
+	]);
 
 	if (!org || !user) error(404);
 

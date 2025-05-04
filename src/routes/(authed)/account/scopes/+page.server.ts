@@ -8,7 +8,7 @@ export async function load({ locals, url }) {
 	if (!session) redirectToLogin(url);
 
 	const [user, scopes] = await Promise.all([
-		getUser(session.user.id),
+		getUser({ id: session.user.id }),
 		listMyScopes(session.user.id)
 	]);
 

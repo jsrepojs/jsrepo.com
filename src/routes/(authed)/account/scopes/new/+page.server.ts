@@ -52,7 +52,7 @@ export const actions = {
 			orgPromise = getOrg({ name: form.data.org });
 		}
 
-		const promises = Promise.all([getUser(session.user.id), listMyScopes(session.user.id)]);
+		const promises = Promise.all([getUser({ id: session.user.id }), listMyScopes(session.user.id)]);
 
 		const scope = await getScope(form.data.name);
 

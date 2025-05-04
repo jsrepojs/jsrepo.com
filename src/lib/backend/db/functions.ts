@@ -27,7 +27,6 @@ import * as tables from './schema';
 import type { PgColumn, PgTransaction } from 'drizzle-orm/pg-core';
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
-import * as v from 'valibot';
 import { posthog } from '$lib/ts/posthog';
 import { DAY, MINUTE } from '$lib/ts/time';
 import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
@@ -113,8 +112,17 @@ export async function getScope(scope: string): Promise<tables.Scope | null> {
 	return scopes[0];
 }
 
+type GetUserOptions =
+	| { id: string; email?: undefined; username?: undefined }
+	| { email: string; id?: undefined; username?: undefined }
+	| { username: string; email?: undefined; id?: undefined };
+
 /** This has sensitive info that shouldn't be displayed to users */
-export async function getUser(userId: string): Promise<UserWithSubscription | null> {
+export async function getUser({
+	id,
+	email,
+	username
+}: GetUserOptions): Promise<UserWithSubscription | null> {
 	const result = await db
 		.select({
 			...getTableColumns(tables.user),
@@ -129,7 +137,13 @@ export async function getUser(userId: string): Promise<UserWithSubscription | nu
 				eq(tables.subscription.status, 'active')
 			)
 		)
-		.where(eq(tables.user.id, userId));
+		.where(
+			and(
+				id ? eq(tables.user.id, id) : undefined,
+				email ? eq(tables.user.email, email) : undefined,
+				username ? eq(tables.user.username, username) : undefined
+			)
+		);
 
 	if (result.length === 0) return null;
 
@@ -851,14 +865,6 @@ export async function getOrg({
 	} satisfies FullOrg;
 }
 
-export async function getUserByEmail(email: string) {
-	const result = await db.select().from(tables.user).where(eq(tables.user.email, email));
-
-	if (result.length === 0) return null;
-
-	return result[0];
-}
-
 export async function isScopeOwner(userId: string, scopeName: string): Promise<boolean> {
 	const result = await db
 		.select()
@@ -889,25 +895,6 @@ export async function createScopeTransferRequest(
 	if (result.length === 0) return null;
 
 	return result[0]?.id;
-}
-
-export async function isUserOrOrg(search: string): Promise<'user' | 'org' | null> {
-	const result = v.safeParse(v.pipe(v.string(), v.email()), search);
-
-	if (result.success) {
-		// is email
-		const user = await getUserByEmail(search);
-
-		if (user === null) return null;
-
-		return 'user';
-	} else {
-		const org = await getOrg({ name: search });
-
-		if (org === null) return null;
-
-		return 'org';
-	}
 }
 
 export async function getScopeWithOwner(name: string): Promise<
@@ -1115,7 +1102,7 @@ export async function getScopeTransferRequest(id: number) {
 		.innerJoin(
 			tables.user,
 			or(
-				and(eq(tables.user.id, tables.orgMember.id), eq(tables.orgMember.role, 'owner')),
+				and(eq(tables.user.id, tables.orgMember.userId), eq(tables.orgMember.role, 'owner')),
 				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
 			)
 		)
@@ -1192,6 +1179,15 @@ export async function createOrg(
 	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
 	const result = await db.transaction(async (tx) => {
+		const names = await db
+			.insert(tables.owner_identifier)
+			.values({ name: record.name })
+			.returning();
+
+		if (names.length === 0) {
+			tx.rollback();
+		}
+
 		const orgs = await db
 			.insert(tables.org)
 			.values({ ...record, id: `org_${generateId()}` })
@@ -1228,7 +1224,7 @@ export async function createOrgInvite(record: InferInsertModel<typeof tables.org
 	return result[0];
 }
 
-export async function getOrgInvitesForEmail(email: string, orgId: string | null = null) {
+export async function getOrgInvitesForUserId(invitedUserId: string, orgId: string | null = null) {
 	const result = await db
 		.select({
 			...getTableColumns(tables.orgInvite),
@@ -1238,7 +1234,7 @@ export async function getOrgInvitesForEmail(email: string, orgId: string | null 
 		.innerJoin(tables.org, eq(tables.org.id, tables.orgInvite.orgId))
 		.where(
 			and(
-				eq(tables.orgInvite.email, email),
+				eq(tables.orgInvite.userId, invitedUserId),
 
 				// hasn't interacted
 				and(isNull(tables.orgInvite.rejectedAt), isNull(tables.orgInvite.acceptedAt)),
@@ -1265,7 +1261,7 @@ export async function getPendingOrgInvites(orgName: string, userId: string | nul
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		// restrict access to only those who are part of the org
 		.innerJoin(member, eq(member.id, tables.orgMember.userId))
-		.innerJoin(tables.user, eq(tables.user.email, tables.orgInvite.email))
+		.innerJoin(tables.user, eq(tables.user.id, tables.orgInvite.userId))
 		.where(
 			and(
 				// hasn't interacted
@@ -1857,7 +1853,7 @@ export async function useAnonSessionCode(
 					permissions: {
 						registries: ['publish']
 					},
-					userId: code.userId,
+					userId: code.userId
 				},
 				headers: headers
 			});
@@ -1912,4 +1908,56 @@ export async function activateKey(sessionId: string, hardwareId: string): Promis
 		.where(eq(tables.apikey.id, key.id));
 
 	return key.deviceTempApiKey;
+}
+
+export async function getUserOrOrg(name: string) {
+	const result = await db
+		.select({ user: tables.user, org: tables.org })
+		.from(tables.owner_identifier)
+		.leftJoin(tables.user, eq(tables.user.username, tables.owner_identifier.name))
+		.leftJoin(tables.org, eq(tables.org.name, tables.owner_identifier.name))
+		.where(eq(tables.owner_identifier.name, name));
+
+	if (result.length === 0 || (result[0].user === null && result[0].org === null)) {
+		return null;
+	}
+
+	return result[0];
+}
+
+export async function updateUsername(
+	userId: string,
+	username: string,
+	oldUsername?: string
+): Promise<boolean> {
+	return await db.transaction(async (tx) => {
+		if (oldUsername !== undefined) {
+			const result = await tx
+				.delete(tables.owner_identifier)
+				.where(eq(tables.owner_identifier.name, oldUsername))
+				.returning();
+
+			if (result.length === 0) {
+				tx.rollback();
+			}
+		}
+
+		const names = await tx.insert(tables.owner_identifier).values({ name: username }).returning();
+
+		if (names.length === 0) {
+			tx.rollback();
+		}
+
+		const user = await tx
+			.update(tables.user)
+			.set({ username })
+			.where(eq(tables.user.id, userId))
+			.returning();
+
+		if (user.length === 0) {
+			tx.rollback();
+		}
+
+		return true;
+	});
 }
