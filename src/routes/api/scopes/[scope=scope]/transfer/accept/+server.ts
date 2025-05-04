@@ -9,7 +9,7 @@ const schema = v.object({
 	requestId: v.number()
 });
 
-export type AcceptTransferRequest = v.InferOutput<typeof schema>
+export type AcceptTransferRequest = v.InferOutput<typeof schema>;
 
 export async function PATCH({ request, params, locals }) {
 	const scopeName = params.scope.slice(1);

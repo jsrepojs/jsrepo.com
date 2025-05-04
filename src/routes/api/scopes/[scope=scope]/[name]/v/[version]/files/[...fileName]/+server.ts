@@ -3,8 +3,8 @@ import { getFileContentsTheHardWay, postFileFetch } from '$lib/backend/db/functi
 import { error, text } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import { isTag } from '$lib/ts/versioning.js';
-import { base64Url } from "@better-auth/utils/base64";
-import { createHash } from "@better-auth/utils/hash";
+import { base64Url } from '@better-auth/utils/base64';
+import { createHash } from '@better-auth/utils/hash';
 
 /** The max age of a public cached asset in seconds */
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -21,11 +21,9 @@ export async function GET({ params, request, getClientAddress }) {
 	let apiKey = request.headers.get('x-api-key');
 
 	if (apiKey !== null) {
-		const hash = await createHash("SHA-256").digest(
-			new TextEncoder().encode(apiKey),
-		);
+		const hash = await createHash('SHA-256').digest(new TextEncoder().encode(apiKey));
 		const hashed = base64Url.encode(new Uint8Array(hash), {
-			padding: false,
+			padding: false
 		});
 
 		apiKey = hashed;

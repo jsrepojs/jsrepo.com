@@ -99,7 +99,9 @@
 						{data.scope.org.name}
 					</a>
 				{:else}
-					{data.scope.user?.username ?? data.scope.user?.name}
+					<a href="/users/{data.scope.user?.username}" class="underline-offset-2 hover:underline">
+						{data.scope.user?.username ?? data.scope.user?.name}
+					</a>
 				{/if}
 			</FieldSet.Title>
 			<small class="text-muted-foreground">Claimed {toRelative(data.scope.claimedAt)}</small>

@@ -128,9 +128,9 @@
 							}}
 							href={name === 'Free'
 								? '/login'
-								: (data.session === null
+								: data.session === null
 									? `/login?redirect_to=pricing`
-									: undefined)}
+									: undefined}
 							variant={plan.preferred ? 'default' : 'outline'}
 						>
 							{plan.cta}

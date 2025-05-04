@@ -1,8 +1,4 @@
-import {
-	getOrgInvitesForUserId,
-	getOrg,
-	getUser
-} from '$lib/backend/db/functions.js';
+import { getOrgInvitesForUserId, getOrg, getUser } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
 export async function GET({ params, url, locals }) {

@@ -2,8 +2,9 @@
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import ListItem from './list-item.svelte';
-	import ListLink from './list-link.svelte';
 	import { Download, Lock } from '@lucide/svelte';
+	import * as Avatar from '$lib/components/ui/avatar';
+	import { getInitials } from '$lib/ts/initials';
 
 	type Props = {
 		registry: RegistryDetails;
@@ -14,16 +15,13 @@
 	const name = $derived(`@${registry.scope.name}/${registry.name}`);
 </script>
 
-<ListItem>
+<ListItem class="hover:bg-card">
 	<div class="flex flex-col gap-1">
 		<div class="flex place-items-center gap-2">
-			<ListLink href="/{name}">
+			<a href="/{name}" class="text-lg font-medium underline-offset-2 hover:underline">
 				{name}
-			</ListLink>
+			</a>
 			<FileIcon extension={registry.metaPrimaryLanguage} />
-			<span class="hidden font-mono text-sm text-muted-foreground sm:block">
-				{registry.latestVersion?.version}
-			</span>
 			{#if registry.private}
 				<Lock class="size-3.5 text-muted-foreground" />
 			{/if}
@@ -31,9 +29,24 @@
 		<span class="text-muted-foreground">
 			{registry.metaDescription}
 		</span>
-		<span class="block font-mono text-sm text-muted-foreground sm:hidden">
-			{registry.latestVersion?.version}
-		</span>
+		<div class="flex place-items-center gap-2">
+			{#if registry.releasedBy}
+				<a
+					href="/users/{registry.releasedBy.username}"
+					class="flex place-items-center gap-2 text-muted-foreground transition-all hover:text-foreground"
+				>
+					<Avatar.Root class="size-5">
+						<Avatar.Image src={registry.releasedBy.image} />
+						<Avatar.Fallback>{getInitials(registry.releasedBy.name)}</Avatar.Fallback>
+					</Avatar.Root>
+					<span class="truncate">{registry.releasedBy.username}</span>
+				</a>
+			{/if}
+
+			<span class="font-mono text-sm text-muted-foreground">
+				{registry.latestVersion?.version}
+			</span>
+		</div>
 	</div>
 	<span class="hidden place-items-center gap-2 font-mono text-sm text-muted-foreground sm:flex">
 		{registry.monthlyFetches}

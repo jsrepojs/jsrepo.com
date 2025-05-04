@@ -5,8 +5,6 @@
 	import { Check, X } from '@lucide/svelte';
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import { getInitials } from '$lib/ts/initials.js';
 
 	let { data } = $props();
 
@@ -53,9 +51,7 @@
 	<form method="POST" use:enhance class="flex w-full max-w-xs flex-col place-items-center gap-2">
 		<div>
 			<h1 class="text-center text-2xl font-bold">Choose a username</h1>
-			<p class="text-center text-muted-foreground">
-				Before you continue choose a username.
-			</p>
+			<p class="text-center text-muted-foreground">Before you continue choose a username.</p>
 		</div>
 		<Form.Field {form} name="username" class="w-full">
 			<Form.Control>

@@ -5,7 +5,7 @@ import type { Org, Scope, User } from './schema';
  * @param userOrOrg
  * @param opts
  * @returns
-*/
+ */
 export function isSameScopeOwner(
 	userOrOrg: string,
 	opts: Scope & { user: User | null; org: Org | null }

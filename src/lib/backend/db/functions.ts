@@ -167,6 +167,7 @@ export async function getRegistry(
 ): Promise<RegistryDetails | null> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
+	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
@@ -176,7 +177,8 @@ export async function getRegistry(
 			scope: tables.scope,
 			org: tables.org,
 			latestVersion: tables.version,
-			monthlyFetches: sum(tables.dailyRegistryFetch.count)
+			monthlyFetches: sum(tables.dailyRegistryFetch.count),
+			releasedBy: releasedBy
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
@@ -186,6 +188,7 @@ export async function getRegistry(
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
+		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
 		.leftJoin(
 			tables.dailyRegistryFetch,
 			and(
@@ -227,7 +230,9 @@ export async function getRegistry(
 			tables.version.id,
 			tables.version.registryId,
 			tables.version.tag,
-			tables.version.createdAt
+			tables.version.createdAt,
+			tables.version.releasedById,
+			releasedBy.id
 		);
 
 	if (registries.length === 0) return null;
@@ -1386,6 +1391,8 @@ export type RegistrySearchOptions = {
 	 *
 	 * @default true */
 	readonlyAccess: boolean;
+	/** User that owns the scope */
+	ownedById: string;
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1393,6 +1400,7 @@ export type RegistryDetails = tables.Registry & {
 	org: tables.Org | null;
 	latestVersion: tables.Version | null;
 	monthlyFetches: number;
+	releasedBy: tables.User | null;
 };
 
 export async function searchRegistries({
@@ -1404,10 +1412,12 @@ export async function searchRegistries({
 	userId,
 	orderBy,
 	lang,
-	readonlyAccess = true
+	readonlyAccess = true,
+	ownedById
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
+	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
@@ -1441,6 +1451,7 @@ export async function searchRegistries({
 			: undefined,
 		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
 		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
+		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
 		checkAccessQuery({
 			orgSubscription,
@@ -1471,7 +1482,8 @@ export async function searchRegistries({
 			org: tables.org,
 			latestVersion: tables.version,
 			monthlyFetches: sum(tables.dailyRegistryFetch.count),
-			score: scoreExpr
+			score: scoreExpr,
+			releasedBy: releasedBy
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
@@ -1484,6 +1496,7 @@ export async function searchRegistries({
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
+		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
 		.leftJoin(
 			tables.dailyRegistryFetch,
 			and(
@@ -1527,7 +1540,9 @@ export async function searchRegistries({
 			tables.version.id,
 			tables.version.registryId,
 			tables.version.tag,
-			tables.version.createdAt
+			tables.version.createdAt,
+			tables.version.releasedById,
+			releasedBy.id
 		);
 
 	if (orderBy) {
@@ -1960,4 +1975,16 @@ export async function updateUsername(
 
 		return true;
 	});
+}
+
+export async function getUserMemberOrgs(userId: string) {
+	const orgs = await db
+		.select({
+			...getTableColumns(tables.org)
+		})
+		.from(tables.org)
+		.innerJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.where(eq(tables.orgMember.userId, userId));
+
+	return orgs;
 }

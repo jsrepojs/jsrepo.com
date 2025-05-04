@@ -131,9 +131,8 @@
 						}
 					>
 						<Select.Trigger class="max-w-56">
-							{expiresInOptions.find(
-								(o) => o.value === ($formData.expiresIn?.toString() ?? '0')
-							)?.label}
+							{expiresInOptions.find((o) => o.value === ($formData.expiresIn?.toString() ?? '0'))
+								?.label}
 						</Select.Trigger>
 						<Select.Content>
 							{#each expiresInOptions as option (option.label)}

@@ -13,7 +13,7 @@ export async function load({ url, locals }) {
 	assert(user !== null, 'User should exist!');
 
 	if (!user.username) {
-		redirect(303,'/choose-username')
+		redirect(303, '/choose-username');
 	}
 
 	return {

@@ -27,7 +27,7 @@ export const actions = {
 			return fail(400, { form });
 		}
 
-		const expiresIn = form.data.expiresIn === 0 ? null : form.data.expiresIn
+		const expiresIn = form.data.expiresIn === 0 ? null : form.data.expiresIn;
 
 		const apiKey = await getApiKey(session.user.id, form.data.name);
 
