@@ -700,19 +700,69 @@ function checkAccessQuery({
 	orgSubscription,
 	billPayerSubscription,
 	checkSubscription = true,
-	readonlyAccess = false
+	readonlyAccess = true
 }: {
 	orgSubscription: typeof tables.subscription;
 	billPayerSubscription: typeof tables.subscription;
 	checkSubscription: boolean;
+	/** Readonly access means that a user can view the contents of the registry
+	 * regardless of whether or not they are a part of its ownership */
 	readonlyAccess?: boolean;
 }) {
-	return or(
-		// if we are only checking readonly access then we don't continue if it's a public registry
-		readonlyAccess ? eq(tables.registry.private, false) : undefined,
+	if (readonlyAccess) {
+		return or(
+			eq(tables.registry.private, false),
 
-		// registry is private but they have access and have paid their subscription
-		or(
+			// registry is private but they have access and have paid their subscription
+			or(
+				// User owned scope
+				and(
+					isNotNull(tables.scope.userId),
+
+					// check if we own the scope
+					eq(tables.scope.userId, tables.user.id),
+
+					// check the status of the users subscription plan
+					checkSubscription
+						? and(
+								// has an active Pro plan
+								eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
+								eq(tables.subscription.status, 'active')
+							)
+						: undefined
+				),
+
+				// Org owned scope
+				and(
+					isNotNull(tables.scope.orgId),
+
+					// check if we are part of the organization
+					eq(tables.orgMember.userId, tables.user.id),
+
+					// check the status of the owners subscription plan
+					checkSubscription
+						? or(
+								// courtesy month
+								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
+
+								// paid
+								and(
+									// check courtesy month as well
+
+									isNotNull(orgSubscription.id),
+									// owner has an active Pro plan
+									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+									eq(orgSubscription.status, 'active'),
+									eq(orgSubscription.hasEnoughSeats, true),
+									isNotNull(billPayerSubscription.id)
+								)
+							)
+						: undefined
+				)
+			)
+		);
+	} else {
+		return or(
 			// User owned scope
 			and(
 				isNotNull(tables.scope.userId),
@@ -720,14 +770,18 @@ function checkAccessQuery({
 				// check if we own the scope
 				eq(tables.scope.userId, tables.user.id),
 
-				// check the status of the users subscription plan
-				checkSubscription
-					? and(
-							// has an active Pro plan
-							eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
-							eq(tables.subscription.status, 'active')
-						)
-					: undefined
+				or(
+					eq(tables.registry.private, false),
+
+					// if not public check the users plan
+					checkSubscription
+						? and(
+								// has an active Pro plan
+								eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
+								eq(tables.subscription.status, 'active')
+							)
+						: undefined
+				)
 			),
 
 			// Org owned scope
@@ -757,8 +811,8 @@ function checkAccessQuery({
 						)
 					: undefined
 			)
-		)
-	);
+		);
+	}
 }
 
 export async function getOrg({
