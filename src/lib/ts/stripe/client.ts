@@ -11,11 +11,11 @@ export type Plan = {
 export const PLANS = {
 	pro: {
 		name: 'Pro',
-		priceId: variable('price_1RJF3VG0c645Pxpo6NTpErOA', 'price_1RJJAP4UV8VP8UhvzcLHFYx3')
+		priceId: variable('price_1RKsEtG0c645PxporNqdIFoQ', 'price_1RJJAP4UV8VP8UhvzcLHFYx3')
 	} satisfies Plan,
 	organizationSeat: {
 		name: 'Organization Seat',
-		priceId: variable('price_1RJfTTG0c645PxpoK5P1taiR', 'price_1RJfSa4UV8VP8UhvzKjbBS25')
+		priceId: variable('price_1RKsFQG0c645PxpojXPtZKua', 'price_1RJfSa4UV8VP8UhvzKjbBS25')
 	} satisfies Plan
 } as const;
 
