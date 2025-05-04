@@ -11,6 +11,10 @@
 	const tab = $derived(page.url.searchParams.get('tab') ?? '/');
 </script>
 
+<svelte:head>
+	<title>{data.user.username} - jsrepo</title>
+</svelte:head>
+
 <div class="flex min-h-[calc(100svh-var(--header-height))] flex-col gap-4 pb-4 pt-10">
 	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">
 		<div
