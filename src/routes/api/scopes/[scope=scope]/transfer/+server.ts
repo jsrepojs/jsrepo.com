@@ -8,7 +8,8 @@ import {
 	isScopeOwner,
 	getUserOrOrg,
 	type FullOrg,
-	type TransferOwnershipOptions
+	type TransferOwnershipOptions,
+	getUser
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
@@ -65,7 +66,12 @@ export async function POST({ request, params, locals }) {
 		error(400, 'cannot transfer to the same owner');
 	}
 
-	const userOrOrg = await getUserOrOrg(body.transferTo);
+	const [userOrOrg, transferringUser] = await Promise.all([
+		getUserOrOrg(body.transferTo),
+		getUser({ id: session.user.id })
+	]);
+
+	assert(transferringUser !== null, 'must be defined');
 
 	if (userOrOrg === null) error(400, `\`${body.transferTo}\` is not an user or org`);
 
@@ -109,8 +115,8 @@ export async function POST({ request, params, locals }) {
 					scopeTransferRequestedEmail({
 						scopeName: scopeName,
 						newOwner: user,
-						oldOwner: session.user,
-						newOwnerName: user.name
+						oldOwner: transferringUser,
+						newOwnerName: 'you'
 					})
 				);
 
@@ -125,7 +131,7 @@ export async function POST({ request, params, locals }) {
 							scopeTransferRequestedEmailToOldOwner({
 								scopeName: scopeName,
 								oldOwner: owner.user,
-								newOwnerName: user.name
+								newOwnerName: user.username ?? user.name
 							})
 						);
 					}
@@ -175,7 +181,7 @@ export async function POST({ request, params, locals }) {
 						scopeTransferRequestedEmail({
 							scopeName: scopeName,
 							newOwner: owner.user,
-							oldOwner: session.user,
+							oldOwner: transferringUser,
 							newOwnerName: newFullOrg.name
 						})
 					);

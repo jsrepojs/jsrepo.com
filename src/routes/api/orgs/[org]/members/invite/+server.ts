@@ -19,19 +19,22 @@ const inviteMemberRequestSchema = v.object({
 export type InviteMemberRequest = v.InferOutput<typeof inviteMemberRequestSchema>;
 
 export async function POST({ params, request, locals }) {
+	const body = await validateRequest(inviteMemberRequestSchema, request);
+
 	const session = await locals.auth();
 
 	if (!session) error(401);
 
-	const body = await validateRequest(inviteMemberRequestSchema, request);
-
 	const orgName = params.org;
 
-	const [org, invitedUser] = await Promise.all([getOrg({ name: orgName }), getUser({ username: body.username })]);
+	const [org, invitedUser] = await Promise.all([
+		getOrg({ name: orgName }),
+		getUser({ username: body.username })
+	]);
 
 	if (!org) error(404);
 
-	if (!invitedUser) error(400, 'user does not exist with this username')
+	if (!invitedUser) error(400, 'user does not exist with this username');
 
 	const memberCount = org.members.length;
 
@@ -64,16 +67,22 @@ export async function POST({ params, request, locals }) {
 
 	if (!invite) error(500, `error inviting ${body.username}`);
 
-	await resend.emails.send(invitedToOrgEmail({ owner: session.user, orgName, invited: invitedUser.email }));
+	await resend.emails.send(
+		invitedToOrgEmail({ owner: self.user, orgName, invited: invitedUser.email })
+	);
 
 	return json({});
 }
 
-export type CancelInviteRequest = {
-	inviteId: number;
-};
+const cancelInviteRequestSchema = v.object({
+	inviteId: v.number()
+});
+
+export type CancelInviteRequest = v.InferOutput<typeof cancelInviteRequestSchema>;
 
 export async function DELETE({ params, request, locals }) {
+	const body = await validateRequest(cancelInviteRequestSchema, request);
+
 	const session = await locals.auth();
 
 	if (!session) error(401);
@@ -87,10 +96,6 @@ export async function DELETE({ params, request, locals }) {
 	const self = org.members.find((m) => m.userId === session.user.id);
 
 	if (self?.role !== 'owner') error(401, 'only the owner can cancel invites');
-
-	const body = (await request.json()) as CancelInviteRequest;
-
-	if (!body.inviteId) error(400, 'expected requestId in the request body');
 
 	const deleted = await deleteOrgInvite(body.inviteId);
 

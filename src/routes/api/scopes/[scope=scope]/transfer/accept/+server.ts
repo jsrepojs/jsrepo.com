@@ -1,18 +1,20 @@
 import { acceptScopeTransferRequest, getScopeTransferRequest } from '$lib/backend/db/functions';
 import { db } from '$lib/backend/db/index.js';
+import { validateRequest } from '$lib/ts/http/request.js';
 import { resend, scopeTransferredEmail } from '$lib/ts/resend';
 import { error, json } from '@sveltejs/kit';
+import * as v from 'valibot';
 
-export type AcceptTransferRequest = {
-	requestId: number;
-};
+const schema = v.object({
+	requestId: v.number()
+});
+
+export type AcceptTransferRequest = v.InferOutput<typeof schema>
 
 export async function PATCH({ request, params, locals }) {
 	const scopeName = params.scope.slice(1);
 
-	const body = (await request.json()) as AcceptTransferRequest;
-
-	if (!body.requestId) error(400, 'expected requestId in the request body');
+	const body = await validateRequest(schema, request);
 
 	const session = await locals.auth();
 

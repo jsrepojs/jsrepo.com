@@ -1102,7 +1102,7 @@ export async function getScopeTransferRequest(id: number) {
 		.innerJoin(
 			tables.user,
 			or(
-				and(eq(tables.user.id, tables.orgMember.id), eq(tables.orgMember.role, 'owner')),
+				and(eq(tables.user.id, tables.orgMember.userId), eq(tables.orgMember.role, 'owner')),
 				eq(tables.user.id, tables.scopeTransferRequest.newUserId)
 			)
 		)
