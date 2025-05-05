@@ -482,14 +482,14 @@ export async function getFileContentsTheHardWay({
 }: Omit<GetFileContentsOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
-}): Promise<{ content: string; private: boolean } | null> {
+}): Promise<{ content: string; access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
-		.select({ private: tables.registry.private, content: tables.file.content })
+		.select({ access: tables.registry.access, content: tables.file.content })
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
@@ -647,7 +647,7 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 		.select({
 			id: tables.registry.id,
 			name: tables.registry.name,
-			private: tables.registry.private,
+			access: tables.registry.access,
 			scopeId: tables.registry.scopeId,
 			createdAt: tables.registry.createdAt
 		})
@@ -711,7 +711,7 @@ function checkAccessQuery({
 }) {
 	if (readonlyAccess) {
 		return or(
-			eq(tables.registry.private, false),
+			eq(tables.registry.access, 'public'),
 
 			// registry is private but they have access and have paid their subscription
 			or(
@@ -771,7 +771,7 @@ function checkAccessQuery({
 				eq(tables.scope.userId, tables.user.id),
 
 				or(
-					eq(tables.registry.private, false),
+					eq(tables.registry.access, 'public'),
 
 					// if not public check the users plan
 					checkSubscription
@@ -791,25 +791,29 @@ function checkAccessQuery({
 				// check if we are part of the organization
 				eq(tables.orgMember.userId, tables.user.id),
 
-				// check the status of the owners subscription plan
-				checkSubscription
-					? or(
-							// courtesy month
-							and(gt(tables.org.courtesyMonthEndedAt, new Date())),
+				or(
+					eq(tables.registry.access, 'public'),
 
-							// paid
-							and(
-								// check courtesy month as well
+					// check the status of the owners subscription plan
+					checkSubscription
+						? or(
+								// courtesy month
+								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
 
-								isNotNull(orgSubscription.id),
-								// owner has an active Pro plan
-								eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-								eq(orgSubscription.status, 'active'),
-								eq(orgSubscription.hasEnoughSeats, true),
-								isNotNull(billPayerSubscription.id)
+								// paid
+								and(
+									// check courtesy month as well
+
+									isNotNull(orgSubscription.id),
+									// owner has an active Pro plan
+									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+									eq(orgSubscription.status, 'active'),
+									eq(orgSubscription.hasEnoughSeats, true),
+									isNotNull(billPayerSubscription.id)
+								)
 							)
-						)
-					: undefined
+						: undefined
+				)
 			)
 		);
 	}
@@ -1757,7 +1761,7 @@ export async function getPublicDownloads({
 			and(
 				eq(lower(tables.scope.name), scope.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
-				eq(tables.registry.private, false),
+				eq(tables.registry.access, 'public'),
 				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
 				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
 			)

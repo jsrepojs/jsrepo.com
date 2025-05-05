@@ -52,8 +52,8 @@ export async function GET({ params, request, getClientAddress }) {
 		})
 	);
 
-	// never cache tags
-	if (result.private || isTag(version)) {
+	// never cache tags or non public registries
+	if (result.access !== 'public' || isTag(version)) {
 		return text(result.content);
 	}
 

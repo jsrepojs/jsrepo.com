@@ -184,7 +184,7 @@ export async function POST({ request }) {
 			registryId = await createRegistry(tx, {
 				name: registryName,
 				scopeId: scope.id,
-				private: publishPrivate,
+				access: publishPrivate ? 'private' : 'public',
 				metaAuthors: manifest.meta?.authors ?? null,
 				metaBugs: manifest.meta?.bugs ?? null,
 				metaDescription: manifest.meta?.description ?? null,
@@ -286,7 +286,7 @@ export async function POST({ request }) {
 	}
 
 	// if the registry already existed we use it's setting else we use the setting provided
-	const isPrivate = registry ? registry.private : publishPrivate;
+	const registryAccess = registry ? registry.access : publishPrivate ? 'private' : 'public';
 
 	posthog.capture({
 		event: 'publish-registry',
@@ -295,7 +295,7 @@ export async function POST({ request }) {
 			scope: scopeName,
 			registry: registryName,
 			version: manifest.version,
-			private: isPrivate
+			access: registryAccess
 		}
 	});
 
@@ -309,6 +309,6 @@ export async function POST({ request }) {
 		registry: registryName,
 		version: manifest.version,
 		tag: releaseTag,
-		private: isPrivate
+		access: registryAccess
 	});
 }

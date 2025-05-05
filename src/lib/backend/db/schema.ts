@@ -365,12 +365,18 @@ export const scopeTransferRequest = pgTable(
 
 export type ScopeTransferRequest = InferSelectModel<typeof scopeTransferRequest>;
 
+export const registry_access = pgEnum('registry_access', ['public', 'private', 'marketplace']);
+
+export type RegistryAccess = (typeof registry_access.enumValues)[number];
+
+export const registryAccessLevels = registry_access.enumValues;
+
 export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
 		name: varchar('name', { length: 20 }).notNull(),
-		private: boolean().notNull().default(false),
+		access: registry_access().notNull(),
 		scopeId: integer('scope_id')
 			.notNull()
 			.references(() => scope.id, { onDelete: 'cascade' }),
@@ -390,7 +396,7 @@ export const registry = pgTable(
 		return [
 			uniqueIndex('registry_scope_name_unique_idx').on(table.scopeId, lower(table.name)),
 			index('registry_name_idx').on(lower(table.name)),
-			index('registry_private_idx').on(table.private),
+			index('registry_access_idx').on(table.access),
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),

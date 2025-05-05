@@ -2,7 +2,7 @@
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import ListItem from './list-item.svelte';
-	import { Download, Lock } from '@lucide/svelte';
+	import { Download, Lock, Store } from '@lucide/svelte';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 
@@ -22,8 +22,10 @@
 				{name}
 			</a>
 			<FileIcon extension={registry.metaPrimaryLanguage} />
-			{#if registry.private}
+			{#if registry.access === 'private'}
 				<Lock class="size-3.5 text-muted-foreground" />
+			{:else if registry.access === 'marketplace'}
+				<Store class="size-3.5 text-muted-foreground" />
 			{/if}
 		</div>
 		<span class="text-muted-foreground">
