@@ -25,6 +25,7 @@ export const auth = betterAuth({
 		provider: 'pg',
 		schema
 	}),
+	trustedOrigins: ['https://www.jsrepo.com'],
 	plugins: [
 		apiKey({
 			defaultPrefix: 'jsrepo_',
