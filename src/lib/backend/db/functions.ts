@@ -419,54 +419,6 @@ type GetFileContentsOptions = {
 	fileName: string;
 };
 
-export async function getFileContents({
-	userId,
-	scopeName,
-	registryName,
-	version,
-	fileName
-}: GetFileContentsOptions): Promise<string | null> {
-	const isTag = !semver.valid(version);
-
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
-
-	const result = await db
-		.select({ content: tables.file.content })
-		.from(tables.scope)
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
-		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
-		.leftJoin(
-			billPayerSubscription,
-			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
-			)
-		)
-		.where(
-			and(
-				eq(lower(tables.scope.name), scopeName.toLowerCase()),
-				eq(lower(tables.registry.name), registryName.toLowerCase()),
-				eq(isTag ? tables.version.tag : tables.version.version, version),
-				eq(tables.file.name, fileName),
-
-				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
-			)
-		);
-
-	if (result.length === 0) return null;
-
-	return result[0].content;
-}
-
 /** We do this because an extra trip to get the session the easy way costs us another 250ms. So instead we just make it part of the query.
  *
  * @param param0
