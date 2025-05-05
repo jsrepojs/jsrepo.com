@@ -29,7 +29,13 @@ export async function getInfo({
 
 	const promises = Promise.all([
 		getVersions(scopeName, registryName),
-		getFiles(userId, scopeName, registryName, version, ['README.md', 'jsrepo-manifest.json'])
+		getFiles({
+			userId,
+			scopeName,
+			registryName,
+			version,
+			fileNames: ['README.md', 'jsrepo-manifest.json']
+		})
 	]);
 
 	const registry = await registryPromise;

@@ -1,5 +1,5 @@
 import { getSessionCookie } from 'better-auth/cookies';
-import { getFileContentsTheHardWay, postFileFetch } from '$lib/backend/db/functions.js';
+import { getFileContentsFast, postFileFetch } from '$lib/backend/db/functions.js';
 import { error, text } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import { isTag } from '$lib/ts/versioning.js';
@@ -29,7 +29,7 @@ export async function GET({ params, request, getClientAddress }) {
 		apiKey = hashed;
 	}
 
-	const result = await getFileContentsTheHardWay({
+	const result = await getFileContentsFast({
 		scopeName,
 		registryName: name,
 		version,

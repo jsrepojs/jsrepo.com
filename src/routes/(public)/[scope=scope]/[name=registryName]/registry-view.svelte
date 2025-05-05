@@ -4,7 +4,15 @@
 	import * as List from '$lib/components/site/list';
 	import semver from 'semver';
 	import type { Manifest } from '$lib/ts/registry/manifest';
-	import { ChevronRight, FlaskRound, File, Ellipsis, Flag } from '@lucide/svelte';
+	import {
+		ChevronRight,
+		FlaskRound,
+		File,
+		Ellipsis,
+		Flag,
+		Download,
+		FileArchive
+	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { FileIcon } from '$lib/components/ui/file-icon';
@@ -144,7 +152,7 @@
 	</Tabs.Root>
 	<div class="w-full">
 		{#if tab === '/'}
-			<div class="grid gap-4 py-4 md:grid-cols-[1fr_20rem]">
+			<div class="grid gap-4 py-2 md:grid-cols-[1fr_20rem]">
 				<div class="relative col-start-1 flex max-w-full flex-col gap-6 overflow-hidden">
 					{#if data.readme === null}
 						<List.Empty>This registry doesn't have a README.</List.Empty>
@@ -166,7 +174,22 @@
 				<div
 					class="relative flex w-full flex-col gap-4 overflow-hidden md:col-start-2 md:w-[20rem]"
 				>
-					<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />
+					<div class="flex flex-col gap-2">
+						<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />
+						<div class="grid grid-cols-[1fr_30px_1fr] place-items-center gap-2">
+							<Separator />
+							<span class="text-sm text-muted-foreground">or</span>
+							<Separator />
+						</div>
+						<Button
+							variant="outline"
+							download="{data.scopeName}_{data.registryName}_blocks.zip"
+							href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
+						>
+							<FileArchive class="size-5 text-muted-foreground" />
+							Download
+						</Button>
+					</div>
 					{#if data.registry.metaTags}
 						<div class="flex flex-wrap gap-2">
 							{#each data.registry.metaTags as tag (tag)}
@@ -236,43 +259,55 @@
 				</div>
 			</div>
 		{:else if tab === 'blocks'}
-			<List.Root class="flex flex-col gap-2 py-4">
+			<List.Root class="flex flex-col gap-2 py-2">
 				<List.List>
 					{#each data.manifest.categories as category (category)}
 						{#each category.blocks.filter((b) => b.list) as block (block.name)}
 							{@const primaryLanguage = determinePrimaryLanguage(block)}
 							<Collapsible.Root>
-								<Collapsible.Trigger>
-									{#snippet child({ props })}
-										<List.Item class="p-0">
-											<button {...props} class="flex w-full place-items-center justify-between p-4">
-												<div class="flex place-items-center gap-2">
-													<span class="font-medium">
-														{block.category}/{block.name}
-													</span>
-													<FileIcon extension={primaryLanguage} />
-													{#if block.tests}
-														<Tooltip.Provider delayDuration={50}>
-															<Tooltip.Root>
-																<Tooltip.Trigger>
-																	<FlaskRound class="size-4 text-blue-400" />
-																</Tooltip.Trigger>
-																<Tooltip.Content>
-																	<p>Includes tests</p>
-																</Tooltip.Content>
-															</Tooltip.Root>
-														</Tooltip.Provider>
-													{/if}
-												</div>
-												<ChevronRight
-													class={cn('size-5 text-muted-foreground', {
-														'rotate-90': props['aria-expanded'] === 'true'
-													})}
-												/>
-											</button>
-										</List.Item>
-									{/snippet}
-								</Collapsible.Trigger>
+								<List.Item class="p-0 hover:bg-card">
+									<div class="flex w-full place-items-center justify-between p-4">
+										<div class="flex place-items-center gap-2">
+											<span class="font-medium">
+												{block.category}/{block.name}
+											</span>
+											<FileIcon extension={primaryLanguage} />
+											{#if block.tests}
+												<Tooltip.Provider delayDuration={50}>
+													<Tooltip.Root>
+														<Tooltip.Trigger>
+															<FlaskRound class="size-4 text-blue-400" />
+														</Tooltip.Trigger>
+														<Tooltip.Content>
+															<p>Includes tests</p>
+														</Tooltip.Content>
+													</Tooltip.Root>
+												</Tooltip.Provider>
+											{/if}
+										</div>
+										<div class="flex place-items-center gap-2">
+											<Button
+												variant="ghost"
+												size="icon"
+												download="{category.name}_{block.name}.zip"
+												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
+											>
+												<Download class="size-5 text-muted-foreground" />
+											</Button>
+											<Collapsible.Trigger>
+												{#snippet child({ props })}
+													<Button {...props} variant="ghost" size="icon">
+														<ChevronRight
+															class={cn('size-5 text-muted-foreground', {
+																'rotate-90': props['aria-expanded'] === 'true'
+															})}
+														/>
+													</Button>
+												{/snippet}
+											</Collapsible.Trigger>
+										</div>
+									</div>
+								</List.Item>
 								<Collapsible.Content>
 									<div class="mt-2 flex flex-col gap-2 rounded-md border border-border bg-card p-4">
 										<div>
@@ -317,7 +352,7 @@
 				</List.List>
 			</List.Root>
 		{:else if tab === 'dependencies'}
-			<div class="flex flex-col gap-4 py-4">
+			<div class="flex flex-col gap-4 py-2">
 				{#if registryInfo.dependencies.length === 0}
 					<List.Empty>This registry doesn't have any dependencies.</List.Empty>
 				{:else}
@@ -338,7 +373,7 @@
 		{:else if tab === 'versions'}
 			{@const sortedVersions = data.versions.sort((a, b) => semver.compare(b.version, a.version))}
 			{@const taggedVersions = sortedVersions.filter((v) => v.tag !== null)}
-			<div class="flex flex-col gap-4 py-4">
+			<div class="flex flex-col gap-4 py-2">
 				<List.Root title="Tags">
 					<List.List>
 						{#each taggedVersions as version (version.id)}

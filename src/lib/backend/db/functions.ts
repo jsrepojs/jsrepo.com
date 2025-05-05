@@ -411,7 +411,7 @@ export async function createFiles(
 	return result.map((v) => v.id);
 }
 
-type GetFileContentsOptions = {
+type GetFileContentsFastOptions = {
 	userId: string | null;
 	scopeName: string;
 	registryName: string;
@@ -424,14 +424,14 @@ type GetFileContentsOptions = {
  * @param param0
  * @returns
  */
-export async function getFileContentsTheHardWay({
+export async function getFileContentsFast({
 	scopeName,
 	registryName,
 	version,
 	fileName,
 	sessionToken,
 	apiKey
-}: Omit<GetFileContentsOptions, 'userId'> & {
+}: Omit<GetFileContentsFastOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
 }): Promise<{ content: string; access: tables.RegistryAccess } | null> {
@@ -484,13 +484,21 @@ export async function getFileContentsTheHardWay({
 	return result[0];
 }
 
-export async function getFiles(
-	userId: string | null,
-	scopeName: string,
-	registryName: string,
-	version: string,
-	filesNames: string[]
-): Promise<tables.File[]> {
+type GetFilesOptions = {
+	userId?: string | null;
+	scopeName: string;
+	registryName: string;
+	version: string;
+	fileNames: string[];
+};
+
+export async function getFiles({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	fileNames
+}: GetFilesOptions): Promise<tables.File[]> {
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
@@ -527,7 +535,7 @@ export async function getFiles(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
-				inArray(tables.file.name, filesNames),
+				inArray(tables.file.name, fileNames),
 
 				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
