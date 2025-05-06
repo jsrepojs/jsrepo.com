@@ -23,7 +23,11 @@
 			yearly: null,
 			monthly: null,
 			cta: 'Get Started For Free',
-			features: ['Publish and install code from public registries', '5 registry scopes']
+			features: [
+				'Publish and install code from public registries',
+				'5 registry scopes',
+				'Unlimited public registries'
+			]
 		},
 		Pro: {
 			yearly: 100,
@@ -33,6 +37,7 @@
 			features: [
 				'Publish and install code from private registries',
 				'Unlimited registry scopes',
+				'Unlimited public and private registries',
 				'Organizations',
 				'Work with a team'
 			],
@@ -143,7 +148,7 @@
 	<div class="my-20 flex flex-col place-items-center justify-center gap-2">
 		<h2 class="text-center text-3xl font-bold">Can't decide?</h2>
 		<p class="text-muted-foreground">
-			Were here to help! Shoot us an email and let's talk about it!
+			We're here to help! Shoot us an email and let's talk about it!
 		</p>
 		<Button href="/help?reason=pricing" variant="outline">Contact Us</Button>
 	</div>

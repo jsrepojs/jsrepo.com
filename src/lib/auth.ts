@@ -16,6 +16,8 @@ import { plans } from './ts/stripe/client';
 import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
 import assert from 'assert';
 import { eq, like, and, gt } from 'drizzle-orm';
+import { posthog } from './ts/posthog';
+import { waitUntil } from '@vercel/functions';
 
 export type Providers = 'github';
 
@@ -40,6 +42,17 @@ export const auth = betterAuth({
 			createCustomerOnSignUp: true,
 			onCustomerCreate: async ({ user }) => {
 				await resend.emails.send(welcomeEmail(user));
+
+				posthog.capture({
+					distinctId: user.id,
+					event: 'sign-up',
+					properties: {
+						name: user.name,
+						email: user.email
+					}
+				});
+
+				waitUntil(posthog.shutdown());
 			},
 			subscription: {
 				enabled: true,
