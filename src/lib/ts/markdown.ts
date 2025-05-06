@@ -28,7 +28,7 @@ export const prettyCodeOptions: Options = {
 				import('shiki/langs/jsonc.mjs'),
 				import('shiki/langs/json.mjs'),
 				import('shiki/langs/yaml.mjs'),
-				import('shiki/langs/diff.mjs'),
+				import('shiki/langs/diff.mjs')
 			]
 		}),
 	keepBackground: false,

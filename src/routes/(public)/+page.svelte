@@ -1,7 +1,7 @@
 <script lang="ts">
 	import RegistrySearch from '$lib/components/site/registry-search.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronRight, Lock, Milestone, Terminal } from '@lucide/svelte';
+	import { ChevronRight, Flame, Lock, Milestone, Terminal } from '@lucide/svelte';
 </script>
 
 <svelte:head>
@@ -9,7 +9,7 @@
 	<meta name="title" content="Home - jsrepo" />
 	<meta
 		name="description"
-		content="npm for component registries. Distribute your source with incredible tooling at every step."
+		content="The future of component registries. Distribute your source with incredible tooling at every step."
 	/>
 
 	<!-- Open Graph / Facebook -->
@@ -18,7 +18,7 @@
 	<meta property="og:title" content="Home - jsrepo" />
 	<meta
 		property="og:description"
-		content="npm for component registries. Distribute your source with incredible tooling at every step."
+		content="The future of component registries. Distribute your source with incredible tooling at every step."
 	/>
 	<meta property="og:image" content="favicon.png" />
 
@@ -28,7 +28,7 @@
 	<meta property="twitter:title" content="Home - jsrepo" />
 	<meta
 		property="twitter:description"
-		content="npm for component registries. Distribute your source with incredible tooling at every step."
+		content="The future of component registries. Distribute your source with incredible tooling at every step."
 	/>
 	<meta property="twitter:image" content="favicon.png" />
 </svelte:head>
@@ -37,7 +37,7 @@
 	<div class="mt-[25svh] flex w-full max-w-4xl flex-col place-items-center gap-8">
 		<div class="flex flex-col gap-4">
 			<h1 class="text-center text-5xl font-bold md:text-6xl">
-				npm for your
+				The future of
 				<br />
 				<span
 					class="inline-block bg-gradient-to-r from-primary to-red-400 bg-clip-text text-transparent"
@@ -45,7 +45,7 @@
 					Component Registries
 				</span>
 			</h1>
-			<p class="text-center text-lg">
+			<p class="text-center text-lg text-muted-foreground">
 				jsrepo.com is a faster, simpler, more maintainable solution for hosting your component
 				registries.
 			</p>
@@ -60,10 +60,10 @@
 		</div>
 	</div>
 	<div class="mb-20 mt-[25svh]">
-		<h1 class="pb-6 text-center text-3xl font-bold">All the features you need</h1>
-		<div class="grid bg-card md:grid-cols-3">
+		<h1 class="pb-6 text-center text-4xl font-bold">All the features you expect</h1>
+		<div class="grid max-w-3xl bg-card md:grid-cols-2">
 			<div
-				class="rounded-tl-lg rounded-tr-lg border border-b-0 p-8 md:rounded-bl-lg md:rounded-tr-none md:border-b md:border-r-0"
+				class="rounded-tl-lg rounded-tr-lg border border-b-0 p-8 md:rounded-tr-none md:border-r-0"
 			>
 				<h4
 					class="flex place-items-start gap-2 text-xl/[--line-height] font-medium"
@@ -78,7 +78,7 @@
 					Manage versions of your registry using the semver standard.
 				</p>
 			</div>
-			<div class="border border-b-0 p-8 md:border-b md:border-r-0">
+			<div class="border border-b-0 p-8 md:rounded-tr-lg">
 				<h4
 					class="flex place-items-start gap-2 text-xl/[--line-height] font-medium"
 					style="--line-height: 28px;"
@@ -92,7 +92,7 @@
 					Keep your code private while still having access to all of jsrepo's features.
 				</p>
 			</div>
-			<div class="rounded-bl-lg rounded-br-lg border p-8 md:rounded-bl-none md:rounded-tr-lg">
+			<div class="border border-b-0 p-8 md:rounded-bl-lg md:border-b md:border-r-0">
 				<h4
 					class="flex place-items-start gap-2 text-xl/[--line-height] font-medium"
 					style="--line-height: 28px;"
@@ -106,6 +106,30 @@
 					Publish, add, and update your components all from one place with the jsrepo CLI.
 				</p>
 			</div>
+			<div class="rounded-bl-lg rounded-br-lg border p-8 md:rounded-bl-none">
+				<h4
+					class="flex place-items-start gap-2 text-xl/[--line-height] font-medium"
+					style="--line-height: 28px;"
+				>
+					<span class="flex h-[var(--line-height)] place-items-center justify-center">
+						<Flame class="inline size-5" />
+					</span>
+					Blazingly Fast
+				</h4>
+				<p class="text-muted-foreground">
+					jsrepo.com takes advantage of immutable versions and cache busting patterns to maximize
+					performance for your registries.
+				</p>
+			</div>
 		</div>
+	</div>
+	<div class="my-20 flex flex-col place-items-center gap-2">
+		<div>
+			<h2 class="text-center text-4xl font-bold">Ship Together</h2>
+			<p class="text-center text-lg text-muted-foreground">
+				With jsrepo.com Pro you can publish and share your code with your team.
+			</p>
+		</div>
+		<Button variant="outline">See Pricing</Button>
 	</div>
 </div>
