@@ -6,6 +6,31 @@
 
 <svelte:head>
 	<title>Home - jsrepo</title>
+	<meta name="title" content="Home - jsrepo" />
+	<meta
+		name="description"
+		content="npm for component registries. Distribute your source with incredible tooling at every step."
+	/>
+
+	<!-- Open Graph / Facebook -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://www.jsrepo.com/" />
+	<meta property="og:title" content="Home - jsrepo" />
+	<meta
+		property="og:description"
+		content="npm for component registries. Distribute your source with incredible tooling at every step."
+	/>
+	<meta property="og:image" content="favicon.png" />
+
+	<!-- Twitter -->
+	<meta property="twitter:card" content="summary_large_image" />
+	<meta property="twitter:url" content="https://www.jsrepo.com/" />
+	<meta property="twitter:title" content="Home - jsrepo" />
+	<meta
+		property="twitter:description"
+		content="npm for component registries. Distribute your source with incredible tooling at every step."
+	/>
+	<meta property="twitter:image" content="favicon.png" />
 </svelte:head>
 
 <div class="flex flex-col place-items-center pb-4">
