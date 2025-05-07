@@ -40,7 +40,7 @@ export const user = pgTable(
 		barReason: text('bar_reason'),
 		banExpires: timestamp('bar_expires'),
 		stripeCustomerId: text('stripe_customer_id'),
-		stripeSellerAccountId: text('stripe_seller_account_id'),
+		stripeSellerAccountId: text('stripe_seller_account_id')
 	},
 	(table) => {
 		return [
@@ -235,6 +235,32 @@ export const subscription = pgTable(
 
 export type Subscription = InferSelectModel<typeof subscription>;
 
+export const marketplacePurchase = pgTable(
+	'marketplace_purchase',
+	{
+		id: text('id').primaryKey(),
+		stripePurchaseIntentId: text('stripe_purchase_intent_id').notNull().unique(),
+		stripeCustomerId: text('stripe_customer_id').notNull(),
+		referenceId: text('reference_id').notNull(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		status: text('status').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			index('marketplace_purchase_stripe_purchase_intent_id_idx').on(table.stripePurchaseIntentId),
+			index('marketplace_purchase_reference_id_idx').on(table.referenceId),
+			index('marketplace_purchase_registry_id_idx').on(table.registryId),
+			index('marketplace_purchase_status_idx').on(table.status),
+			index('marketplace_stripe_customer_id_idx').on(table.stripeCustomerId)
+		];
+	}
+).enableRLS();
+
+export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>
+
 // ---
 
 export const org = pgTable(
@@ -391,7 +417,12 @@ export const registry = pgTable(
 		metaTags: text('meta_tags').array(),
 		metaPrimaryLanguage: text('meta_primary_language').notNull(),
 
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		// marketplace
+		listOnMarketplace: boolean('list_on_marketplace').default(false),
+		individualPrice: integer('individual_price'),
+		teamPrice: integer('team_price'),
+
+		createdAt: timestamp('created_at').notNull().defaultNow(),
 	},
 	(table) => {
 		return [

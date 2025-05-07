@@ -13,7 +13,7 @@ import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
-import { getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
+import { createMarketPurchase, getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
 import assert from 'assert';
 import { eq, like, and, gt } from 'drizzle-orm';
 import { posthog } from './ts/posthog';
@@ -40,6 +40,37 @@ export const auth = betterAuth({
 			stripeClient,
 			stripeWebhookSecret: STRIPE_WEBHOOK_SECRET,
 			createCustomerOnSignUp: true,
+			onEvent: async (event) => {
+				console.log(event.type);
+				if (event.type === 'charge.refunded') {
+					console.log(event);
+					console.log(event.data.object.metadata);
+				}
+
+				if (event.type === 'checkout.session.completed') {
+					const { customer, metadata, payment_status, payment_intent } = event.data.object;
+
+					assert(metadata !== null, 'there has been a big mistake!');
+
+					const { referenceId, registryId } = metadata;
+
+					console.log({
+						referenceId,
+						registryId: parseInt(registryId),
+						status: payment_status,
+						stripeCustomerId: customer as string,
+						stripePurchaseIntentId: payment_intent as string
+					});
+
+					await createMarketPurchase({
+						referenceId,
+						registryId: parseInt(registryId),
+						status: payment_status,
+						stripeCustomerId: customer as string,
+						stripePurchaseIntentId: payment_intent as string
+					});
+				}
+			},
 			onCustomerCreate: async ({ user }) => {
 				await resend.emails.send(welcomeEmail(user));
 

@@ -1,0 +1,1 @@
+ALTER TABLE "marketplace_purchase" ALTER COLUMN "registry_id" SET DATA TYPE integer;

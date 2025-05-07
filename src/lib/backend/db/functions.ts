@@ -60,35 +60,40 @@ export type FullOrg = tables.Org & {
 export async function canPublishToScope(
 	user: UserWithSubscription,
 	scope: tables.Scope,
-	privateRegistry: boolean
-): Promise<boolean> {
+	access: tables.RegistryAccess
+): Promise<{ canPublish: boolean; reason?: string }> {
 	if (scope.userId === user.id) {
-		if (!privateRegistry) return true;
+		if (access === 'public') return { canPublish: true };
 
 		// any paid plan is fine
-		if (checkUserSubscription(user) !== null) return true;
+		if (checkUserSubscription(user) !== null) return { canPublish: true };
 
-		return false;
+		return {
+			canPublish: false,
+			reason: 'you must be subscribed to pro to publish private registries'
+		};
 	}
 
 	// scope is owned by a user but not you, sorry
-	if (scope.orgId === null) return false;
+	if (scope.orgId === null) return { canPublish: false };
 
 	const org = await getOrg({ id: scope.orgId });
 
-	if (org === null) return false;
+	if (org === null) return { canPublish: false };
 
 	const member = org.members.find((m) => m.userId === user.id);
 
 	// not a part of the org or doesn't have publish access
-	if (!member) return false;
+	if (!member) return { canPublish: false, reason: 'you are not part of this org' };
 
 	// if we aren't the owner and we can't publish on our own
-	if (member.role !== null && !canPublish(member.role)) return false;
+	if (member.role !== null && !canPublish(member.role))
+		return { canPublish: false, reason: "you don't have publish access for this org" };
 
-	if (org.status.type === 'delinquent') return false;
+	if (org.status.type === 'delinquent')
+		return { canPublish: false, reason: "you haven't paid your org subscription" };
 
-	return true;
+	return { canPublish: true };
 }
 
 export function canPublish(role: tables.OrgRole) {
@@ -2005,4 +2010,27 @@ export async function getUserMemberOrgs(userId: string) {
 		.where(eq(tables.orgMember.userId, userId));
 
 	return orgs;
+}
+
+export async function updateUserConnectAccountId(userId: string, accountId: string) {
+	const result = await db
+		.update(tables.user)
+		.set({ stripeSellerAccountId: accountId })
+		.where(eq(tables.user.id, userId))
+		.returning();
+
+	return result.length > 0;
+}
+
+export async function createMarketPurchase(
+	record: Omit<InferInsertModel<typeof tables.marketplacePurchase>, 'id'>
+) {
+	const result = await db
+		.insert(tables.marketplacePurchase)
+		.values({ id: generateId(), ...record })
+		.returning();
+
+	if (result.length === 0) return null;
+
+	return result[0];
 }

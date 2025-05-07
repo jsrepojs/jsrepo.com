@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "stripe_seller_account_id" text;

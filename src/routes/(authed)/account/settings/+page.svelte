@@ -2,7 +2,7 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ChevronLeft, LogOut, RefreshCcw, X } from '@lucide/svelte';
+	import { ChevronLeft, LogOut, RefreshCcw, Unplug, X } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
@@ -10,10 +10,33 @@
 	import { authClient } from '$lib/auth/client.js';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { invalidateAll } from '$app/navigation';
+	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
 
 	let { data } = $props();
 
 	const scopesPromise = new UsePromise(data.scopes, null);
+
+	const connectAccountQuery = new UseQuery(async () => {
+		const response = await fetch('/api/stripe/connect/account', { method: 'POST' });
+
+		console.log(response);
+
+		if (response.ok) {
+			const res = await response.json();
+
+			console.log(res);
+
+			const { url } = res;
+
+			console.log(url);
+
+			if (url) {
+				window.location.href = url;
+			}
+		} else {
+			throw new Error('error creating account');
+		}
+	});
 </script>
 
 <svelte:head>
@@ -96,6 +119,52 @@
 			</FieldSet.Content>
 		</FieldSet.Root>
 	{/if}
+	{#if data.user.stripeSellerAccountId === null}
+		<FieldSet.Root>
+			<FieldSet.Content class="flex flex-row place-items-center justify-between">
+				<div>
+					<FieldSet.Title>Connect Seller Account</FieldSet.Title>
+					<p>If you want to monetize your registries you'll need to connect your account.</p>
+				</div>
+				<Button
+					onclick={connectAccountQuery.run}
+					loading={connectAccountQuery.loading}
+					variant="outline"
+				>
+					<Unplug />
+					Connect Account
+				</Button>
+			</FieldSet.Content>
+		</FieldSet.Root>
+	{/if}
+	<!-- DO NOT LEAVE THIS IN -->
+	<FieldSet.Root>
+		<FieldSet.Content class="flex flex-row place-items-center justify-between">
+			<FieldSet.Title>Purchase Temp!!!!!</FieldSet.Title>
+			<Button
+				onclick={async () => {
+					const response = await fetch('/api/stripe/connect/registries/purchase', {
+						method: 'POST'
+					});
+
+					if (!response.ok) {
+						console.error(response);
+					}
+
+					const res = await response.json();
+
+					const { url } = res;
+
+					if (url) {
+						window.location.href = url;
+					}
+				}}
+				variant="outline"
+			>
+				Purchase
+			</Button>
+		</FieldSet.Content>
+	</FieldSet.Root>
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
 			<FieldSet.Title>Sign Out</FieldSet.Title>
