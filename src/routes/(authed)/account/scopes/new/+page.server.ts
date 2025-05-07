@@ -112,6 +112,8 @@ export const actions = {
 			distinctId: session.user.id,
 			properties: {
 				scope: form.data.name,
+				email: session.user.email,
+				username: user.username,
 				userId: org === null ? session.user.id : undefined,
 				orgId: org === null ? undefined : org.id
 			}

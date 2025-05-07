@@ -232,6 +232,8 @@ export async function POST({ request, params, locals }) {
 		event: result === 'transferred' ? 'scope-transferred' : 'scope-transfer-requested',
 		distinctId: session.user.id,
 		properties: {
+			email: transferringUser.email,
+			username: transferringUser.username,
 			scope: scopeName
 		}
 	});

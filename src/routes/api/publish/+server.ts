@@ -292,6 +292,8 @@ export async function POST({ request }) {
 		event: 'publish-registry',
 		distinctId: verifyResult.key.userId,
 		properties: {
+			email: user.email,
+			username: user.username,
 			scope: scopeName,
 			registry: registryName,
 			version: manifest.version,
