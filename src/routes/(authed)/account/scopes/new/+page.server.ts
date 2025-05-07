@@ -16,6 +16,8 @@ import assert from 'assert';
 import { checkUserSubscription } from '$lib/ts/stripe/client';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { immediate } from '$lib/ts/promises';
+import { posthog } from '$lib/ts/posthog';
+import { waitUntil } from '@vercel/functions';
 
 export async function load({ locals, url }) {
 	const session = await locals.auth();
@@ -104,6 +106,18 @@ export const actions = {
 		if (id === null) {
 			return error(500, 'There was an error creating the scope.');
 		}
+
+		posthog.capture({
+			event: 'claimed-scope',
+			distinctId: session.user.id,
+			properties: {
+				scope: form.data.name,
+				userId: org === null ? session.user.id : undefined,
+				orgId: org === null ? undefined : org.id
+			}
+		});
+
+		waitUntil(posthog.shutdown());
 
 		redirect(303, `/@${form.data.name}`);
 	}
