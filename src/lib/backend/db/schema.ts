@@ -247,7 +247,8 @@ export const org = pgTable(
 		description: text('description'),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		courtesyMonthStartedAt: timestamp('courtesy_month_started_at'),
-		courtesyMonthEndedAt: timestamp('courtesy_month_ended_at')
+		courtesyMonthEndedAt: timestamp('courtesy_month_ended_at'),
+		memberCount: integer('members').notNull().default(1)
 	},
 	(table) => {
 		return [

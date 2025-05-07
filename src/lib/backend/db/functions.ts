@@ -706,15 +706,26 @@ function checkAccessQuery({
 								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
 
 								// paid
-								and(
-									// check courtesy month as well
+								or(
+									// no need to pay for a subscription if the org only has one member
+									and(
+										// we are the owner
+										eq(tables.orgMember.role, 'owner'),
+										// we are the sole member
+										eq(tables.org.memberCount, 1),
+										// we have an active pro plan
+										eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
+										eq(tables.subscription.status, 'active')
+									),
 
-									isNotNull(orgSubscription.id),
-									// owner has an active Pro plan
-									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-									eq(orgSubscription.status, 'active'),
-									eq(orgSubscription.hasEnoughSeats, true),
-									isNotNull(billPayerSubscription.id)
+									// org has seats and bill payer has an active pro plan
+									and(
+										isNotNull(orgSubscription.id),
+										eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+										eq(orgSubscription.status, 'active'),
+										eq(orgSubscription.hasEnoughSeats, true),
+										isNotNull(billPayerSubscription.id)
+									)
 								)
 							)
 						: undefined
@@ -761,15 +772,26 @@ function checkAccessQuery({
 								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
 
 								// paid
-								and(
-									// check courtesy month as well
+								or(
+									// no need to pay for a subscription if the org only has one member
+									and(
+										// we are the owner
+										eq(tables.orgMember.role, 'owner'),
+										// we are the sole member
+										eq(tables.org.memberCount, 1),
+										// we have an active pro plan
+										eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
+										eq(tables.subscription.status, 'active')
+									),
 
-									isNotNull(orgSubscription.id),
-									// owner has an active Pro plan
-									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-									eq(orgSubscription.status, 'active'),
-									eq(orgSubscription.hasEnoughSeats, true),
-									isNotNull(billPayerSubscription.id)
+									// org has seats and bill payer has an active pro plan
+									and(
+										isNotNull(orgSubscription.id),
+										eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
+										eq(orgSubscription.status, 'active'),
+										eq(orgSubscription.hasEnoughSeats, true),
+										isNotNull(billPayerSubscription.id)
+									)
 								)
 							)
 						: undefined
@@ -1360,19 +1382,27 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 			return false;
 		}
 
+		const orgId = res[0].orgId;
+
 		const members = await tx
 			.select()
 			.from(tables.orgMember)
-			.where(eq(tables.orgMember.orgId, res[0].orgId));
+			.where(eq(tables.orgMember.orgId, orgId));
 
-		// update the members in the org on the subscription table
-		const subRes = await tx
-			.update(tables.subscription)
-			.set({ members: members.length })
-			.where(eq(tables.subscription.referenceId, res[0].orgId))
-			.returning();
+		const [subRes, orgRes] = await Promise.all([
+			tx
+				.update(tables.subscription)
+				.set({ members: members.length })
+				.where(eq(tables.subscription.referenceId, orgId))
+				.returning(),
+			tx
+				.update(tables.org)
+				.set({ memberCount: members.length })
+				.where(eq(tables.org.id, orgId))
+				.returning()
+		]);
 
-		if (subRes.length === 0) {
+		if (subRes.length === 0 || orgRes.length === 0) {
 			tx.rollback();
 			return false;
 		}

@@ -141,6 +141,13 @@
 			"when": 1746443847086,
 			"tag": "0019_big_thor_girl",
 			"breakpoints": true
+		},
+		{
+			"idx": 20,
+			"version": "7",
+			"when": 1746624012316,
+			"tag": "0020_yielding_colossus",
+			"breakpoints": true
 		}
 	]
 }

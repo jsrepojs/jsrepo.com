@@ -1,0 +1,1 @@
+ALTER TABLE "org" ADD COLUMN "members" integer DEFAULT 1 NOT NULL;
