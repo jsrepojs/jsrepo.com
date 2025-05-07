@@ -1741,7 +1741,7 @@ export async function getPublicDownloads({
 	scope: string;
 	registryName: string;
 	from: Date;
-}): Promise<number> {
+}): Promise<number | null> {
 	const result = await db
 		.select({ downloads: sum(tables.dailyRegistryFetch.count) })
 		.from(tables.dailyRegistryFetch)
@@ -1757,9 +1757,13 @@ export async function getPublicDownloads({
 			)
 		);
 
-	if (result.length === 0) return 0;
+	if (result.length === 0) return null;
 
-	return parseInt(result[0].downloads ?? '0');
+	const downloads = result[0].downloads;
+
+	if (downloads === null) return null;
+
+	return parseInt(downloads);
 }
 
 export async function startCourtesyMonth(orgId: string) {
