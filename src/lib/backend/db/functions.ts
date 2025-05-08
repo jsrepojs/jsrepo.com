@@ -1743,27 +1743,32 @@ export async function getPublicDownloads({
 	from: Date;
 }): Promise<number | null> {
 	const result = await db
-		.select({ downloads: sum(tables.dailyRegistryFetch.count) })
-		.from(tables.dailyRegistryFetch)
-		.innerJoin(tables.scope, eq(tables.scope.id, tables.dailyRegistryFetch.scopeId))
-		.innerJoin(tables.registry, eq(tables.registry.id, tables.dailyRegistryFetch.registryId))
+		.select({
+			registryId: tables.registry.id,
+			downloads: sum(tables.dailyRegistryFetch.count)
+		})
+		.from(tables.registry)
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.leftJoin(
+			tables.dailyRegistryFetch,
+			and(
+				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
+			)
+		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scope.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
-				eq(tables.registry.access, 'public'),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
-				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
+				eq(tables.registry.access, 'public')
 			)
-		);
+		)
+		.groupBy(tables.registry.id);
 
-	if (result.length === 0) return null;
+	if (result[0].registryId === null) return null;
 
-	const downloads = result[0].downloads;
-
-	if (downloads === null) return null;
-
-	return parseInt(downloads);
+	return parseInt(result[0].downloads ?? '0');
 }
 
 export async function startCourtesyMonth(orgId: string) {
