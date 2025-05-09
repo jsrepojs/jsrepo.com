@@ -2151,8 +2151,15 @@ export async function referenceIdCanPurchase(
 
 export async function getMyLicenses(userId: string) {
 	const licenses = await db
-		.select({ ...getTableColumns(tables.marketplacePurchase) })
+		.select({
+			...getTableColumns(tables.marketplacePurchase),
+			registry: tables.registry,
+			scope: tables.scope,
+			org: tables.org,
+		})
 		.from(tables.marketplacePurchase)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.marketplacePurchase.referenceId))
 		.leftJoin(
 			tables.orgMember,

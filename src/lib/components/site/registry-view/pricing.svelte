@@ -10,7 +10,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { cn } from '$lib/utils/utils';
 
-	let { data }: { data: RegistryViewPageData } = $props();
+let { data }: { data: RegistryViewPageData } = $props();
 
 	let selectedPricing = $state<'individual' | 'org'>('individual');
 	let selectedOrg = $state(data.userOrgs[0]?.org.id);

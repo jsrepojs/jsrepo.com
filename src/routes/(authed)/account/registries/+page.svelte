@@ -7,11 +7,11 @@
 </script>
 
 <svelte:head>
-	<title>Scopes - Account - jsrepo</title>
+	<title>Registries - Account - jsrepo</title>
 </svelte:head>
 
 <div class="flex flex-col gap-4">
-	<List.Root title="Your Registries">
+	<List.Root>
 		{#snippet actions()}
 			<Button href="/account/new-registry">
 				<Plus /> New
