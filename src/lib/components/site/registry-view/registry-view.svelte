@@ -10,8 +10,7 @@
 		Ellipsis,
 		Flag,
 		Download,
-		FileArchive,
-		Check
+		FileArchive
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
@@ -64,6 +63,10 @@
 	}
 
 	const registryInfo = $derived(getRegistryInfo(data.manifest));
+
+	const hasLicense = $derived(
+		data.licenses.find((l) => l.registryId === data.registry.id) !== undefined
+	);
 </script>
 
 <svelte:head>
@@ -212,6 +215,7 @@
 						</div>
 						<Button
 							variant="outline"
+							disabled={!hasLicense}
 							download="{data.scopeName}_{data.registryName}_blocks.zip"
 							href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
 						>
@@ -318,6 +322,7 @@
 											<Button
 												variant="ghost"
 												size="icon"
+												disabled={!hasLicense}
 												download="{category.name}_{block.name}.zip"
 												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
 											>
@@ -431,9 +436,9 @@
 				</List.Root>
 			</div>
 		{:else if tab === 'pricing'}
-			<Pricing {data}/>
+			<Pricing {data} />
 		{:else if tab === 'settings' && data.hasAccess}
-			<Settings {data}/>
+			<Settings {data} />
 		{/if}
 	</div>
 </div>
