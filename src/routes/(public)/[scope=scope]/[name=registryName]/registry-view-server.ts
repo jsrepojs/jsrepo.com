@@ -1,4 +1,4 @@
-import { getFiles, getRegistry, getRegistryPrices, getVersions } from '$lib/backend/db/functions';
+import { getFiles, getRegistry, getVersions } from '$lib/backend/db/functions';
 import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
 import * as v from 'valibot';
@@ -17,7 +17,6 @@ export type Info = {
 	manifest: Manifest;
 	versions: tables.Version[];
 	registry: tables.Registry;
-	prices: tables.RegistryPrice[];
 };
 
 export async function getInfo({
@@ -37,7 +36,6 @@ export async function getInfo({
 			version,
 			fileNames: ['README.md', 'jsrepo-manifest.json']
 		}),
-		getRegistryPrices({ scopeName, name: registryName })
 	]);
 
 	const registry = await registryPromise;
@@ -45,7 +43,7 @@ export async function getInfo({
 	// here we'd return 404 because the registry doesn't exist or the user doesn't have access
 	if (!registry) return null;
 
-	const [versions, files, prices] = await promises;
+	const [versions, files] = await promises;
 
 	let readme = files.find((f) => f.name === 'README.md')?.content ?? null;
 	const manifestContent = files.find((f) => f.name === 'jsrepo-manifest.json')?.content;
@@ -63,7 +61,6 @@ export async function getInfo({
 		readme,
 		manifest: v.parse(manifestSchema, JSON.parse(manifestContent)),
 		registry,
-		versions,
-		prices
+		versions
 	};
 }

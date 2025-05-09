@@ -2148,3 +2148,24 @@ export async function referenceIdCanPurchase(
 		return { canPurchase: user.marketplace_purchase === null, user: user.user };
 	}
 }
+
+export async function getMyLicenses(userId: string) {
+	const licenses = await db
+		.select({ ...getTableColumns(tables.marketplacePurchase) })
+		.from(tables.marketplacePurchase)
+		.leftJoin(tables.org, eq(tables.org.id, tables.marketplacePurchase.referenceId))
+		.leftJoin(
+			tables.orgMember,
+			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId))
+		)
+		.innerJoin(
+			tables.user,
+			or(
+				eq(tables.user.id, tables.marketplacePurchase.referenceId),
+				eq(tables.user.id, tables.orgMember.userId),
+				eq(tables.user.id, userId)
+			)
+		);
+
+	return licenses;
+}

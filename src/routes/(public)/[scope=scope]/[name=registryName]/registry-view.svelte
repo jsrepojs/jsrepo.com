@@ -11,7 +11,8 @@
 		Ellipsis,
 		Flag,
 		Download,
-		FileArchive
+		FileArchive,
+		Check
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
@@ -506,13 +507,20 @@
 									</div>
 								</div>
 								{#if data.session !== null}
-									<Button
-										loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
-										onclick={() =>
-											purchaseRegistryQuery.run(price.id, data.session?.user.id as string)}
-									>
-										Buy
-									</Button>
+									{#if data.licenses.find((l) => l.referenceId === data.session?.user.id && l.registryId === data.registry.id)}
+										<Button disabled variant="outline">
+											<Check class="size-4 text-green-400" />
+											Owned
+										</Button>
+									{:else}
+										<Button
+											loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
+											onclick={() =>
+												purchaseRegistryQuery.run(price.id, data.session?.user.id as string)}
+										>
+											Buy
+										</Button>
+									{/if}
 								{:else}
 									<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
 										Login to Buy
@@ -551,13 +559,20 @@
 										</Select.Content>
 									</Select.Root>
 									{#if data.session !== null}
-										<Button
-											loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
-											disabled={selectedOrg === ''}
-											onclick={() => purchaseRegistryQuery.run(price.id, selectedOrg)}
-										>
-											Buy
-										</Button>
+										{#if data.licenses.find((l) => l.referenceId === selectedOrg && l.registryId === data.registry.id)}
+											<Button disabled variant="outline">
+												<Check class="size-4 text-green-400" />
+												Owned
+											</Button>
+										{:else}
+											<Button
+												loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
+												disabled={selectedOrg === ''}
+												onclick={() => purchaseRegistryQuery.run(price.id, selectedOrg)}
+											>
+												Buy
+											</Button>
+										{/if}
 									{:else}
 										<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
 											Login to Buy
