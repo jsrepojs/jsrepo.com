@@ -2169,3 +2169,14 @@ export async function getMyLicenses(userId: string) {
 
 	return licenses;
 }
+
+export async function deleteMarketPurchase(paymentIntentId: string) {
+	const result = await db
+		.delete(tables.marketplacePurchase)
+		.where(eq(tables.marketplacePurchase.stripePurchaseIntentId, paymentIntentId))
+		.returning();
+
+	if (result.length === 0) return false;
+
+	return true;
+}

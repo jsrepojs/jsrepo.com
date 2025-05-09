@@ -1,7 +1,7 @@
 import { getRegistryPrice, getUser, referenceIdCanPurchase } from '$lib/backend/db/functions.js';
-import type { RegistryPrice } from '$lib/backend/db/schema.js';
 import { validateRequest } from '$lib/ts/http/request.js';
 import { posthog } from '$lib/ts/posthog';
+import { calculateDiscountedPrice, calculatePlatformFee } from '$lib/ts/stripe/connect';
 import { stripeClient } from '$lib/ts/stripe/index.js';
 import { error, json } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
@@ -38,8 +38,6 @@ export async function POST({ locals, url, request }) {
 	if (canPurchase === null) error(404);
 	if (!canPurchase.canPurchase) error(400, 'You have already purchased this');
 
-	console.log(registryPrice)
-
 	if (!registryPrice) error(404);
 
 	if (registryPrice.target === 'org' && canPurchase.user !== undefined) {
@@ -50,7 +48,7 @@ export async function POST({ locals, url, request }) {
 		error(400, 'this product is intended for individuals not organizations');
 	}
 
-	const price = calculateDiscountedPrice(registryPrice);
+	const { price } = calculateDiscountedPrice(registryPrice);
 	const registryName = `@${registryPrice.scope.name}/${registryPrice.registry.name}`;
 
 	// get this from the owner of the registry
@@ -113,31 +111,4 @@ export async function POST({ locals, url, request }) {
 	waitUntil(posthog.shutdown());
 
 	return json(checkoutSession);
-}
-
-/** 10% + 30¢ (negotiable)
- *
- * @param transactionCost cost in cents
- * @returns
- */
-function calculatePlatformFee(transactionCost: number) {
-	return transactionCost * 0.1 + 30;
-}
-
-/** Calculates the price with discount (if there was one) */
-function calculateDiscountedPrice(price: RegistryPrice) {
-	// no discount
-	if (price.discount === null) return price.cost;
-
-	// discount expired
-	if (price.discountUntil && price.discountUntil?.valueOf() < Date.now()) return price.cost;
-
-	// ex: 30% discount to price
-	//
-	//   $100 - ($100 * (30 / 100))
-	//   $100 - ($100 * 0.30)
-	//   $100 - $30
-	//   $70
-
-	return price.cost - price.cost * (price.discount / 100);
 }

@@ -13,7 +13,13 @@ import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
 import { plans } from './ts/stripe/client';
-import { createMarketPurchase, getOrg, getUser, startCourtesyMonth } from './backend/db/functions';
+import {
+	createMarketPurchase,
+	deleteMarketPurchase,
+	getOrg,
+	getUser,
+	startCourtesyMonth
+} from './backend/db/functions';
 import assert from 'assert';
 import { eq, like, and, gt } from 'drizzle-orm';
 import { posthog } from './ts/posthog';
@@ -41,10 +47,8 @@ export const auth = betterAuth({
 			stripeWebhookSecret: STRIPE_WEBHOOK_SECRET,
 			createCustomerOnSignUp: true,
 			onEvent: async (event) => {
-				console.log(event.type);
 				if (event.type === 'charge.refunded') {
-					console.log(event);
-					console.log(event.data.object.metadata);
+					await deleteMarketPurchase(event.data.object.payment_intent as string);
 				}
 
 				if (event.type === 'checkout.session.completed') {
@@ -53,14 +57,6 @@ export const auth = betterAuth({
 					assert(metadata !== null, 'there has been a big mistake!');
 
 					const { referenceId, registryId } = metadata;
-
-					console.log({
-						referenceId,
-						registryId: parseInt(registryId),
-						status: payment_status,
-						stripeCustomerId: customer as string,
-						stripePurchaseIntentId: payment_intent as string
-					});
 
 					await createMarketPurchase({
 						referenceId,

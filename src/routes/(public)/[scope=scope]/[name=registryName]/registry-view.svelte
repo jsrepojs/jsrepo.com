@@ -38,6 +38,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import * as ShadcnTabs from '$lib/components/ui/tabs';
 	import type { PurchaseRegistryRequest } from '../../../api/stripe/connect/registries/purchase/+server';
+	import { calculateDiscountedPrice } from '$lib/ts/stripe/connect';
 
 	let { data }: { data: PageData } = $props();
 
@@ -496,14 +497,37 @@
 							.filter((p) => p.target === 'individual')
 							.sort((a, b) => a.cost - b.cost)}
 						{#each individualPrices as price (price.id)}
+							{@const discountedPrice = calculateDiscountedPrice(price)}
 							<div
 								class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg border border-border p-4"
 							>
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Individual License</span>
 									<div class="flex flex-col">
-										<span class="text-4xl">${price.cost / 100}</span>
-										<span class="text-sm">one time</span>
+										<div class="flex place-items-start gap-1">
+											<span class="text-4xl">
+												${discountedPrice.price / 100}
+											</span>
+											{#if discountedPrice.discount !== null}
+												<span
+													class={cn('text-xl', {
+														'text-muted-foreground line-through': discountedPrice.discount !== null
+													})}
+												>
+													${price.cost / 100}
+												</span>
+											{/if}
+										</div>
+										<div class="flex place-items-center gap-2">
+											<div class="rounded-md bg-card px-1 py-0.5 text-sm">one time</div>
+											{#if discountedPrice.discount}
+												<div
+													class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm"
+												>
+													{discountedPrice.discount}% off
+												</div>
+											{/if}
+										</div>
 									</div>
 								</div>
 								{#if data.session !== null}
@@ -533,14 +557,37 @@
 							.filter((p) => p.target === 'org')
 							.sort((a, b) => a.cost - b.cost)}
 						{#each orgPrices as price (price.id)}
+							{@const discountedPrice = calculateDiscountedPrice(price)}
 							<div
 								class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg border border-border p-4"
 							>
 								<div class="flex flex-col gap-2">
-									<span class="text-lg font-bold">Organization License</span>
+									<span class="text-lg font-bold">Individual License</span>
 									<div class="flex flex-col">
-										<span class="text-4xl">${price.cost / 100}</span>
-										<span class="text-sm">one time</span>
+										<div class="flex place-items-start gap-1">
+											<span class="text-4xl">
+												${discountedPrice.price / 100}
+											</span>
+											{#if discountedPrice.discount !== null}
+												<span
+													class={cn('text-xl', {
+														'text-muted-foreground line-through': discountedPrice.discount !== null
+													})}
+												>
+													${price.cost / 100}
+												</span>
+											{/if}
+										</div>
+										<div class="flex place-items-center gap-2">
+											<div class="rounded-md bg-card px-1 py-0.5 text-sm">one time</div>
+											{#if discountedPrice.discount}
+												<div
+													class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm"
+												>
+													{discountedPrice.discount}% off
+												</div>
+											{/if}
+										</div>
 									</div>
 								</div>
 								<div class="flex w-full flex-col gap-2">
