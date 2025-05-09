@@ -2,7 +2,7 @@ import { db } from '$lib/backend/db';
 import { getOrg } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 import * as tables from '$lib/backend/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { stripeClient } from '$lib/ts/stripe/index.js';
 
 export async function DELETE({ params, locals }) {
@@ -31,8 +31,37 @@ export async function DELETE({ params, locals }) {
 		(m) => m.user.stripeCustomerId === org.subscription?.stripeCustomerId
 	);
 
+	const removingMember = org.members.find((m) => m.userId === session.user.id);
+
 	// removeMember
 	const result = await db.transaction(async (tx) => {
+		const connectedRegistries = await tx
+			.select()
+			.from(tables.registry)
+			.innerJoin(
+				tables.scope,
+				and(eq(tables.scope.id, tables.registry.scopeId), eq(tables.scope.orgId, org.id))
+			)
+			.where(
+				and(
+					eq(
+						tables.registry.stripeConnectAccountId,
+						removingMember?.user.stripeSellerAccountId ?? ''
+					),
+					eq(tables.scope.orgId, org.id)
+				)
+			);
+
+		await tx
+			.update(tables.registry)
+			.set({ stripeConnectAccountId: null })
+			.where(
+				inArray(
+					tables.registry.id,
+					connectedRegistries.map((r) => r.registry.id)
+				)
+			);
+
 		const result = await tx
 			.delete(tables.orgMember)
 			.where(eq(tables.orgMember.id, memberId))
