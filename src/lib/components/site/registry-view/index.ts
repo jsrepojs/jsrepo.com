@@ -1,0 +1,1 @@
+export { default as RegistryView } from './registry-view.svelte'
