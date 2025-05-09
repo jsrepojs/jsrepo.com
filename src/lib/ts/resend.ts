@@ -32,7 +32,11 @@ export function welcomeEmail(user: MinUser): CreateEmailOptions {
 	};
 }
 
-export function newVersionPublishedEmail(user: MinUser, name: string, version: string): CreateEmailOptions {
+export function newVersionPublishedEmail(
+	user: MinUser,
+	name: string,
+	version: string
+): CreateEmailOptions {
 	const date = new Date().toISOString();
 	const html = `<p>A new version of ${name} (${version}) was just published at ${date}!</p>`;
 

@@ -35,7 +35,7 @@ export async function getInfo({
 			registryName,
 			version,
 			fileNames: ['README.md', 'jsrepo-manifest.json']
-		}),
+		})
 	]);
 
 	const registry = await registryPromise;
