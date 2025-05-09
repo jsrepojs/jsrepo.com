@@ -420,7 +420,7 @@ export const registry = pgTable(
 
 		// marketplace
 		listOnMarketplace: boolean('list_on_marketplace').default(false),
-		stripeConnectAccount: text('stripe_connect_account'),
+		stripeConnectAccountId: text('stripe_connect_account'),
 
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},

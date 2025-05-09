@@ -52,7 +52,7 @@ export async function POST({ locals, url, request }) {
 	const registryName = `@${registryPrice.scope.name}/${registryPrice.registry.name}`;
 
 	// get this from the owner of the registry
-	const connectedAccountId = registryPrice.registry.stripeConnectAccount;
+	const connectedAccountId = registryPrice.registry.stripeConnectAccountId;
 	const listOnMarketplace = registryPrice.registry.listOnMarketplace;
 
 	if (connectedAccountId === null) error(404);
