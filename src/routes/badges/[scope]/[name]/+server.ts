@@ -1,5 +1,5 @@
 import { getVersion } from '$lib/backend/db/functions';
-import { error } from '@sveltejs/kit';
+import { errorBadge } from '$lib/ts/badges';
 import { makeBadge } from 'badge-maker';
 
 export async function GET({ params }) {
@@ -13,7 +13,9 @@ export async function GET({ params }) {
 		userId: null
 	});
 
-	if (!ver) error(404);
+	if (!ver) {
+		return errorBadge('jsrepo', 404);
+	}
 
 	const badge = makeBadge({
 		label: 'jsrepo',

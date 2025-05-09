@@ -29,6 +29,12 @@
 	import { toRelative } from '$lib/ts/dates';
 	import type { SupportReason } from '$lib/ts/help';
 	import { determinePrimaryLanguage, parseFileExtension } from '$lib/ts/registry';
+	import * as FieldSet from '$lib/components/ui/field-set';
+	import * as Select from '$lib/components/ui/select';
+	import * as casing from '$lib/ts/casing';
+	import { UseQuery } from '$lib/hooks/use-query.svelte';
+	import type { UpdateRegistryAccessRequest } from '../../../api/scopes/[scope=scope]/[name]/access/+server';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 
@@ -61,6 +67,19 @@
 	}
 
 	const registryInfo = $derived(getRegistryInfo(data.manifest));
+
+	let access = $state(data.registry.access);
+
+	const updateAccessQuery = new UseQuery(async () => {
+		const response = await fetch(`/api/scopes/@${data.scopeName}/${data.registryName}/access`, {
+			method: 'PATCH',
+			body: JSON.stringify({ access } satisfies UpdateRegistryAccessRequest)
+		});
+
+		if (response.ok) {
+			await invalidateAll();
+		}
+	});
 </script>
 
 <svelte:head>
@@ -107,6 +126,9 @@
 			>
 				Versions
 			</Tabs.Tab>
+			{#if data.hasAccess}
+				<Tabs.Tab href="?tab=settings" isSearch class="hidden sm:flex">Settings</Tabs.Tab>
+			{/if}
 		</div>
 		<Popover.Root bind:open={tabListPopoverOpen}>
 			<Popover.Trigger
@@ -146,6 +168,16 @@
 							</div>
 						</div>
 					</a>
+					{#if data.hasAccess}
+						<a
+							href="?tab=settings"
+							onclick={() => (tabListPopoverOpen = false)}
+							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+							style="--line-height: 24px;"
+						>
+							Settings
+						</a>
+					{/if}
 				</div>
 			</Popover.Content>
 		</Popover.Root>
@@ -400,6 +432,41 @@
 						{/each}
 					</List.List>
 				</List.Root>
+			</div>
+		{:else if tab === 'settings' && data.hasAccess}
+			<div class="flex flex-col py-2">
+				<FieldSet.Root variant="destructive">
+					<FieldSet.Content class="flex flex-col gap-2">
+						<FieldSet.Title>Access</FieldSet.Title>
+						<Select.Root type="single" bind:value={access}>
+							<Select.Trigger class="max-w-36">
+								{casing.camelToPascal(access)}
+							</Select.Trigger>
+							<Select.Content align="start">
+								<Select.Item value="public">Public</Select.Item>
+								<Select.Item value="private">Private</Select.Item>
+							</Select.Content>
+						</Select.Root>
+					</FieldSet.Content>
+					<FieldSet.Footer>
+						<div class="flex place-items-center justify-between gap-4">
+							<div>
+								<span class="hidden truncate text-sm text-muted-foreground md:block">
+									This determines who can view your registry and add components from the CLI.
+								</span>
+							</div>
+							<Button
+								variant="destructive"
+								class="shrink-0"
+								onclick={updateAccessQuery.run}
+								loading={updateAccessQuery.loading}
+								disabled={access === data.registry.access}
+							>
+								Update Access
+							</Button>
+						</div>
+					</FieldSet.Footer>
+				</FieldSet.Root>
 			</div>
 		{/if}
 	</div>

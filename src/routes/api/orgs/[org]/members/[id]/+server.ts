@@ -46,14 +46,20 @@ export async function DELETE({ params, locals }) {
 			.from(tables.orgMember)
 			.where(eq(tables.orgMember.orgId, org.id));
 
-		// update the members in the org on the subscription table
-		const subRes = await tx
-			.update(tables.subscription)
-			.set({ members: members.length })
-			.where(eq(tables.subscription.referenceId, org.id))
-			.returning();
+		const [subRes, orgRes] = await Promise.all([
+			tx
+				.update(tables.subscription)
+				.set({ members: members.length })
+				.where(eq(tables.subscription.referenceId, org.id))
+				.returning(),
+			tx
+				.update(tables.org)
+				.set({ memberCount: members.length })
+				.where(eq(tables.org.id, org.id))
+				.returning()
+		]);
 
-		if (subRes.length === 0) {
+		if (subRes.length === 0 || orgRes.length === 0) {
 			tx.rollback();
 			return false;
 		}

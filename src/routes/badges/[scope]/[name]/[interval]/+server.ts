@@ -1,6 +1,6 @@
 import { getPublicDownloads } from '$lib/backend/db/functions.js';
+import { errorBadge } from '$lib/ts/badges.js';
 import { DAY, YEAR } from '$lib/ts/time';
-import { error } from '@sveltejs/kit';
 import { makeBadge } from 'badge-maker';
 
 const INTERVALS: Record<string, { from: Date; label: string }> = {
@@ -26,15 +26,14 @@ export async function GET({ params }) {
 	const { from, label } = INTERVALS[interval];
 
 	if (from === undefined) {
-		error(
-			400,
-			`Invalid interval ${interval}. Allowed intervals are ${Object.entries(INTERVALS)
-				.map(([i]) => i)
-				.join(', ')}`
-		);
+		return errorBadge('downloads', 400);
 	}
 
 	const downloads = await getPublicDownloads({ scope, registryName: name, from });
+
+	if (downloads === null) {
+		return errorBadge('downloads', 404);
+	}
 
 	const badge = makeBadge({
 		label: 'downloads',
