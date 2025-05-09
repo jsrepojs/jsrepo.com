@@ -155,7 +155,7 @@ export async function POST({ request }) {
 		);
 	}
 
-	const registry = await getRegistry(scopeName, registryName, user.id);
+	const registry = await getRegistry({ scopeName, registryName, userId: user.id });
 
 	let registryId = registry?.id ?? null;
 

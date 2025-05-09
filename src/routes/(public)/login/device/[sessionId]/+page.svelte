@@ -22,7 +22,8 @@
 
 	const resendCodeQuery = new UseQuery(async () => {
 		const response = await fetch(`/api/login/device/${page.params.sessionId}/resend-code`, {
-			method: 'POST'
+			method: 'POST',
+			headers: { 'content-type': 'applications/json' }
 		});
 
 		return response.ok;

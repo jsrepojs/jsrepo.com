@@ -28,7 +28,7 @@ export async function PATCH({ request, locals, params }) {
 	const [user, scope, registry] = await Promise.all([
 		getUser({ id: session.user.id }),
 		getScope(scopeName),
-		getRegistry(scopeName, name, session.user.id)
+		getRegistry({ scopeName, registryName: name, userId: session.user.id })
 	]);
 
 	assert(user !== null, 'user must be defined');
@@ -37,7 +37,7 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	const canPublish = await canPublishToScope(user, scope, body.access === 'private');
+	const canPublish = await canPublishToScope(user, scope, body.access);
 
 	if (!canPublish) error(401, 'only users with publish access can change the access level');
 

@@ -165,16 +165,30 @@ export async function createScope(record: {
 	return result[0]?.id ?? null;
 }
 
-export async function getRegistry(
-	scopeName: string,
-	registryName: string,
-	userId: string | null
-): Promise<RegistryDetails | null> {
+export async function getRegistry({
+	scopeName,
+	registryName,
+	registryId,
+	userId
+}:
+	| {
+			scopeName: string;
+			registryName: string;
+			registryId?: never;
+			userId: string | null;
+	  }
+	| {
+			scopeName?: never;
+			registryName?: never;
+			registryId: number;
+			userId: string | null;
+	  }): Promise<RegistryDetails | null> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const linkedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
 	const registries = await db
 		.select({
@@ -183,7 +197,8 @@ export async function getRegistry(
 			org: tables.org,
 			latestVersion: tables.version,
 			monthlyFetches: sum(tables.dailyRegistryFetch.count),
-			releasedBy: releasedBy
+			releasedBy: releasedBy,
+			connectedStripeAccount: linkedStripeAccount
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
@@ -203,6 +218,10 @@ export async function getRegistry(
 			)
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(
+			linkedStripeAccount,
+			eq(linkedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
+		)
 		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.leftJoin(
@@ -216,8 +235,12 @@ export async function getRegistry(
 		)
 		.where(
 			and(
-				eq(lower(tables.scope.name), scopeName.toLowerCase()),
-				eq(lower(tables.registry.name), registryName.toLowerCase()),
+				registryId
+					? eq(tables.registry.id, registryId)
+					: and(
+							eq(lower(tables.scope.name), scopeName!.toLowerCase()),
+							eq(lower(tables.registry.name), registryName!.toLowerCase())
+						),
 
 				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
@@ -237,7 +260,8 @@ export async function getRegistry(
 			tables.version.tag,
 			tables.version.createdAt,
 			tables.version.releasedById,
-			releasedBy.id
+			releasedBy.id,
+			linkedStripeAccount.id
 		);
 
 	if (registries.length === 0) return null;
@@ -1454,6 +1478,7 @@ export type RegistryDetails = tables.Registry & {
 	latestVersion: tables.Version | null;
 	monthlyFetches: number;
 	releasedBy: tables.User | null;
+	connectedStripeAccount: tables.User | null;
 };
 
 export async function searchRegistries({
@@ -1473,6 +1498,7 @@ export async function searchRegistries({
 	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const connectedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
 	// Weighted score expression
 	const qNoAt = q?.replace(/^@/, '') ?? '';
@@ -1536,11 +1562,16 @@ export async function searchRegistries({
 			latestVersion: tables.version,
 			monthlyFetches: sum(tables.dailyRegistryFetch.count),
 			score: scoreExpr,
-			releasedBy: releasedBy
+			releasedBy: releasedBy,
+			connectedStripeAccount: connectedStripeAccount
 		})
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(
+			connectedStripeAccount,
+			eq(connectedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
+		)
 		.leftJoin(
 			tables.orgMember,
 			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
@@ -1595,7 +1626,8 @@ export async function searchRegistries({
 			tables.version.tag,
 			tables.version.createdAt,
 			tables.version.releasedById,
-			releasedBy.id
+			releasedBy.id,
+			connectedStripeAccount.id
 		);
 
 	if (orderBy) {
@@ -2155,7 +2187,7 @@ export async function getMyLicenses(userId: string) {
 			...getTableColumns(tables.marketplacePurchase),
 			registry: tables.registry,
 			scope: tables.scope,
-			org: tables.org,
+			org: tables.org
 		})
 		.from(tables.marketplacePurchase)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
@@ -2181,6 +2213,30 @@ export async function deleteMarketPurchase(paymentIntentId: string) {
 	const result = await db
 		.delete(tables.marketplacePurchase)
 		.where(eq(tables.marketplacePurchase.stripePurchaseIntentId, paymentIntentId))
+		.returning();
+
+	if (result.length === 0) return false;
+
+	return true;
+}
+
+export async function linkAccountToRegistry(registryId: number, accountId: string) {
+	const result = await db
+		.update(tables.registry)
+		.set({ stripeConnectAccountId: accountId })
+		.where(eq(tables.registry.id, registryId))
+		.returning();
+
+	if (result.length === 0) return false;
+
+	return true;
+}
+
+export async function unlinkAccountFromRegistry(registryId: number) {
+	const result = await db
+		.update(tables.registry)
+		.set({ stripeConnectAccountId: null })
+		.where(eq(tables.registry.id, registryId))
 		.returning();
 
 	if (result.length === 0) return false;

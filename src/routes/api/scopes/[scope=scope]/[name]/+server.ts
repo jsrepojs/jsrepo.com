@@ -7,7 +7,11 @@ export async function GET({ locals, params }) {
 
 	const session = await locals.auth();
 
-	const registry = await getRegistry(scope, registryName, session?.user.id ?? null);
+	const registry = await getRegistry({
+		scopeName: scope,
+		registryName,
+		userId: session?.user.id ?? null
+	});
 
 	return json(registry);
 }

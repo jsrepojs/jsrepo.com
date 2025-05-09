@@ -17,7 +17,7 @@
 	const scopesPromise = new UsePromise(data.scopes, null);
 
 	const connectAccountQuery = new UseQuery(async () => {
-		const response = await fetch('/api/stripe/connect/account', { method: 'POST' });
+		const response = await fetch('/api/stripe/connect/account', { method: 'POST', headers: { 'content-type': 'applications/json' }, });
 
 		if (response.ok) {
 			const res = await response.json();

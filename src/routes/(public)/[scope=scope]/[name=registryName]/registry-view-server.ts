@@ -1,4 +1,9 @@
-import { getFiles, getRegistry, getVersions } from '$lib/backend/db/functions';
+import {
+	getFiles,
+	getRegistry,
+	getVersions,
+	type RegistryDetails
+} from '$lib/backend/db/functions';
 import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
 import * as v from 'valibot';
@@ -16,7 +21,7 @@ export type Info = {
 	readme: string | null;
 	manifest: Manifest;
 	versions: tables.Version[];
-	registry: tables.Registry;
+	registry: RegistryDetails;
 };
 
 export async function getInfo({
@@ -25,7 +30,7 @@ export async function getInfo({
 	version,
 	userId
 }: Options): Promise<Info | null> {
-	const registryPromise = getRegistry(scopeName, registryName, userId);
+	const registryPromise = getRegistry({ scopeName, registryName, userId });
 
 	const promises = Promise.all([
 		getVersions(scopeName, registryName),

@@ -21,6 +21,7 @@ let { data }: { data: RegistryViewPageData } = $props();
 
 			const response = await fetch('/api/stripe/connect/registries/purchase', {
 				method: 'POST',
+				headers: { 'content-type': 'applications/json' },
 				body: JSON.stringify({
 					priceId,
 					registryId: data.registry.id,

@@ -31,6 +31,7 @@
 	import Pricing from './pricing.svelte';
 	import type { RegistryViewPageData } from './types';
 	import Settings from './settings.svelte';
+	import { Link } from '$lib/components/ui/link';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -74,6 +75,25 @@
 </svelte:head>
 
 <div class="flex flex-col">
+	{#if data.registry.access === 'marketplace'}
+		{#if data.hasAccess && data.registry.connectedStripeAccount === null}
+			<div class="fixed left-0 top-[var(--header-height)] w-full bg-destructive py-2">
+				<div class="container">
+					You need to link your Stripe account before users can pay for your registry! You can link
+					it
+					<Link href="?tab=settings">here</Link>
+				</div>
+			</div>
+		{:else if data.prices.length === 0}
+			<div class="fixed left-0 top-[var(--header-height)] w-full bg-destructive py-2">
+				<div class="container">
+					You need to setup prices for your registry so that users can pay for it. You can set them
+					up
+					<Link href="?tab=settings">here</Link>
+				</div>
+			</div>
+		{/if}
+	{/if}
 	<div class="flex flex-col gap-1 py-6">
 		<h1 class="text-4xl font-bold">
 			<a href="/@{data.scopeName}" class="underline-offset-2 hover:underline">
@@ -435,7 +455,7 @@
 					</List.List>
 				</List.Root>
 			</div>
-		{:else if tab === 'pricing'}
+		{:else if tab === 'pricing' && data.registry.access === 'marketplace'}
 			<Pricing {data} />
 		{:else if tab === 'settings' && data.hasAccess}
 			<Settings {data} />
