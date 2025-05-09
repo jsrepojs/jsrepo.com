@@ -22,6 +22,7 @@ export async function load({ params, locals }) {
 	return {
 		scopeName,
 		registryName,
+		session,
 		versionParam: version,
 		...info
 	};

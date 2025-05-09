@@ -22,6 +22,7 @@ export async function load({ params, locals }) {
 		scopeName,
 		registryName,
 		versionParam: 'latest',
+		session,
 		...info
 	};
 }

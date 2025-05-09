@@ -678,7 +678,7 @@ function checkAccessQuery({
 		return or(
 			eq(tables.registry.access, 'public'),
 
-			// registry is private but they have access and have paid their subscription
+			// registry is private/marketplace but they have access and have paid their subscription
 			or(
 				// User owned scope
 				and(
@@ -2072,4 +2072,79 @@ export async function createMarketPurchase(
 	if (result.length === 0) return null;
 
 	return result[0];
+}
+
+export async function getRegistryPrices({ scopeName, name }: { scopeName: string; name: string }) {
+	return await db
+		.select({ ...getTableColumns(tables.registryPrice) })
+		.from(tables.registryPrice)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryPrice.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, name)));
+}
+
+export async function getRegistryPrice(id: number) {
+	const result = await db
+		.select({
+			...getTableColumns(tables.registryPrice),
+			registry: tables.registry,
+			scope: tables.scope
+		})
+		.from(tables.registryPrice)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryPrice.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.where(eq(tables.registryPrice.id, id));
+
+	if (result.length === 0) return null;
+
+	return result[0];
+}
+
+export async function referenceIdCanPurchase(
+	id: string,
+	registryId: number
+): Promise<{ canPurchase: boolean; user?: tables.User; org?: tables.Org } | null> {
+	if (id.startsWith('org_')) {
+		const orgId = id;
+
+		const orgs = await db
+			.select()
+			.from(tables.org)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, registryId),
+					eq(tables.marketplacePurchase.referenceId, orgId)
+				)
+			)
+			.where(eq(tables.org.id, orgId));
+
+		if (orgs.length === 0) return null;
+
+		const org = orgs[0];
+
+		// can only purchase if we haven't before
+		return { canPurchase: org.marketplace_purchase === null, org: org.org };
+	} else {
+		const userId = id;
+
+		const users = await db
+			.select()
+			.from(tables.user)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, registryId),
+					eq(tables.marketplacePurchase.referenceId, userId)
+				)
+			)
+			.where(eq(tables.user.id, userId));
+
+		if (users.length === 0) return null;
+
+		const user = users[0];
+
+		// can only purchase if we haven't before
+		return { canPurchase: user.marketplace_purchase === null, user: user.user };
+	}
 }

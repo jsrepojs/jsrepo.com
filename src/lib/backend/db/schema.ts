@@ -259,7 +259,7 @@ export const marketplacePurchase = pgTable(
 	}
 ).enableRLS();
 
-export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>
+export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>;
 
 // ---
 
@@ -420,10 +420,9 @@ export const registry = pgTable(
 
 		// marketplace
 		listOnMarketplace: boolean('list_on_marketplace').default(false),
-		individualPrice: integer('individual_price'),
-		teamPrice: integer('team_price'),
+		stripeConnectAccount: text('stripe_connect_account'),
 
-		createdAt: timestamp('created_at').notNull().defaultNow(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
 		return [
@@ -439,6 +438,32 @@ export const registry = pgTable(
 ).enableRLS();
 
 export type Registry = InferSelectModel<typeof registry>;
+
+export const registryPriceTarget = pgEnum('registry_price_target', ['individual', 'org']);
+
+export type RegistryPriceTarget = (typeof registryPriceTarget.enumValues)[number];
+
+export const registryPriceTargets = orgMemberRole.enumValues;
+
+export const registryPrice = pgTable(
+	'registry_price',
+	{
+		id: serial('id').primaryKey(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		target: registryPriceTarget('target').notNull(),
+		cost: integer('cost').notNull(),
+		// 0 - 100% discount applied to the cost
+		discount: integer('discount'),
+		discountUntil: timestamp('discount_until')
+	},
+	(table) => {
+		return [index('registry_price_registry_id_idx').on(table.registryId)];
+	}
+).enableRLS();
+
+export type RegistryPrice = InferSelectModel<typeof registryPrice>;
 
 export const version = pgTable(
 	'version',

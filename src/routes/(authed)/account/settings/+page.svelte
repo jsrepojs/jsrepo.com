@@ -19,16 +19,10 @@
 	const connectAccountQuery = new UseQuery(async () => {
 		const response = await fetch('/api/stripe/connect/account', { method: 'POST' });
 
-		console.log(response);
-
 		if (response.ok) {
 			const res = await response.json();
 
-			console.log(res);
-
 			const { url } = res;
-
-			console.log(url);
 
 			if (url) {
 				window.location.href = url;
@@ -137,34 +131,6 @@
 			</FieldSet.Content>
 		</FieldSet.Root>
 	{/if}
-	<!-- DO NOT LEAVE THIS IN -->
-	<FieldSet.Root>
-		<FieldSet.Content class="flex flex-row place-items-center justify-between">
-			<FieldSet.Title>Purchase Temp!!!!!</FieldSet.Title>
-			<Button
-				onclick={async () => {
-					const response = await fetch('/api/stripe/connect/registries/purchase', {
-						method: 'POST'
-					});
-
-					if (!response.ok) {
-						console.error(response);
-					}
-
-					const res = await response.json();
-
-					const { url } = res;
-
-					if (url) {
-						window.location.href = url;
-					}
-				}}
-				variant="outline"
-			>
-				Purchase
-			</Button>
-		</FieldSet.Content>
-	</FieldSet.Root>
 	<FieldSet.Root>
 		<FieldSet.Content class="flex flex-row place-items-center justify-between">
 			<FieldSet.Title>Sign Out</FieldSet.Title>

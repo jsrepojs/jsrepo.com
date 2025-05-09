@@ -1,4 +1,4 @@
-import { getVersion, hasScopeAccess } from '$lib/backend/db/functions.js';
+import { getVersion, hasScopeAccess, listMyOrganizations } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
 
 export async function load({ params, locals }) {
@@ -7,14 +7,15 @@ export async function load({ params, locals }) {
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
 
-	const [version, hasAccess] = await Promise.all([
+	const [version, hasAccess, userOrgs] = await Promise.all([
 		getVersion({
 			scopeName,
 			registryName,
 			version: 'latest',
 			userId: session?.user.id ?? null
 		}),
-		hasScopeAccess(session?.user.id ?? null, scopeName)
+		hasScopeAccess(session?.user.id ?? null, scopeName),
+		listMyOrganizations(session?.user.id ?? '')
 	]);
 
 	if (version === null) error(404);
@@ -23,6 +24,7 @@ export async function load({ params, locals }) {
 		scopeName,
 		registryName,
 		version,
-		hasAccess
+		hasAccess,
+		userOrgs
 	};
 }

@@ -35,6 +35,8 @@
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import type { UpdateRegistryAccessRequest } from '../../../api/scopes/[scope=scope]/[name]/access/+server';
 	import { invalidateAll } from '$app/navigation';
+	import * as ShadcnTabs from '$lib/components/ui/tabs';
+	import type { PurchaseRegistryRequest } from '../../../api/stripe/connect/registries/purchase/+server';
 
 	let { data }: { data: PageData } = $props();
 
@@ -69,6 +71,8 @@
 	const registryInfo = $derived(getRegistryInfo(data.manifest));
 
 	let access = $state(data.registry.access);
+	let selectedPricing = $state<'individual' | 'org'>('individual');
+	let selectedOrg = $state(data.userOrgs[0]?.org.id);
 
 	const updateAccessQuery = new UseQuery(async () => {
 		const response = await fetch(`/api/scopes/@${data.scopeName}/${data.registryName}/access`, {
@@ -80,6 +84,33 @@
 			await invalidateAll();
 		}
 	});
+
+	const purchaseRegistryQuery = new UseQuery(
+		async ({ setLoadingKey }, priceId: number, referenceId: string) => {
+			setLoadingKey(`${priceId}`);
+
+			const response = await fetch('/api/stripe/connect/registries/purchase', {
+				method: 'POST',
+				body: JSON.stringify({
+					priceId,
+					registryId: data.registry.id,
+					referenceId
+				} satisfies PurchaseRegistryRequest)
+			});
+
+			if (!response.ok) {
+				console.error(response);
+			}
+
+			const res = await response.json();
+
+			const { url } = res;
+
+			if (url) {
+				window.location.href = url;
+			}
+		}
+	);
 </script>
 
 <svelte:head>
@@ -126,22 +157,25 @@
 			>
 				Versions
 			</Tabs.Tab>
+			{#if data.registry.access === 'marketplace'}
+				<Tabs.Tab href="?tab=pricing" isSearch class="hidden md:flex">Pricing</Tabs.Tab>
+			{/if}
 			{#if data.hasAccess}
-				<Tabs.Tab href="?tab=settings" isSearch class="hidden sm:flex">Settings</Tabs.Tab>
+				<Tabs.Tab href="?tab=settings" isSearch class="hidden md:flex">Settings</Tabs.Tab>
 			{/if}
 		</div>
 		<Popover.Root bind:open={tabListPopoverOpen}>
 			<Popover.Trigger
-				class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1 sm:hidden')}
+				class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1 md:hidden')}
 			>
 				<Ellipsis />
 			</Popover.Trigger>
-			<Popover.Content class="w-48 p-0" align="end">
+			<Popover.Content class="w-48 p-0" align="end" sideOffset={2}>
 				<div class="flex flex-col p-1">
 					<a
 						href="?tab=dependencies"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Dependencies
@@ -156,7 +190,7 @@
 					<a
 						href="?tab=versions"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Versions
@@ -168,6 +202,16 @@
 							</div>
 						</div>
 					</a>
+					{#if data.registry.access === 'marketplace'}
+						<a
+							href="?tab=pricing"
+							onclick={() => (tabListPopoverOpen = false)}
+							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+							style="--line-height: 24px;"
+						>
+							Pricing
+						</a>
+					{/if}
 					{#if data.hasAccess}
 						<a
 							href="?tab=settings"
@@ -433,6 +477,98 @@
 					</List.List>
 				</List.Root>
 			</div>
+		{:else if tab === 'pricing'}
+			<div class="flex flex-col py-2">
+				<ShadcnTabs.Root bind:value={selectedPricing}>
+					<ShadcnTabs.List class="p-0">
+						<ShadcnTabs.Trigger value="individual" class="px-4" aria-label="Individual Pricing">
+							Individual
+						</ShadcnTabs.Trigger>
+						<ShadcnTabs.Trigger value="org" class="px-4" aria-label="Organization Pricing">
+							Organization
+						</ShadcnTabs.Trigger>
+					</ShadcnTabs.List>
+				</ShadcnTabs.Root>
+				<div class="flex flex-wrap gap-2 py-2">
+					{#if selectedPricing === 'individual'}
+						{@const individualPrices = data.prices
+							.filter((p) => p.target === 'individual')
+							.sort((a, b) => a.cost - b.cost)}
+						{#each individualPrices as price (price.id)}
+							<div
+								class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg border border-border p-4"
+							>
+								<div class="flex flex-col gap-2">
+									<span class="text-lg font-bold">Individual License</span>
+									<div class="flex flex-col">
+										<span class="text-4xl">${price.cost / 100}</span>
+										<span class="text-sm">one time</span>
+									</div>
+								</div>
+								{#if data.session !== null}
+									<Button
+										loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
+										onclick={() =>
+											purchaseRegistryQuery.run(price.id, data.session?.user.id as string)}
+									>
+										Buy
+									</Button>
+								{:else}
+									<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
+										Login to Buy
+									</Button>
+								{/if}
+							</div>
+						{/each}
+					{:else if selectedPricing === 'org'}
+						{@const orgPrices = data.prices
+							.filter((p) => p.target === 'org')
+							.sort((a, b) => a.cost - b.cost)}
+						{#each orgPrices as price (price.id)}
+							<div
+								class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg border border-border p-4"
+							>
+								<div class="flex flex-col gap-2">
+									<span class="text-lg font-bold">Organization License</span>
+									<div class="flex flex-col">
+										<span class="text-4xl">${price.cost / 100}</span>
+										<span class="text-sm">one time</span>
+									</div>
+								</div>
+								<div class="flex w-full flex-col gap-2">
+									<Select.Root type="single" bind:value={selectedOrg}>
+										<Select.Trigger>
+											<span>
+												{data.userOrgs.find(({ org }) => org.id === selectedOrg)?.org.name ?? '--'}
+											</span>
+										</Select.Trigger>
+										<Select.Content>
+											{#each data.userOrgs as { org } (org.id)}
+												<Select.Item value={org.id}>
+													{org.name}
+												</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+									{#if data.session !== null}
+										<Button
+											loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
+											disabled={selectedOrg === ''}
+											onclick={() => purchaseRegistryQuery.run(price.id, selectedOrg)}
+										>
+											Buy
+										</Button>
+									{:else}
+										<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
+											Login to Buy
+										</Button>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
 		{:else if tab === 'settings' && data.hasAccess}
 			<div class="flex flex-col py-2">
 				<FieldSet.Root variant="destructive">
@@ -445,6 +581,7 @@
 							<Select.Content align="start">
 								<Select.Item value="public">Public</Select.Item>
 								<Select.Item value="private">Private</Select.Item>
+								<Select.Item value="marketplace">Marketplace</Select.Item>
 							</Select.Content>
 						</Select.Root>
 					</FieldSet.Content>

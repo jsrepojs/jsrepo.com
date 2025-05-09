@@ -1,11 +1,24 @@
-import { getUser } from '$lib/backend/db/functions.js';
+import { getRegistryPrice, getUser, referenceIdCanPurchase } from '$lib/backend/db/functions.js';
+import type { RegistryPrice } from '$lib/backend/db/schema.js';
+import { validateRequest } from '$lib/ts/http/request.js';
 import { posthog } from '$lib/ts/posthog';
 import { stripeClient } from '$lib/ts/stripe/index.js';
 import { error, json } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import assert from 'assert';
+import * as v from 'valibot';
 
-export async function POST({ locals, url }) {
+const schema = v.object({
+	registryId: v.number(),
+	priceId: v.number(),
+	referenceId: v.string()
+});
+
+export type PurchaseRegistryRequest = v.InferOutput<typeof schema>;
+
+export async function POST({ locals, url, request }) {
+	const body = await validateRequest(schema, request);
+
 	const session = await locals.auth();
 
 	if (!session) error(401);
@@ -17,24 +30,37 @@ export async function POST({ locals, url }) {
 
 	// up here we need to check if we already have access to this registry
 
-	// get this from the registry
-	const registryCost = 100 * 100; // $100
+	const [registryPrice, canPurchase] = await Promise.all([
+		getRegistryPrice(body.priceId),
+		referenceIdCanPurchase(body.referenceId, body.registryId)
+	]);
 
-	const registry = {
-		id: 1,
-		name: 'pro',
-		cost: 100 * 100, // $100
-		scope: {
-			name: 'bits'
-		}
-	};
+	if (canPurchase === null) error(404);
+	if (!canPurchase.canPurchase) error(400, 'You have already purchased this');
 
-	const registryName = `@${registry.scope.name}/${registry.name}`;
+	console.log(registryPrice)
+
+	if (!registryPrice) error(404);
+
+	if (registryPrice.target === 'org' && canPurchase.user !== undefined) {
+		error(400, 'this product is intended for organizations not individuals');
+	}
+
+	if (registryPrice.target === 'individual' && canPurchase.org !== undefined) {
+		error(400, 'this product is intended for individuals not organizations');
+	}
+
+	const price = calculateDiscountedPrice(registryPrice);
+	const registryName = `@${registryPrice.scope.name}/${registryPrice.registry.name}`;
 
 	// get this from the owner of the registry
-	const connectedAccountId = 'acct_1RLqm5QCizqGwQbM';
+	const connectedAccountId = registryPrice.registry.stripeConnectAccount;
+	const listOnMarketplace = registryPrice.registry.listOnMarketplace;
 
-	const fee = calculatePlatformFee(registryCost);
+	if (connectedAccountId === null) error(404);
+	if (!listOnMarketplace) error(404);
+
+	const fee = calculatePlatformFee(registryPrice.cost);
 
 	const checkoutSession = await stripeClient.checkout.sessions.create({
 		customer: user.stripeCustomerId,
@@ -43,20 +69,26 @@ export async function POST({ locals, url }) {
 				price_data: {
 					currency: 'usd',
 					product_data: {
-						name: registryName,
-						description: `Private access to ${registryName}`,
+						name:
+							registryPrice.target === 'org'
+								? `Organization License for ${registryName}`
+								: `Individual License for ${registryName}`,
+						description:
+							registryPrice.target === 'org'
+								? `Lifetime Organization License to ${registryName} for ${canPurchase.org?.name}.`
+								: `Lifetime Individual License for ${registryName}.`,
 						metadata: {
-							registryId: registry.id
+							registryId: registryPrice.registry.id
 						}
 					},
-					unit_amount: registryCost
+					unit_amount: price
 				},
 				quantity: 1
 			}
 		],
 		metadata: {
-			registryId: registry.id,
-			referenceId: session.user.id // user or org
+			registryId: registryPrice.registry.id,
+			referenceId: body.referenceId // user or org
 		},
 		payment_intent_data: {
 			application_fee_amount: fee,
@@ -65,15 +97,14 @@ export async function POST({ locals, url }) {
 			}
 		},
 		mode: 'payment',
-		// success_url: `${url.origin}/${registryName}`
-		success_url: `${url.origin}/account`
+		success_url: `${url.origin}/${registryName}`
 	});
 
 	posthog.capture({
 		distinctId: user.id,
 		event: 'registry-purchase',
 		properties: {
-			registryId: registry.id,
+			registryId: registryPrice.registry.id,
 			registryName: registryName,
 			purchaserEmail: user.email
 		}
@@ -91,4 +122,22 @@ export async function POST({ locals, url }) {
  */
 function calculatePlatformFee(transactionCost: number) {
 	return transactionCost * 0.1 + 30;
+}
+
+/** Calculates the price with discount (if there was one) */
+function calculateDiscountedPrice(price: RegistryPrice) {
+	// no discount
+	if (price.discount === null) return price.cost;
+
+	// discount expired
+	if (price.discountUntil && price.discountUntil?.valueOf() < Date.now()) return price.cost;
+
+	// ex: 30% discount to price
+	//
+	//   $100 - ($100 * (30 / 100))
+	//   $100 - ($100 * 0.30)
+	//   $100 - $30
+	//   $70
+
+	return price.cost - price.cost * (price.discount / 100);
 }
