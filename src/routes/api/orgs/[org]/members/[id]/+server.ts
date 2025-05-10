@@ -31,7 +31,7 @@ export async function DELETE({ params, locals }) {
 		(m) => m.user.stripeCustomerId === org.subscription?.stripeCustomerId
 	);
 
-	const removingMember = org.members.find((m) => m.userId === session.user.id);
+	const removingMember = org.members.find((m) => m.id === memberId);
 
 	// removeMember
 	const result = await db.transaction(async (tx) => {
