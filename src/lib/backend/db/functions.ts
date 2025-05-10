@@ -1245,6 +1245,40 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 		tx.rollback();
 	}
 
+	const connectedRegistries = await tx
+		.select()
+		.from(tables.scope)
+		.innerJoin(tables.registry, eq(tables.registry.scopeId, tables.scope.id))
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.innerJoin(
+			tables.user,
+			eq(tables.user.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
+		)
+		.where(
+			and(
+				eq(tables.scope.id, request.scopeId),
+
+				and(
+					// is not an org member
+					or(isNull(tables.orgMember.userId), not(eq(tables.user.id, tables.orgMember.userId))),
+
+					// is not the scope owner
+					not(eq(tables.user.id, tables.scope.userId))
+				)
+			)
+		);
+
+	await tx
+		.update(tables.registry)
+		.set({ stripeConnectAccountId: null })
+		.where(
+			inArray(
+				tables.registry.id,
+				connectedRegistries.map((r) => r.registry.id)
+			)
+		);
+
 	return true;
 }
 
