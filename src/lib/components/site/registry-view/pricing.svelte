@@ -22,17 +22,11 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
-	import { Calendar, CalendarInput } from '$lib/components/ui/calendar';
-	import {
-		type DateValue,
-		CalendarDate,
-		getLocalTimeZone,
-		today,
-		fromDate
-	} from '@internationalized/date';
-	import { toRelative } from '$lib/ts/dates';
-	import { notWords } from 'valibot';
+	import { CalendarInput } from '$lib/components/ui/calendar';
+	import { type DateValue, getLocalTimeZone, today, fromDate } from '@internationalized/date';
 	import { DAY } from '$lib/ts/time';
+	import type { UpdateRegistryPriceRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/prices/[id]/+server';
+	import * as Dialog from '$lib/components/ui/dialog';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -57,12 +51,22 @@
 	const editingPriceCostValid = $derived(
 		editingPriceCost !== null && editingPriceCost >= MIN_PRICE && editingPriceCost < MAX_PRICE
 	);
+
 	let enableDiscount = $derived(originalPrice?.discount !== null);
 	let enableDiscountExpiration = $derived(originalPrice?.discountUntil !== null);
 	let discountUntil = $derived<DateValue>(
 		originalPrice?.discountUntil
 			? fromDate(originalPrice.discountUntil, getLocalTimeZone())
 			: today(getLocalTimeZone())
+	);
+
+	const discountValid = $derived(
+		enableDiscount
+			? editingPrice !== undefined &&
+					editingPrice.discount !== null &&
+					editingPrice.discount > 0 &&
+					editingPrice.discount < 100
+			: true
 	);
 
 	let selectedPricing = $state<'individual' | 'org'>('individual');
@@ -112,6 +116,37 @@
 		}
 	);
 
+	const canUpdatePrice = $derived(editingPriceCostValid && discountValid);
+
+	const updatePriceQuery = new UseQuery(async () => {
+		if (!originalPrice || !editingPrice || !canUpdatePrice) return;
+
+		const response = await fetch(
+			`/api/scopes/@${data.scopeName}/${data.registryName}/marketplace/prices/${originalPrice.id}`,
+			{
+				method: 'PATCH',
+				headers: { 'content-type': 'applications/json' },
+				body: JSON.stringify({
+					cost: editingPriceCost!,
+					discount: enableDiscount ? editingPrice.discount : null,
+					discountUntil:
+						enableDiscount && enableDiscountExpiration
+							? discountUntil.toDate(getLocalTimeZone()).toISOString()
+							: null
+				} satisfies UpdateRegistryPriceRequest)
+			}
+		);
+
+		if (response.ok) {
+			await invalidateAll();
+			showEditPrice = false;
+		} else {
+			const message = (await response.json()).message;
+
+			console.log(message);
+		}
+	});
+
 	function startEditPrice(price: RegistryPrice) {
 		editingPrice = price;
 		originalPrice = structuredClone(price);
@@ -128,10 +163,10 @@
 				<div class="grid w-full grid-cols-1 place-items-center gap-4 md:grid-cols-2">
 					<div
 						data-estimate-visible={individualPrice !== null}
-						class="w-full max-w-72 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-9 md:place-self-end"
+						class="w-full max-w-80 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-9 md:place-self-end"
 					>
 						<div
-							class="flex w-full max-w-72 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
+							class="flex w-full max-w-80 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
 						>
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
@@ -177,10 +212,10 @@
 					</div>
 					<div
 						data-estimate-visible={orgPrice !== null}
-						class="w-full max-w-72 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-9 md:place-self-start"
+						class="w-full max-w-80 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-9 md:place-self-start"
 					>
 						<div
-							class="flex w-full max-w-72 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
+							class="flex w-full max-w-80 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
 						>
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
@@ -256,14 +291,14 @@
 					{#each individualPrices as price (price.id)}
 						{@const referenceId = data.session?.user.id ?? ''}
 						{@const discountedPrice = calculateDiscountedPrice(price)}
-						<div class="relative flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+						<div class="relative flex w-80 flex-col justify-between gap-10 rounded-lg bg-card p-6">
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Individual License</span>
 									<div class="flex flex-col gap-2">
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl">
-												${discountedPrice.price / 100}
+												${(discountedPrice.price / 100).toFixed(2)}
 											</span>
 											{#if discountedPrice.discount !== null}
 												<span
@@ -283,6 +318,16 @@
 												>
 													{discountedPrice.discount}% off
 												</div>
+												{#if price.discountUntil !== null}
+													{@const daysLeft = Math.ceil(
+														(price.discountUntil.valueOf() - Date.now()) / DAY
+													)}
+													<div
+														class="rounded-md border-blue-400 bg-blue-400/20 px-1 py-0.5 text-sm"
+													>
+														{daysLeft} day{daysLeft === 1 ? '' : 's'} left
+													</div>
+												{/if}
 											{/if}
 										</div>
 									</div>
@@ -313,14 +358,16 @@
 									Login to Buy
 								</Button>
 							{/if}
-							<Button
-								onclick={() => startEditPrice(price)}
-								variant="outline"
-								class="absolute -right-2 -top-2 rounded-full"
-								size="icon"
-							>
-								<Pencil />
-							</Button>
+							{#if data.hasAccess}
+								<Button
+									onclick={() => startEditPrice(price)}
+									variant="outline"
+									class="absolute -right-2 -top-2 rounded-full"
+									size="icon"
+								>
+									<Pencil />
+								</Button>
+							{/if}
 						</div>
 					{/each}
 				{:else if selectedPricing === 'org'}
@@ -330,14 +377,14 @@
 					{#each orgPrices as price (price.id)}
 						{@const referenceId = selectedOrg}
 						{@const discountedPrice = calculateDiscountedPrice(price)}
-						<div class="relative flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+						<div class="relative flex w-80 flex-col justify-between gap-10 rounded-lg bg-card p-6">
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Organization License</span>
 									<div class="flex flex-col gap-2">
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl">
-												${discountedPrice.price / 100}
+												${(discountedPrice.price / 100).toFixed(2)}
 											</span>
 											{#if discountedPrice.discount !== null}
 												<span
@@ -357,6 +404,16 @@
 												>
 													{discountedPrice.discount}% off
 												</div>
+												{#if price.discountUntil !== null}
+													{@const daysLeft = Math.ceil(
+														(price.discountUntil.valueOf() - Date.now()) / DAY
+													)}
+													<div
+														class="rounded-md border-blue-400 bg-blue-400/20 px-1 py-0.5 text-sm"
+													>
+														{daysLeft} day{daysLeft === 1 ? '' : 's'} left
+													</div>
+												{/if}
 											{/if}
 										</div>
 									</div>
@@ -407,14 +464,16 @@
 									</Button>
 								{/if}
 							</div>
-							<Button
-								onclick={() => startEditPrice(price)}
-								variant="outline"
-								class="absolute -right-2 -top-2 rounded-full"
-								size="icon"
-							>
-								<Pencil />
-							</Button>
+							{#if data.hasAccess}
+								<Button
+									onclick={() => startEditPrice(price)}
+									variant="outline"
+									class="absolute -right-2 -top-2 rounded-full"
+									size="icon"
+								>
+									<Pencil />
+								</Button>
+							{/if}
 						</div>
 					{/each}
 				{/if}
@@ -439,16 +498,15 @@
 	</ul>
 {/snippet}
 
-<Modal bind:open={showEditPrice}>
+<Modal bind:open={showEditPrice} class="p-0">
 	{#if editingPrice && originalPrice}
-		<div class="flex flex-col place-items-center gap-4 p-6">
-			<span class="text-2xl font-bold">Update Price</span>
+		<div class="flex flex-col place-items-center gap-4 p-4 pt-8">
 			<div
 				data-estimate-visible={editingPriceCost !== null}
-				class="w-full max-w-72 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-12"
+				class="w-full max-w-80 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-14"
 			>
 				<div
-					class="flex w-full max-w-72 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
+					class="flex w-full max-w-80 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
 				>
 					<div class="flex flex-col gap-2">
 						<div class="flex flex-col gap-2">
@@ -527,7 +585,7 @@
 				</div>
 				<div
 					data-visible={editingPriceCost !== null}
-					class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-12"
+					class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-14"
 				>
 					<span
 						class="flex w-full flex-col text-sm text-muted-foreground opacity-0 group-data-[visible=true]:opacity-100 group-data-[visible=true]:transition-all group-data-[visible=true]:delay-150"
@@ -554,6 +612,15 @@
 						</span>
 					</span>
 				</div>
+			</div>
+			<div class="flex w-full place-items-center justify-end">
+				<Button
+					disabled={!canUpdatePrice}
+					onclick={updatePriceQuery.run}
+					loading={updatePriceQuery.loading}
+				>
+					Save
+				</Button>
 			</div>
 		</div>
 	{/if}
