@@ -85,7 +85,7 @@
 		{:else if data.prices.length === 0}
 			<PageBanner>
 				You need to setup prices for your registry so that users can pay for it. You can set them up
-				<Link href="?tab=settings">here</Link>.
+				<Link href="?tab=pricing">here</Link>.
 			</PageBanner>
 		{:else if !data.registry.listOnMarketplace}
 			<PageBanner>

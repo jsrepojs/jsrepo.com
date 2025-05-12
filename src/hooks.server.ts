@@ -9,12 +9,12 @@ export async function handle({ event, resolve }) {
 	return svelteKitHandler({ event, resolve, auth });
 }
 
-export async function handleError({ error, status }) {
+export async function handleError({ error, status, event }) {
 	if (status !== 404) {
 		if (dev) {
 			console.error(error);
 		} else {
-			posthog.captureException(error);
+			posthog.captureException(error, undefined, { url: event.url.toString() });
 			await posthog.shutdown();
 		}
 	}

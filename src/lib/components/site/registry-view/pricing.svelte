@@ -7,8 +7,8 @@
 	import { page } from '$app/state';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import type { PurchaseRegistryRequest } from '../../../../routes/api/stripe/connect/registries/purchase/+server';
-	import * as Select from '$lib/components/ui/select';
 	import { cn } from '$lib/utils/utils';
+	import type { RegistryPrice } from '$lib/backend/db/schema';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -28,10 +28,6 @@
 					referenceId
 				} satisfies PurchaseRegistryRequest)
 			});
-
-			if (!response.ok) {
-				console.error(response);
-			}
 
 			const res = await response.json();
 
@@ -61,128 +57,83 @@
 				.filter((p) => p.target === 'individual')
 				.sort((a, b) => a.cost - b.cost)}
 			{#each individualPrices as price (price.id)}
-				{@const discountedPrice = calculateDiscountedPrice(price)}
-				<div class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg bg-card p-4">
-					<div class="flex flex-col gap-2">
-						<span class="text-lg font-bold">Individual License</span>
-						<div class="flex flex-col gap-2">
-							<div class="flex place-items-start gap-1">
-								<span class="text-5xl">
-									${discountedPrice.price / 100}
-								</span>
-								{#if discountedPrice.discount !== null}
-									<span
-										class={cn('text-xl', {
-											'text-muted-foreground line-through': discountedPrice.discount !== null
-										})}
-									>
-										${price.cost / 100}
-									</span>
-								{/if}
-							</div>
-							<div class="flex place-items-center gap-2">
-								<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
-								{#if discountedPrice.discount}
-									<div class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm">
-										{discountedPrice.discount}% off
-									</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-					{#if data.session !== null}
-						{#if data.licenses.find((l) => l.referenceId === data.session?.user.id && l.registryId === data.registry.id)}
-							<Button disabled variant="outline">
-								<Check class="size-4 text-green-400" />
-								Owned
-							</Button>
-						{:else}
-							<Button
-								loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
-								onclick={() => purchaseRegistryQuery.run(price.id, data.session?.user.id as string)}
-							>
-								Buy
-							</Button>
-						{/if}
-					{:else}
-						<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
-							Login to Buy
-						</Button>
-					{/if}
-				</div>
+				{@render card({ referenceId: data.session?.user.id ?? '', price })}
 			{/each}
 		{:else if selectedPricing === 'org'}
 			{@const orgPrices = data.prices
 				.filter((p) => p.target === 'org')
 				.sort((a, b) => a.cost - b.cost)}
 			{#each orgPrices as price (price.id)}
-				{@const discountedPrice = calculateDiscountedPrice(price)}
-				<div class="flex aspect-square w-64 flex-col justify-between gap-2 rounded-lg bg-card p-4">
-					<div class="flex flex-col gap-2">
-						<span class="text-lg font-bold">Individual License</span>
-						<div class="flex flex-col gap-2">
-							<div class="flex place-items-start gap-1">
-								<span class="text-5xl">
-									${discountedPrice.price / 100}
-								</span>
-								{#if discountedPrice.discount !== null}
-									<span
-										class={cn('text-xl', {
-											'text-muted-foreground line-through': discountedPrice.discount !== null
-										})}
-									>
-										${price.cost / 100}
-									</span>
-								{/if}
-							</div>
-							<div class="flex place-items-center gap-2">
-								<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
-								{#if discountedPrice.discount}
-									<div class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm">
-										{discountedPrice.discount}% off
-									</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-					<div class="flex w-full flex-col gap-2">
-						<Select.Root type="single" bind:value={selectedOrg}>
-							<Select.Trigger>
-								<span>
-									{data.userOrgs.find(({ org }) => org.id === selectedOrg)?.org.name ?? '--'}
-								</span>
-							</Select.Trigger>
-							<Select.Content>
-								{#each data.userOrgs as { org } (org.id)}
-									<Select.Item value={org.id}>
-										{org.name}
-									</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-						{#if data.session !== null}
-							{#if data.licenses.find((l) => l.referenceId === selectedOrg && l.registryId === data.registry.id)}
-								<Button disabled variant="outline">
-									<Check class="size-4 text-green-400" />
-									Owned
-								</Button>
-							{:else}
-								<Button
-									loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
-									disabled={selectedOrg === ''}
-									onclick={() => purchaseRegistryQuery.run(price.id, selectedOrg)}
-								>
-									Buy
-								</Button>
-							{/if}
-						{:else}
-							<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">
-								Login to Buy
-							</Button>
-						{/if}
-					</div>
-				</div>
+				{@render card({ referenceId: selectedOrg, price })}
 			{/each}
 		{/if}
 	</div>
 </div>
+
+{#snippet card({ price, referenceId }: { referenceId: string; price: RegistryPrice })}
+	{@const discountedPrice = calculateDiscountedPrice(price)}
+	<div class="flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-col gap-2">
+				<span class="text-lg font-bold">Individual License</span>
+				<div class="flex flex-col gap-2">
+					<div class="flex place-items-start gap-1">
+						<span class="text-5xl">
+							${discountedPrice.price / 100}
+						</span>
+						{#if discountedPrice.discount !== null}
+							<span
+								class={cn('text-xl', {
+									'text-muted-foreground line-through': discountedPrice.discount !== null
+								})}
+							>
+								${price.cost / 100}
+							</span>
+						{/if}
+					</div>
+					<div class="flex place-items-center gap-2">
+						<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
+						{#if discountedPrice.discount}
+							<div class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm">
+								{discountedPrice.discount}% off
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+			<div>
+				{@render feature_list({ features: ['Lifetime Access', 'Unlimited Downloads'] })}
+			</div>
+		</div>
+		{#if data.session !== null}
+			{#if data.licenses.find((l) => l.referenceId === referenceId && l.registryId === data.registry.id)}
+				<Button disabled variant="outline">
+					<Check class="size-4 text-green-400" />
+					Owned
+				</Button>
+			{:else}
+				<Button
+					loading={purchaseRegistryQuery.loadingKey === price.id.toString()}
+					onclick={() => purchaseRegistryQuery.run(price.id, referenceId)}
+				>
+					Buy
+				</Button>
+			{/if}
+		{:else}
+			<Button href="/login?redirect_to={page.url.pathname}{page.url.search}">Login to Buy</Button>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet feature_list({ features }: { features: string[] })}
+	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
+		{#each features as feature (feature)}
+			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
+				<span class="flex h-[var(--line-height)] place-items-center justify-center">
+					<Check class="size-4 text-green-400" />
+				</span>
+				{feature}
+			</li>
+		{/each}
+	</ul>
+{/snippet}
