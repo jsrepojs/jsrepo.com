@@ -12,10 +12,14 @@
 	import { Unplug, Wrench, X } from '@lucide/svelte';
 	import type { LinkAccountToRegistryRequest } from '../../../../routes/api/stripe/connect/registries/link/+server';
 	import type { UnlinkAccountFromRegistryRequest } from '../../../../routes/api/stripe/connect/registries/unlink/+server';
+	import { Switch } from '$lib/components/ui/switch';
+	import type { ListOnMarketplaceRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/list/+server';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
 	let access = $derived(data.registry.access);
+
+	let listOnMarketplace = $derived(data.registry.listOnMarketplace ?? false);
 
 	const updateAccessQuery = new UseQuery(async () => {
 		const response = await fetch(`/api/scopes/@${data.scopeName}/${data.registryName}/access`, {
@@ -54,9 +58,26 @@
 			await invalidateAll();
 		}
 	});
+
+	const listOnMarketplaceQuery = new UseQuery(async ({}, list: boolean) => {
+		const response = await fetch(
+			`/api/scopes/@${data.scopeName}/${data.registryName}/marketplace/list`,
+			{
+				method: 'PATCH',
+				headers: { 'content-type': 'applications/json' },
+				body: JSON.stringify({
+					listOnMarketplace: list
+				} satisfies ListOnMarketplaceRequest)
+			}
+		);
+
+		if (response.ok) {
+			await invalidateAll();
+		}
+	});
 </script>
 
-<div class="flex flex-col gap-2 py-2">
+<div class="flex flex-col gap-4 py-2">
 	{#if data.registry.connectedStripeAccount !== null}
 		<FieldSet.Root>
 			<FieldSet.Content class="flex place-items-center justify-between">
@@ -77,7 +98,15 @@
 						</span>
 					</a>
 				</div>
+			</FieldSet.Content>
+			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
+				<div>
+					<span class="hidden truncate text-sm text-muted-foreground md:inline">
+						This account will receive payouts for your registry purchases.
+					</span>
+				</div>
 				<Button
+					class="shrink-0"
 					onclick={unlinkAccountQuery.run}
 					loading={unlinkAccountQuery.loading}
 					variant="outline"
@@ -85,7 +114,7 @@
 					<X />
 					Unlink Account
 				</Button>
-			</FieldSet.Content>
+			</FieldSet.Footer>
 		</FieldSet.Root>
 	{:else}
 		<FieldSet.Root>
@@ -96,8 +125,16 @@
 						Connect your Stripe account to start receiving payments.
 					</p>
 				</div>
+			</FieldSet.Content>
+			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
+				<div>
+					<span class="hidden truncate text-sm text-muted-foreground md:inline">
+						This account will receive payouts for your registry purchases.
+					</span>
+				</div>
 				{#if data.user?.stripeSellerAccountId !== null}
 					<Button
+						class="shrink-0"
 						onclick={connectAccountQuery.run}
 						loading={connectAccountQuery.loading}
 						variant="outline"
@@ -106,12 +143,33 @@
 						Connect Account
 					</Button>
 				{:else}
-					<Button href="/account/settings" variant="outline">
+					<Button href="/account/settings" class="shrink-0" variant="outline">
 						<Wrench />
 						Setup Stripe
 					</Button>
 				{/if}
+			</FieldSet.Footer>
+		</FieldSet.Root>
+	{/if}
+	{#if data.registry.access === 'marketplace'}
+		<FieldSet.Root>
+			<FieldSet.Content class="flex place-items-center justify-between gap-4">
+				<div>
+					<FieldSet.Title>List on Marketplace</FieldSet.Title>
+					<p class="text-muted-foreground"></p>
+				</div>
+				<Switch
+					bind:checked={listOnMarketplace}
+					disabled={(listOnMarketplace && data.purchases.length > 0) ||
+						listOnMarketplaceQuery.loading}
+					onCheckedChange={listOnMarketplaceQuery.run}
+				/>
 			</FieldSet.Content>
+			<FieldSet.Footer class="hidden md:flex">
+				<span class="hidden text-sm text-muted-foreground md:inline">
+					Controls whether or not this registry can be purchased on the marketplace.
+				</span>
+			</FieldSet.Footer>
 		</FieldSet.Root>
 	{/if}
 	<FieldSet.Root variant="destructive">
@@ -123,7 +181,7 @@
 				</Select.Trigger>
 				<Select.Content align="start">
 					<Select.Item value="public">Public</Select.Item>
-					<Select.Item value="private">Private</Select.Item>
+					<Select.Item value="private" disabled={data.purchases.length > 0}>Private</Select.Item>
 					<Select.Item value="marketplace">Marketplace</Select.Item>
 				</Select.Content>
 			</Select.Root>

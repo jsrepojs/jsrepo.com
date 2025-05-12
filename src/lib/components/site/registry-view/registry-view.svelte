@@ -32,6 +32,7 @@
 	import type { RegistryViewPageData } from './types';
 	import Settings from './settings.svelte';
 	import { Link } from '$lib/components/ui/link';
+	import { PageBanner } from '../page-banner';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -77,21 +78,20 @@
 <div class="flex flex-col">
 	{#if data.registry.access === 'marketplace'}
 		{#if data.hasAccess && data.registry.connectedStripeAccount === null}
-			<div class="fixed left-0 top-[var(--header-height)] w-full bg-destructive py-2">
-				<div class="container">
-					You need to link your Stripe account before users can pay for your registry! You can link
-					it
-					<Link href="?tab=settings">here</Link>
-				</div>
-			</div>
+			<PageBanner>
+				You need to link your Stripe account before users can pay for your registry! You can link it
+				<Link href="?tab=settings">here</Link>.
+			</PageBanner>
 		{:else if data.prices.length === 0}
-			<div class="fixed left-0 top-[var(--header-height)] w-full bg-destructive py-2">
-				<div class="container">
-					You need to setup prices for your registry so that users can pay for it. You can set them
-					up
-					<Link href="?tab=settings">here</Link>
-				</div>
-			</div>
+			<PageBanner>
+				You need to setup prices for your registry so that users can pay for it. You can set them up
+				<Link href="?tab=settings">here</Link>.
+			</PageBanner>
+		{:else if !data.registry.listOnMarketplace}
+			<PageBanner>
+				You need to list your registry before users can see it on the marketplace. You can list it
+				<Link href="?tab=settings">here</Link>.
+			</PageBanner>
 		{/if}
 	{/if}
 	<div class="flex flex-col gap-1 py-6">

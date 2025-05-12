@@ -6,9 +6,9 @@ export async function load({ locals, url }) {
 
 	if (!session) redirectToLogin(url);
 
-    const licenses = await getMyLicenses(session.user.id);
+	const licenses = await getMyLicenses(session.user.id);
 
-    return {
-        licenses
-    }
+	return {
+		licenses
+	};
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageBanner } from '$lib/components/site/page-banner';
 	import * as Tabs from '$lib/components/site/tabs';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
@@ -13,23 +14,9 @@
 
 <!-- seats warning banner -->
 {#if data.member && data.org.status.type !== 'paid'}
-	<div
-		class="fixed left-0 top-[--header-height] w-full bg-destructive py-2 text-destructive-foreground"
-	>
-		<div class="container">
-			<span>
-				{data.org.status.message}
-			</span>
-		</div>
-	</div>
-	<!-- surely there's a better way to do this but idk right now -->
-	<div class="py-2 opacity-0">
-		<div>
-			<span>
-				{data.org.status.message}
-			</span>
-		</div>
-	</div>
+	<PageBanner>
+		{data.org.status.message}
+	</PageBanner>
 {/if}
 <div class="flex flex-col py-6">
 	<div class="flex flex-col gap-2">

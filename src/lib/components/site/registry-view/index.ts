@@ -1,1 +1,1 @@
-export { default as RegistryView } from './registry-view.svelte'
+export { default as RegistryView } from './registry-view.svelte';

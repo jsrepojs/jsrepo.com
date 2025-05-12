@@ -14,10 +14,10 @@ import { eq } from 'drizzle-orm';
 import assert from 'assert';
 
 const schema = v.object({
-	access: v.union([v.literal('public'), v.literal('private'), v.literal('marketplace')])
+	listOnMarketplace: v.boolean()
 });
 
-export type UpdateRegistryAccessRequest = v.InferOutput<typeof schema>;
+export type ListOnMarketplaceRequest = v.InferOutput<typeof schema>;
 
 export async function PATCH({ request, locals, params }) {
 	const body = await validateRequest(schema, request);
@@ -42,23 +42,23 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	if (purchases.length > 0 && body.access === 'private') {
-		error(400, 'you cannot make a purchased registry private');
+	if (purchases.length > 0 && body.listOnMarketplace === false) {
+		error(400, 'cannot un-list purchased registries');
 	}
 
-	const canPublish = await canPublishToScope(user, scope, body.access);
+	const canPublish = await canPublishToScope(user, scope, registry.access);
 
-	if (!canPublish) error(401, 'only users with publish access can change the access level');
+	if (!canPublish) error(401, 'only users with publish access can list on marketplace');
 
-	if (body.access === registry.access) return json({});
+	if (body.listOnMarketplace === registry.listOnMarketplace) return json({});
 
 	const result = await db
 		.update(tables.registry)
-		.set({ access: body.access })
+		.set({ listOnMarketplace: body.listOnMarketplace })
 		.where(eq(tables.registry.id, registry.id))
 		.returning();
 
-	if (result.length === 0) error(500, 'error updating registry access');
+	if (result.length === 0) error(500, 'error updating list on marketplace');
 
 	return json({});
 }

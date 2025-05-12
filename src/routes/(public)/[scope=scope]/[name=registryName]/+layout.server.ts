@@ -1,6 +1,7 @@
 import {
 	getMyLicenses,
 	getRegistryPrices,
+	getRegistryPurchases,
 	getUser,
 	getVersion,
 	hasScopeAccess,
@@ -14,7 +15,7 @@ export async function load({ params, locals }) {
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
 
-	const [version, hasAccess, userOrgs, prices, licenses, user] = await Promise.all([
+	const [version, hasAccess, userOrgs, prices, licenses, user, purchases] = await Promise.all([
 		getVersion({
 			scopeName,
 			registryName,
@@ -25,7 +26,8 @@ export async function load({ params, locals }) {
 		listMyOrganizations(session?.user.id ?? ''),
 		getRegistryPrices({ scopeName, name: registryName }),
 		getMyLicenses(session?.user.id ?? ''),
-		getUser({ id: session?.user.id ?? '' })
+		getUser({ id: session?.user.id ?? '' }),
+		getRegistryPurchases({ scope: scopeName, name: registryName })
 	]);
 
 	if (version === null) error(404);
@@ -38,6 +40,7 @@ export async function load({ params, locals }) {
 		userOrgs,
 		prices,
 		licenses,
-		user
+		user,
+		purchases
 	};
 }

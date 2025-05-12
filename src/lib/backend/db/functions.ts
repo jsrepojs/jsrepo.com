@@ -2277,3 +2277,21 @@ export async function unlinkAccountFromRegistry(registryId: number) {
 
 	return true;
 }
+
+export async function getRegistryPurchases({
+	id,
+	scope,
+	name
+}: { scope?: never; name?: never; id: number } | { id?: never; scope: string; name: string }) {
+	return await db
+		.select({ ...getTableColumns(tables.marketplacePurchase) })
+		.from(tables.marketplacePurchase)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.where(
+			and(
+				id ? eq(tables.marketplacePurchase.registryId, id) : undefined,
+				scope ? and(eq(tables.scope.name, scope), eq(tables.registry.name, name)) : undefined
+			)
+		);
+}
