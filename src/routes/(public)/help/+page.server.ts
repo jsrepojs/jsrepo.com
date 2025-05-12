@@ -6,9 +6,12 @@ import { schema } from './schema.js';
 import { toRelative } from '$lib/ts/dates.js';
 import { resend, supportEmail } from '$lib/ts/resend.js';
 import { dev } from '$app/environment';
+import { redirectToLogin } from '$lib/auth/redirect.js';
 
-export async function load({ locals }) {
+export async function load({ locals, url }) {
 	const session = await locals.auth();
+
+	if (!session) redirectToLogin(url);
 
 	const form = await superValidate(valibot(schema));
 
@@ -39,6 +42,8 @@ export const actions = {
 		}
 
 		const session = await locals.auth();
+
+		if (!session) error(401, 'sorry other people ruined it for you :( try logging in');
 
 		const name = session?.user.name ?? form.data.name;
 		const email = session?.user.email ?? form.data.email;
