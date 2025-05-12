@@ -26,7 +26,6 @@
 	import { type DateValue, getLocalTimeZone, today, fromDate } from '@internationalized/date';
 	import { DAY } from '$lib/ts/time';
 	import type { UpdateRegistryPriceRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/prices/[id]/+server';
-	import * as Dialog from '$lib/components/ui/dialog';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -143,7 +142,7 @@
 		} else {
 			const message = (await response.json()).message;
 
-			console.log(message);
+			throw new Error(message)
 		}
 	});
 
@@ -613,6 +612,9 @@
 					</span>
 				</div>
 			</div>
+			{#if updatePriceQuery.error}
+				<span class="text-destructive text-sm">{updatePriceQuery.error.message}</span>
+			{/if}
 			<div class="flex w-full place-items-center justify-end">
 				<Button
 					disabled={!canUpdatePrice}
