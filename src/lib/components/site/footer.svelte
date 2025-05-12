@@ -19,6 +19,10 @@
 			href: '/help'
 		},
 		{
+			title: 'Terms of Service',
+			href: '/terms-of-service'
+		},
+		{
 			title: 'Docs',
 			href: 'https://jsrepo.dev/docs'
 		},
