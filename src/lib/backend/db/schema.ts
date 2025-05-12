@@ -12,7 +12,8 @@ import {
 	index,
 	date,
 	type AnyPgColumn,
-	uniqueIndex
+	uniqueIndex,
+	check
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -459,7 +460,11 @@ export const registryPrice = pgTable(
 		discountUntil: timestamp('discount_until')
 	},
 	(table) => {
-		return [index('registry_price_registry_id_idx').on(table.registryId)];
+		return [
+			index('registry_price_registry_id_idx').on(table.registryId),
+			// prevent foot-guns
+			check('cost is non-negative', sql`${table.cost} >= 0`)
+		];
 	}
 ).enableRLS();
 

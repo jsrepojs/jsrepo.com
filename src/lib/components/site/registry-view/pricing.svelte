@@ -142,7 +142,7 @@
 		} else {
 			const message = (await response.json()).message;
 
-			throw new Error(message)
+			throw new Error(message);
 		}
 	});
 
@@ -535,9 +535,11 @@
 											{@const daysLeft = Math.ceil(
 												(discountUntil.toDate(getLocalTimeZone()).valueOf() - Date.now()) / DAY
 											)}
-											<div class="rounded-md border-blue-400 bg-blue-400/20 px-1 py-0.5 text-sm">
-												{daysLeft} day{daysLeft === 1 ? '' : 's'} left
-											</div>
+											{#if daysLeft > 0}
+												<div class="rounded-md border-blue-400 bg-blue-400/20 px-1 py-0.5 text-sm">
+													{daysLeft} day{daysLeft === 1 ? '' : 's'} left
+												</div>
+											{/if}
 										{/if}
 									{/if}
 								</div>
@@ -613,7 +615,7 @@
 				</div>
 			</div>
 			{#if updatePriceQuery.error}
-				<span class="text-destructive text-sm">{updatePriceQuery.error.message}</span>
+				<span class="text-sm text-destructive">{updatePriceQuery.error.message}</span>
 			{/if}
 			<div class="flex w-full place-items-center justify-end">
 				<Button

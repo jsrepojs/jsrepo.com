@@ -1,0 +1,1 @@
+ALTER TABLE "registry_price" ADD CONSTRAINT "cost is non-negative" CHECK ("registry_price"."cost" >= 0);
