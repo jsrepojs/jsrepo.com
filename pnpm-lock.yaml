@@ -30,6 +30,9 @@ importers:
       '@fontsource-variable/oxanium':
         specifier: ^5.2.5
         version: 5.2.5
+      '@internationalized/date':
+        specifier: ^3.8.0
+        version: 3.8.0
       '@lucide/svelte':
         specifier: ^0.503.0
         version: 0.503.0(svelte@5.28.2)

@@ -6,7 +6,7 @@
 		MAX_PRICE,
 		MIN_PRICE
 	} from '$lib/ts/stripe/connect';
-	import { Check } from '@lucide/svelte';
+	import { Check, Pencil } from '@lucide/svelte';
 	import type { RegistryViewPageData } from './types';
 	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/state';
@@ -17,6 +17,22 @@
 	import { Input } from '$lib/components/ui/input';
 	import type { CreateRegistryPricesRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/prices/+server';
 	import { invalidateAll } from '$app/navigation';
+	import { Modal } from '$lib/components/ui/modal';
+	import type { RegistryPrice } from '$lib/backend/db/schema';
+	import { Separator } from '$lib/components/ui/separator';
+	import { Switch } from '$lib/components/ui/switch';
+	import { Label } from '$lib/components/ui/label';
+	import { Calendar, CalendarInput } from '$lib/components/ui/calendar';
+	import {
+		type DateValue,
+		CalendarDate,
+		getLocalTimeZone,
+		today,
+		fromDate
+	} from '@internationalized/date';
+	import { toRelative } from '$lib/ts/dates';
+	import { notWords } from 'valibot';
+	import { DAY } from '$lib/ts/time';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -32,6 +48,22 @@
 	);
 
 	const canSubmitPricing = $derived(orgPriceValid && individualPriceValid);
+
+	// edit price
+	let showEditPrice = $state(false);
+	let editingPrice = $state<RegistryPrice>();
+	let originalPrice = $state<RegistryPrice>();
+	let editingPriceCost = $derived<number | null>((originalPrice?.cost ?? 0) / 100);
+	const editingPriceCostValid = $derived(
+		editingPriceCost !== null && editingPriceCost >= MIN_PRICE && editingPriceCost < MAX_PRICE
+	);
+	let enableDiscount = $derived(originalPrice?.discount !== null);
+	let enableDiscountExpiration = $derived(originalPrice?.discountUntil !== null);
+	let discountUntil = $derived<DateValue>(
+		originalPrice?.discountUntil
+			? fromDate(originalPrice.discountUntil, getLocalTimeZone())
+			: today(getLocalTimeZone())
+	);
 
 	let selectedPricing = $state<'individual' | 'org'>('individual');
 	let selectedOrg = $state(data.userOrgs[0]?.org.id);
@@ -79,6 +111,13 @@
 			}
 		}
 	);
+
+	function startEditPrice(price: RegistryPrice) {
+		editingPrice = price;
+		originalPrice = structuredClone(price);
+
+		showEditPrice = true;
+	}
 </script>
 
 {#if data.registry.access === 'marketplace' && (data.hasAccess || data.registry.listOnMarketplace)}
@@ -217,7 +256,7 @@
 					{#each individualPrices as price (price.id)}
 						{@const referenceId = data.session?.user.id ?? ''}
 						{@const discountedPrice = calculateDiscountedPrice(price)}
-						<div class="flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+						<div class="relative flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Individual License</span>
@@ -274,6 +313,14 @@
 									Login to Buy
 								</Button>
 							{/if}
+							<Button
+								onclick={() => startEditPrice(price)}
+								variant="outline"
+								class="absolute -right-2 -top-2 rounded-full"
+								size="icon"
+							>
+								<Pencil />
+							</Button>
 						</div>
 					{/each}
 				{:else if selectedPricing === 'org'}
@@ -283,7 +330,7 @@
 					{#each orgPrices as price (price.id)}
 						{@const referenceId = selectedOrg}
 						{@const discountedPrice = calculateDiscountedPrice(price)}
-						<div class="flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+						<div class="relative flex w-72 flex-col justify-between gap-10 rounded-lg bg-card p-6">
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Organization License</span>
@@ -360,6 +407,14 @@
 									</Button>
 								{/if}
 							</div>
+							<Button
+								onclick={() => startEditPrice(price)}
+								variant="outline"
+								class="absolute -right-2 -top-2 rounded-full"
+								size="icon"
+							>
+								<Pencil />
+							</Button>
 						</div>
 					{/each}
 				{/if}
@@ -383,3 +438,123 @@
 		{/each}
 	</ul>
 {/snippet}
+
+<Modal bind:open={showEditPrice}>
+	{#if editingPrice && originalPrice}
+		<div class="flex flex-col place-items-center gap-4 p-6">
+			<span class="text-2xl font-bold">Update Price</span>
+			<div
+				data-estimate-visible={editingPriceCost !== null}
+				class="w-full max-w-72 rounded-lg bg-card/50 transition-all data-[estimate-visible=false]:mb-12"
+			>
+				<div
+					class="flex w-full max-w-72 flex-col gap-10 rounded-lg border border-dashed bg-card p-6"
+				>
+					<div class="flex flex-col gap-2">
+						<div class="flex flex-col gap-2">
+							<span class="text-lg font-bold">
+								{editingPrice.target === 'individual' ? 'Individual' : 'Organization'} License
+							</span>
+							<div class="flex flex-col gap-2">
+								<div class="flex place-items-start gap-1">
+									<span class="text-5xl"> $ </span>
+									<Input
+										class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 !text-5xl !ring-0 focus-visible:border-b-primary aria-[invalid=true]:border-b-destructive aria-[invalid=true]:text-destructive"
+										placeholder="10"
+										type="number"
+										min={MIN_PRICE}
+										max={MAX_PRICE}
+										aria-invalid={editingPriceCost !== null && !editingPriceCostValid}
+										bind:value={editingPriceCost}
+									/>
+								</div>
+								<div class="flex place-items-center gap-2">
+									<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
+									{#if enableDiscount && editingPrice.discount !== null}
+										<div class="rounded-md border-green-400 bg-green-400/20 px-1 py-0.5 text-sm">
+											{editingPrice.discount}% off
+										</div>
+										{#if enableDiscountExpiration && discountUntil !== null}
+											{@const daysLeft = Math.ceil(
+												(discountUntil.toDate(getLocalTimeZone()).valueOf() - Date.now()) / DAY
+											)}
+											<div class="rounded-md border-blue-400 bg-blue-400/20 px-1 py-0.5 text-sm">
+												{daysLeft} day{daysLeft === 1 ? '' : 's'} left
+											</div>
+										{/if}
+									{/if}
+								</div>
+							</div>
+						</div>
+						<div>
+							{@render feature_list({
+								features: ['Lifetime Access', 'Unlimited Downloads', '']
+							})}
+						</div>
+						<Separator />
+						<div class="flex flex-col gap-4">
+							<div class="flex place-items-center justify-between">
+								<span class="text-sm font-medium">Enable Discount</span>
+								<Switch bind:checked={enableDiscount} />
+							</div>
+							{#if enableDiscount}
+								<div>
+									<Label>Discount %</Label>
+									<Input
+										bind:value={editingPrice.discount}
+										max={100}
+										type="number"
+										placeholder="0"
+									/>
+								</div>
+								<div class="flex flex-col gap-2">
+									<div class="flex place-items-center justify-between">
+										<span class="text-sm font-medium">Expiration Date</span>
+										<Switch bind:checked={enableDiscountExpiration} />
+									</div>
+									{#if enableDiscountExpiration}
+										<CalendarInput
+											type="single"
+											bind:value={discountUntil}
+											class="rounded-md border"
+										/>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					</div>
+					<Button disabled>Buy</Button>
+				</div>
+				<div
+					data-visible={editingPriceCost !== null}
+					class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-12"
+				>
+					<span
+						class="flex w-full flex-col text-sm text-muted-foreground opacity-0 group-data-[visible=true]:opacity-100 group-data-[visible=true]:transition-all group-data-[visible=true]:delay-150"
+					>
+						<span>
+							User pays
+							<span class="text-green-500">
+								{(enableDiscount
+									? calculateDiscountedPrice({ ...editingPrice, cost: editingPriceCost ?? 0 }).price
+									: (editingPriceCost ?? 0)
+								).toFixed(2)}
+							</span>.
+						</span>
+						<span>
+							<span class="text-green-500">
+								${calculateCreatorIncome(
+									enableDiscount
+										? calculateDiscountedPrice({ ...editingPrice, cost: editingPriceCost ?? 0 })
+												.price
+										: (editingPriceCost ?? 0),
+									'dollars'
+								)}</span
+							> will be paid to you.
+						</span>
+					</span>
+				</div>
+			</div>
+		</div>
+	{/if}
+</Modal>
