@@ -37,7 +37,7 @@ export async function PATCH({ locals, request }) {
 
 	const canLink = await canPublishToScope(user, registry.scope, registry.access);
 
-	if (!canLink) error(401, 'you are not allowed to link your account to this registry');
+	if (!canLink.canPublish) error(401, 'you are not allowed to link your account to this registry');
 
 	const result = await unlinkAccountFromRegistry(registry.id);
 

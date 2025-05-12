@@ -48,7 +48,7 @@ export async function PATCH({ request, locals, params }) {
 
 	const canPublish = await canPublishToScope(user, scope, registry.access);
 
-	if (!canPublish) error(401, 'only users with publish access can list on marketplace');
+	if (!canPublish.canPublish) error(401, 'only users with publish access can list on marketplace');
 
 	if (body.listOnMarketplace === registry.listOnMarketplace) return json({});
 

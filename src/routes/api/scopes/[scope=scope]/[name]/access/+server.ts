@@ -48,7 +48,7 @@ export async function PATCH({ request, locals, params }) {
 
 	const canPublish = await canPublishToScope(user, scope, body.access);
 
-	if (!canPublish) error(401, 'only users with publish access can change the access level');
+	if (!canPublish.canPublish) error(401, 'only users with publish access can change the access level');
 
 	if (body.access === registry.access) return json({});
 

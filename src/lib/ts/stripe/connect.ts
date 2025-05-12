@@ -1,12 +1,15 @@
 import type { RegistryPrice } from '$lib/backend/db/schema';
 
+export const MIN_PRICE = 1;
+export const MAX_PRICE = 1000;
+
 /** 10% + 30¢ (negotiable)
  *
  * @param transactionCost cost in cents
  * @returns
  */
 export function calculatePlatformFee(transactionCost: number) {
-	return transactionCost * 0.1 + 30;
+	return Math.ceil(transactionCost * 0.1 + 30);
 }
 
 /** Calculates the price with discount (if there was one) */
@@ -29,4 +32,23 @@ export function calculateDiscountedPrice(price: RegistryPrice): {
 	//   $70
 
 	return { discount: price.discount, price: price.cost - price.cost * (price.discount / 100) };
+}
+
+/** Returns the projected income for the creator in dollars
+ *
+ * @param transactionCost cost in cents or dollars depending on `unit`
+ * @param unit unit of the provided cost
+ * @returns
+ */
+export function calculateCreatorIncome(
+	transactionCost: number,
+	unit: 'cents' | 'dollars' = 'cents'
+) {
+	if (unit === 'cents') {
+		return (transactionCost - calculatePlatformFee(transactionCost)).toFixed(2);
+	} else {
+		const cost = transactionCost * 100;
+
+		return ((cost - calculatePlatformFee(cost)) / 100).toFixed(2);
+	}
 }
