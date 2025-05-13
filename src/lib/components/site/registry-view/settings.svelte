@@ -59,7 +59,7 @@
 		}
 	});
 
-	const listOnMarketplaceQuery = new UseQuery(async ({}, list: boolean) => {
+	const listOnMarketplaceQuery = new UseQuery(async (_, list: boolean) => {
 		const response = await fetch(
 			`/api/scopes/@${data.scopeName}/${data.registryName}/marketplace/list`,
 			{
@@ -160,8 +160,7 @@
 				</div>
 				<Switch
 					bind:checked={listOnMarketplace}
-					disabled={(listOnMarketplace && data.purchases.length > 0) ||
-						listOnMarketplaceQuery.loading}
+					disabled={(listOnMarketplace && data.purchases > 0) || listOnMarketplaceQuery.loading}
 					onCheckedChange={listOnMarketplaceQuery.run}
 				/>
 			</FieldSet.Content>
@@ -181,7 +180,7 @@
 				</Select.Trigger>
 				<Select.Content align="start">
 					<Select.Item value="public">Public</Select.Item>
-					<Select.Item value="private" disabled={data.purchases.length > 0}>Private</Select.Item>
+					<Select.Item value="private" disabled={data.purchases > 0}>Private</Select.Item>
 					<Select.Item value="marketplace">Marketplace</Select.Item>
 				</Select.Content>
 			</Select.Root>

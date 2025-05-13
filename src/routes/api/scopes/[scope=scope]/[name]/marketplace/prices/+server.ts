@@ -51,10 +51,13 @@ export async function POST({ locals, request, params }) {
 		error(401, 'you do not have permission to manage the pricing for this registry');
 
 	const result = await db.transaction(async (tx) => {
-		const res = await tx.insert(tables.registryPrice).values([
-			{ registryId: registry.id, target: 'individual', cost: body.individualPrice * 100 },
-			{ registryId: registry.id, target: 'org', cost: body.orgPrice * 100 }
-		]).returning();
+		const res = await tx
+			.insert(tables.registryPrice)
+			.values([
+				{ registryId: registry.id, target: 'individual', cost: body.individualPrice * 100 },
+				{ registryId: registry.id, target: 'org', cost: body.orgPrice * 100 }
+			])
+			.returning();
 
 		if (res.length !== 2) {
 			tx.rollback();

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
-	import { DateFormatter, type DateValue, getLocalTimeZone } from '@internationalized/date';
+	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
 	import * as Popover from '$lib/components/ui/popover';
 	import type { WithoutChildrenOrChild, Calendar as CalendarPrimitive } from 'bits-ui';
 	import Calendar from './calendar.svelte';
@@ -11,7 +11,7 @@
 		ref = $bindable(null),
 		value = $bindable(),
 		placeholder = $bindable(),
-        class: className,
+		class: className,
 		weekdayFormat = 'short',
 		...restProps
 	}: WithoutChildrenOrChild<CalendarPrimitive.RootProps> = $props();
@@ -50,7 +50,7 @@
 			bind:ref
 			bind:placeholder
 			{weekdayFormat}
-            class={cn('border-none', className)}
+			class={cn('border-none', className)}
 			{...restProps}
 		/>
 	</Popover.Content>

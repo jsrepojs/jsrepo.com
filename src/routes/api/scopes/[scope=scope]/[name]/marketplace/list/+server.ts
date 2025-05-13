@@ -1,7 +1,7 @@
 import {
 	canPublishToScope,
 	getRegistry,
-	getRegistryPurchases,
+	getRegistryPurchasesCount,
 	getScope,
 	getUser
 } from '$lib/backend/db/functions.js';
@@ -33,7 +33,7 @@ export async function PATCH({ request, locals, params }) {
 		getUser({ id: session.user.id }),
 		getScope(scopeName),
 		getRegistry({ scopeName, registryName: name, userId: session.user.id }),
-		getRegistryPurchases({ scope: scopeName, name })
+		getRegistryPurchasesCount({ scope: scopeName, name })
 	]);
 
 	assert(user !== null, 'user must be defined');
@@ -42,7 +42,7 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	if (purchases.length > 0 && body.listOnMarketplace === false) {
+	if (purchases > 0 && body.listOnMarketplace === false) {
 		error(400, 'cannot un-list purchased registries');
 	}
 

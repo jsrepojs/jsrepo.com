@@ -1,7 +1,7 @@
 import {
 	getMyLicenses,
 	getRegistryPrices,
-	getRegistryPurchases,
+	getRegistryPurchasesCount,
 	getUser,
 	getVersion,
 	hasScopeAccess,
@@ -27,7 +27,7 @@ export async function load({ params, locals }) {
 		getRegistryPrices({ scopeName, name: registryName }),
 		getMyLicenses(session?.user.id ?? ''),
 		getUser({ id: session?.user.id ?? '' }),
-		getRegistryPurchases({ scope: scopeName, name: registryName })
+		getRegistryPurchasesCount({ scope: scopeName, name: registryName })
 	]);
 
 	if (version === null) error(404);

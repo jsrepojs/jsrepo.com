@@ -1,7 +1,7 @@
 import {
 	canPublishToScope,
 	getRegistry,
-	getRegistryPurchases,
+	getRegistryPurchasesCount,
 	getScope,
 	getUser
 } from '$lib/backend/db/functions.js';
@@ -33,7 +33,7 @@ export async function PATCH({ request, locals, params }) {
 		getUser({ id: session.user.id }),
 		getScope(scopeName),
 		getRegistry({ scopeName, registryName: name, userId: session.user.id }),
-		getRegistryPurchases({ scope: scopeName, name })
+		getRegistryPurchasesCount({ scope: scopeName, name })
 	]);
 
 	assert(user !== null, 'user must be defined');
@@ -42,13 +42,14 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	if (purchases.length > 0 && body.access === 'private') {
+	if (purchases > 0 && body.access === 'private') {
 		error(400, 'you cannot make a purchased registry private');
 	}
 
 	const canPublish = await canPublishToScope(user, scope, body.access);
 
-	if (!canPublish.canPublish) error(401, 'only users with publish access can change the access level');
+	if (!canPublish.canPublish)
+		error(401, 'only users with publish access can change the access level');
 
 	if (body.access === registry.access) return json({});
 

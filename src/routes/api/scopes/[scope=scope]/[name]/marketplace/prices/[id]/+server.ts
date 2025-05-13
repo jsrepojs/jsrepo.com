@@ -40,7 +40,8 @@ export async function PATCH({ locals, request, params }) {
 	const cost = body.cost * 100;
 	const discountUntil = body.discountUntil ? new Date(body.discountUntil) : null;
 
-	if (discountUntil !== null && discountUntil.valueOf() < Date.now()) error(400, 'invalid discount expiration date');
+	if (discountUntil !== null && discountUntil.valueOf() < Date.now())
+		error(400, 'invalid discount expiration date');
 
 	const scopeName = params.scope.slice(1);
 	const priceId = parseInt(params.id);
@@ -75,7 +76,8 @@ export async function PATCH({ locals, request, params }) {
 				discount: body.discount,
 				discountUntil
 			})
-			.where(eq(tables.registryPrice.id, priceId)).returning();
+			.where(eq(tables.registryPrice.id, priceId))
+			.returning();
 
 		if (res.length === 0) {
 			tx.rollback();

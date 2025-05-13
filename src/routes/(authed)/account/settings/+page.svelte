@@ -159,7 +159,9 @@
 		<FieldSet.Root>
 			<FieldSet.Content>
 				<FieldSet.Title>Express Dashboard</FieldSet.Title>
-				<FieldSet.Description>View your connect account on the Stripe dashboard.</FieldSet.Description>
+				<FieldSet.Description
+					>View your connect account on the Stripe dashboard.</FieldSet.Description
+				>
 			</FieldSet.Content>
 			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
 				<div></div>
