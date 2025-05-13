@@ -5,6 +5,7 @@
 	import { Download, Lock, Store } from '@lucide/svelte';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 
 	type Props = {
 		registry: RegistryDetails;
@@ -23,9 +24,19 @@
 			</a>
 			<FileIcon extension={registry.metaPrimaryLanguage} />
 			{#if registry.access === 'private'}
-				<Lock class="size-3.5 text-muted-foreground" />
+				<Tooltip.Root>
+					<Tooltip.Trigger>
+						<Lock class="size-3.5 text-muted-foreground" />
+					</Tooltip.Trigger>
+					<Tooltip.Content>Private</Tooltip.Content>
+				</Tooltip.Root>
 			{:else if registry.access === 'marketplace'}
-				<Store class="size-3.5 text-muted-foreground" />
+				<Tooltip.Root>
+					<Tooltip.Trigger>
+						<Store class="size-3.5 text-muted-foreground" />
+					</Tooltip.Trigger>
+					<Tooltip.Content>Marketplace</Tooltip.Content>
+				</Tooltip.Root>
 			{/if}
 		</div>
 		<span class="text-muted-foreground">
@@ -51,7 +62,12 @@
 		</div>
 	</div>
 	<span class="hidden place-items-center gap-2 font-mono text-sm text-muted-foreground sm:flex">
-		{registry.monthlyFetches}
-		<Download class="inline size-4" />
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{registry.monthlyFetches}
+				<Download class="inline size-4" />
+			</Tooltip.Trigger>
+			<Tooltip.Content>Monthly downloads</Tooltip.Content>
+		</Tooltip.Root>
 	</span>
 </ListItem>
