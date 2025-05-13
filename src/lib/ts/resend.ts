@@ -167,8 +167,9 @@ export function marketplaceNextStepsEmail(user: MinUser, registryName: string): 
 <p>Here's a few things you need to do before you continue...</p>
 
 <ol>
-	<li>Link your stripe account in your organization or user settings to receive payments</li>
-	<li>Configure the price for your registry in the registry settings</li>
+	<li>Link your Stripe account to receive payments <a href="https://www.jsrepo.com/account/settings">here</a></li>
+	<li>Configure the price for your registry <a href="https://www.jsrepo.com/${registryName}?tab=pricing">here</a></li>
+	<li>List your registry on the marketplace <a href="https://www.jsrepo.com/${registryName}?tab=settings">here</a></li>
 </ol>
 
 <p>Happy Shipping!</p>`;

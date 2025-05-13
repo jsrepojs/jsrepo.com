@@ -324,7 +324,7 @@ export async function POST({ request }) {
 
 	emails.push(newVersionPublishedEmail(user, manifest.name, manifest.version));
 
-	if (registry === null) {
+	if (registry === null && access === 'marketplace') {
 		emails.push(marketplaceNextStepsEmail(user, `@${scopeName}/${registryName}`));
 	}
 

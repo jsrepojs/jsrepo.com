@@ -127,7 +127,7 @@
 		<div>
 			<h2 class="text-center text-4xl font-bold">Ship Together</h2>
 			<p class="text-center text-lg text-muted-foreground">
-				With jsrepo.com Pro you can publish and share your code with your team.
+				Share code with your team, completely free.
 			</p>
 		</div>
 		<Button variant="outline">See Pricing</Button>
