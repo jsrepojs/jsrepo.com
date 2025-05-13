@@ -2,7 +2,7 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ChevronLeft, LogOut, RefreshCcw, Unplug, X } from '@lucide/svelte';
+	import { ArrowUpRight, ChevronLeft, LogOut, RefreshCcw, Unplug, X } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
@@ -32,6 +32,25 @@
 			}
 		} else {
 			throw new Error('error creating account');
+		}
+	});
+
+	const goToDashboardQuery = new UseQuery(async () => {
+		const response = await fetch('/api/stripe/connect/account/login', {
+			method: 'POST',
+			headers: { 'content-type': 'applications/json' }
+		});
+
+		if (response.ok) {
+			const res = await response.json();
+
+			const { url } = res;
+
+			if (url) {
+				window.location.href = url;
+			}
+		} else {
+			throw new Error('error getting express dashboard');
 		}
 	});
 </script>
@@ -118,12 +137,15 @@
 	{/if}
 	{#if data.user.stripeSellerAccountId === null}
 		<FieldSet.Root>
-			<FieldSet.Content class="flex flex-row place-items-center justify-between">
+			<FieldSet.Content class="flex flex-row place-items-center justify-between gap-4">
 				<div>
 					<FieldSet.Title>Connect Seller Account</FieldSet.Title>
-					<p>If you want to monetize your registries you'll need to connect your account.</p>
+					<p class="text-muted-foreground">
+						If you want to monetize your registries you'll need to connect your account.
+					</p>
 				</div>
 				<Button
+					class="shrink-0"
 					onclick={connectAccountQuery.run}
 					loading={connectAccountQuery.loading}
 					variant="outline"
@@ -132,6 +154,25 @@
 					Connect Account
 				</Button>
 			</FieldSet.Content>
+		</FieldSet.Root>
+	{:else}
+		<FieldSet.Root>
+			<FieldSet.Content>
+				<FieldSet.Title>Express Dashboard</FieldSet.Title>
+				<FieldSet.Description>View your connect account on the Stripe dashboard.</FieldSet.Description>
+			</FieldSet.Content>
+			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
+				<div></div>
+				<Button
+					class="shrink-0"
+					onclick={goToDashboardQuery.run}
+					loading={goToDashboardQuery.loading}
+					variant="outline"
+				>
+					<ArrowUpRight />
+					Stripe Dashboard
+				</Button>
+			</FieldSet.Footer>
 		</FieldSet.Root>
 	{/if}
 	<FieldSet.Root>
