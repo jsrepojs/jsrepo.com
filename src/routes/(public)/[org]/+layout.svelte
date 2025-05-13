@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { PageBanner } from '$lib/components/site/page-banner';
 	import * as Tabs from '$lib/components/site/tabs';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
@@ -12,12 +11,6 @@
 	let tabListPopoverOpen = $state(false);
 </script>
 
-<!-- seats warning banner -->
-{#if data.member && data.org.status.type !== 'paid'}
-	<PageBanner>
-		{data.org.status.message}
-	</PageBanner>
-{/if}
 <div class="flex flex-col py-6">
 	<div class="flex flex-col gap-2">
 		<Breadcrumb.Root>

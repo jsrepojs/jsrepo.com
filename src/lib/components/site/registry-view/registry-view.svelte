@@ -10,7 +10,8 @@
 		Ellipsis,
 		Flag,
 		Download,
-		FileArchive
+		FileArchive,
+		Check
 	} from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
 	import * as Collapsible from '$lib/components/ui/collapsible';
@@ -77,7 +78,7 @@
 
 <div class="flex flex-col">
 	{#if data.registry.access === 'marketplace'}
-		{#if data.hasAccess && data.registry.connectedStripeAccount === null}
+		{#if data.hasSettingsAccess && data.registry.connectedStripeAccount === null}
 			<PageBanner>
 				You need to link your Stripe account before users can pay for your registry! You can link it
 				<Link href="?tab=settings">here</Link>.
@@ -95,11 +96,23 @@
 		{/if}
 	{/if}
 	<div class="flex flex-col gap-1 py-6">
-		<h1 class="text-4xl font-bold">
-			<a href="/@{data.scopeName}" class="underline-offset-2 hover:underline">
-				@{data.scopeName}
-			</a>/{data.registryName}
-		</h1>
+		<div class="flex place-items-center gap-2">
+			<h1 class="text-4xl font-bold">
+				<a href="/@{data.scopeName}" class="underline-offset-2 hover:underline">
+					@{data.scopeName}
+				</a>/{data.registryName}
+			</h1>
+			{#if hasLicense}
+				<Tooltip.Provider delayDuration={50}>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<Check class="size-5 text-green-500" />
+						</Tooltip.Trigger>
+						<Tooltip.Content>You have access.</Tooltip.Content>
+					</Tooltip.Root>
+				</Tooltip.Provider>
+			{/if}
+		</div>
 		<div class="relative flex flex-wrap place-items-center gap-2">
 			<span class="font-mono text-sm text-muted-foreground">
 				{data.version.version}
@@ -136,7 +149,7 @@
 			{#if data.registry.access === 'marketplace'}
 				<Tabs.Tab href="?tab=pricing" isSearch class="hidden md:flex">Pricing</Tabs.Tab>
 			{/if}
-			{#if data.hasAccess}
+			{#if data.hasSettingsAccess}
 				<Tabs.Tab href="?tab=settings" isSearch class="hidden md:flex">Settings</Tabs.Tab>
 			{/if}
 		</div>
@@ -188,7 +201,7 @@
 							Pricing
 						</a>
 					{/if}
-					{#if data.hasAccess}
+					{#if data.hasSettingsAccess}
 						<a
 							href="?tab=settings"
 							onclick={() => (tabListPopoverOpen = false)}
@@ -457,7 +470,7 @@
 			</div>
 		{:else if tab === 'pricing' && data.registry.access === 'marketplace'}
 			<Pricing {data} />
-		{:else if tab === 'settings' && data.hasAccess}
+		{:else if tab === 'settings' && data.hasSettingsAccess}
 			<Settings {data} />
 		{/if}
 	</div>

@@ -154,9 +154,9 @@
 	}
 </script>
 
-{#if data.registry.access === 'marketplace' && (data.hasAccess || data.registry.listOnMarketplace)}
+{#if data.registry.access === 'marketplace' && (data.hasSettingsAccess || data.registry.listOnMarketplace)}
 	<div class="flex flex-col py-2">
-		{#if data.prices.length === 0 && data.hasAccess}
+		{#if data.prices.length === 0 && data.hasSettingsAccess}
 			<div class="flex w-full flex-col place-items-center gap-10 py-10">
 				<h1 class="text-3xl font-bold">Pricing Setup</h1>
 				<div class="grid w-full grid-cols-1 place-items-center gap-4 md:grid-cols-2">
@@ -357,7 +357,7 @@
 									Login to Buy
 								</Button>
 							{/if}
-							{#if data.hasAccess}
+							{#if data.hasSettingsAccess}
 								<Button
 									onclick={() => startEditPrice(price)}
 									variant="outline"
@@ -463,7 +463,7 @@
 									</Button>
 								{/if}
 							</div>
-							{#if data.hasAccess}
+							{#if data.hasSettingsAccess}
 								<Button
 									onclick={() => startEditPrice(price)}
 									variant="outline"

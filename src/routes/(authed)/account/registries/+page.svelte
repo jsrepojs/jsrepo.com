@@ -17,10 +17,14 @@
 				<Plus /> New
 			</Button>
 		{/snippet}
-		<List.List>
-			{#each data.registries.data as registry (registry.id)}
-				<List.Registry {registry} />
-			{/each}
-		</List.List>
+		{#if data.registries.data.length === 0}
+			<List.Empty>You haven't published any registries yet.</List.Empty>
+		{:else}
+			<List.List>
+				{#each data.registries.data as registry (registry.id)}
+					<List.Registry {registry} />
+				{/each}
+			</List.List>
+		{/if}
 	</List.Root>
 </div>

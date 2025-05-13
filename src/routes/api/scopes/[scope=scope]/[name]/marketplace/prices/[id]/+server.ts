@@ -63,7 +63,7 @@ export async function PATCH({ locals, request, params }) {
 
 	if (!registry) error(404);
 
-	const canPublish = await canPublishToScope(user, scope, registry.access);
+	const canPublish = await canPublishToScope(user, scope);
 
 	if (!canPublish.canPublish)
 		error(401, 'you do not have permission to manage the pricing for this registry');

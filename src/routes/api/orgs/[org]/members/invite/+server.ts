@@ -36,8 +36,6 @@ export async function POST({ params, request, locals }) {
 
 	if (!invitedUser) error(400, 'user does not exist with this username');
 
-	const memberCount = org.members.length;
-
 	const self = org.members.find((m) => m.userId === session.user.id);
 
 	if (self?.role !== 'owner') error(401, 'your must be an owner to invite team members');
@@ -51,15 +49,6 @@ export async function POST({ params, request, locals }) {
 	if (alreadyAMember) error(400, 'user is already a member of your org');
 
 	const invites = await getOrgInvitesForUserId(invitedUser.id, org.id);
-
-	if (org.subscription === null) {
-		error(401, 'you need to buy seats before inviting members to your organization');
-	}
-
-	// there's always a free seat for the owner of the org who is paying for the subscription
-	if (!org.subscription.seats || memberCount + 1 > org.subscription.seats + 1) {
-		error(400, 'you need to purchase more seats');
-	}
 
 	if (invites.length > 0) error(400, `cannot reinvite ${body.username}`);
 
