@@ -46,8 +46,6 @@ export async function POST({ request }) {
 		error(400, `invalid access level ${access}`);
 	}
 
-	console.log(access);
-
 	if (apiKey === null) {
 		error(401, 'generate an api key to publish to the jsrepo.com registry');
 	}

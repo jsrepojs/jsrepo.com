@@ -1,6 +1,6 @@
 import { searchRegistries } from '$lib/backend/db/functions';
 import { error, json } from '@sveltejs/kit';
-import { asc, desc, sql, type SQL } from 'drizzle-orm';
+import { asc, desc, eq, not, sql, type SQL } from 'drizzle-orm';
 import * as tables from '$lib/backend/db/schema.js';
 
 const orderByOptions: Record<string, SQL | null> = {
@@ -11,6 +11,12 @@ const orderByOptions: Record<string, SQL | null> = {
 	recently_published: desc(tables.version.createdAt)
 };
 
+const typeOptions: Record<string, SQL | null> = {
+	all: null,
+	free: not(eq(tables.registry.access, 'marketplace')),
+	paid: eq(tables.registry.access, 'marketplace')
+};
+
 export async function GET({ locals, url }) {
 	const session = await locals.auth();
 
@@ -19,6 +25,7 @@ export async function GET({ locals, url }) {
 	const offset = parseInt(url.searchParams.get('offset') ?? '0');
 	const orderBy = url.searchParams.get('order_by') ?? 'default';
 	const lang = url.searchParams.get('lang');
+	const type = url.searchParams.get('type') ?? 'all';
 
 	const orderBySQL = orderByOptions[orderBy];
 
@@ -31,13 +38,25 @@ export async function GET({ locals, url }) {
 		);
 	}
 
+	const typeSQL = typeOptions[type];
+
+	if (typeSQL === undefined) {
+		error(
+			400,
+			`invalid value for \`type\` valid values are ${Object.entries(typeOptions)
+				.map(([key]) => `\`${key}\``)
+				.join(',')}`
+		);
+	}
+
 	const registries = await searchRegistries({
 		q,
 		limit,
 		offset,
 		lang,
 		userId: session?.user.id,
-		orderBy: orderBySQL
+		orderBy: orderBySQL,
+		type: typeSQL
 	});
 
 	return json(registries);

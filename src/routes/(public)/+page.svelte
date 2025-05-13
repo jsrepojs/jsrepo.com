@@ -130,6 +130,19 @@
 				Share code with your team, completely free.
 			</p>
 		</div>
-		<Button variant="outline">See Pricing</Button>
+		<Button variant="outline" href="/account/organizations/new">
+			Get Started with Orgs
+		</Button>
+	</div>
+	<div class="my-20 flex flex-col place-items-center gap-2">
+		<div>
+			<h2 class="text-center text-4xl font-bold">Monetize your Code</h2>
+			<p class="text-center text-lg text-muted-foreground">
+				With the jsrepo.com marketplace you can monetize your registries with just a few clicks!
+			</p>
+		</div>
+		<Button variant="outline" href="/marketplace">
+			Learn More
+		</Button>
 	</div>
 </div>

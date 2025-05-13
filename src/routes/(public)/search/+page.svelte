@@ -6,6 +6,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import type { ListItem } from '$lib/ts/types.js';
 	import { FileIcon } from '$lib/components/ui/file-icon';
+	import * as Tabs from '$lib/components/ui/tabs';
 
 	const langOptions: ListItem<string>[] = [
 		{
@@ -68,6 +69,7 @@
 	let page = $state($params.page ?? 1);
 	let sortBy = $state($params.order_by ?? 'default');
 	let lang = $state($params.lang ?? '');
+	let regType = $state($params.type ?? 'all');
 
 	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);
 </script>
@@ -77,13 +79,17 @@
 </svelte:head>
 
 <div class="flex flex-col gap-2 py-2">
-	<div class="flex place-items-center justify-between">
+	<div class="flex md:flex-row flex-col place-items-start gap-2 md:place-items-center justify-between">
 		<div>
-			<span class="hidden md:block">
-				{data.total} registries found
-			</span>
+			<Tabs.Root bind:value={regType} onValueChange={(v) => ($params.type = v)}>
+				<Tabs.List class="p-0">
+					<Tabs.Trigger value="all" class="w-14">All</Tabs.Trigger>
+					<Tabs.Trigger value="paid" class="w-14">Paid</Tabs.Trigger>
+					<Tabs.Trigger value="free" class="w-14">Free</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
 		</div>
-		<div class="flex flex-wrap place-items-center justify-end gap-2">
+		<div class="flex flex-wrap place-items-center md:justify-end gap-2">
 			<Select.Root
 				type="single"
 				allowDeselect

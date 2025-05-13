@@ -1338,6 +1338,7 @@ export type RegistrySearchOptions = {
 	offset: number | null;
 	limit: number | null;
 	orderBy: PgColumn | SQL | undefined | null;
+	type: SQL | undefined | null;
 	/** When true any registry the user can view will be shown
 	 *
 	 * @default true */
@@ -1365,7 +1366,8 @@ export async function searchRegistries({
 	orderBy,
 	lang,
 	hasSettingsAccess = false,
-	ownedById
+	ownedById,
+	type: typeSql
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
@@ -1405,6 +1407,7 @@ export async function searchRegistries({
 		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
 		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
+		typeSql ? typeSql : undefined,
 		checkAccessQuery({
 			userOrgMember,
 			readonlyAccess: true,
