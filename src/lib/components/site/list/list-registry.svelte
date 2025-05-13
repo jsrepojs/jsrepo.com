@@ -2,7 +2,7 @@
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import ListItem from './list-item.svelte';
-	import { Download, Lock, Store } from '@lucide/svelte';
+	import { Download, EyeOff, Lock, Store } from '@lucide/svelte';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -37,6 +37,14 @@
 					</Tooltip.Trigger>
 					<Tooltip.Content>Marketplace</Tooltip.Content>
 				</Tooltip.Root>
+				{#if !registry.listOnMarketplace}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<EyeOff class="size-3.5 text-destructive" />
+						</Tooltip.Trigger>
+						<Tooltip.Content>Not Listed</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 			{/if}
 		</div>
 		<span class="text-muted-foreground">
