@@ -10,7 +10,7 @@ export async function load({ locals, url }) {
 
 	const registries = await searchRegistries({
 		userId: session.user.id,
-		readonlyAccess: false,
+		hasSettingsAccess: true,
 		orderBy: desc(tables.version.createdAt)
 	});
 

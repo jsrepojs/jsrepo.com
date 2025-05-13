@@ -39,6 +39,7 @@ export async function getInfo({
 			scopeName,
 			registryName,
 			version,
+			readonlyAccess: true,
 			fileNames: ['README.md', 'jsrepo-manifest.json']
 		})
 	]);

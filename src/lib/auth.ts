@@ -12,16 +12,8 @@ import {
 import { resend, welcomeEmail } from './ts/resend';
 import { stripe } from '@better-auth/stripe';
 import { stripeClient } from './ts/stripe';
-import { plans } from './ts/stripe/client';
-import {
-	createMarketPurchase,
-	deleteMarketPurchase,
-	getOrg,
-	getUser,
-	startCourtesyMonth
-} from './backend/db/functions';
+import { createMarketPurchase, deleteMarketPurchase } from './backend/db/functions';
 import assert from 'assert';
-import { eq, like, and, gt } from 'drizzle-orm';
 import { posthog } from './ts/posthog';
 import { waitUntil } from '@vercel/functions';
 
@@ -80,123 +72,6 @@ export const auth = betterAuth({
 				});
 
 				waitUntil(posthog.shutdown());
-			},
-			subscription: {
-				enabled: true,
-				onSubscriptionComplete: async ({ subscription }) => {
-					if (subscription.referenceId.startsWith('org_')) {
-						const org = await getOrg({ id: subscription.referenceId });
-
-						// update members count
-						await db
-							.update(schema.subscription)
-							.set({ members: org?.members.length ?? 1 })
-							.where(eq(schema.subscription.id, subscription.id));
-					}
-				},
-				onSubscriptionUpdate: async ({ subscription }) => {
-					if (subscription.referenceId.startsWith('org_')) {
-						const org = await getOrg({ id: subscription.referenceId });
-
-						if (!org) return;
-
-						// only the owner
-						if (org.members.length <= 1) return;
-
-						const neededSeats = org.members.length - 1;
-
-						if (neededSeats <= (subscription.seats ?? 0)) {
-							return;
-						}
-
-						// already exhausted the courtesy month
-						if (
-							org.courtesyMonthEndedAt !== null &&
-							org.courtesyMonthEndedAt.valueOf() < Date.now()
-						) {
-							return;
-						}
-
-						// start a courtesy month
-						await startCourtesyMonth(org.id);
-					}
-				},
-				onSubscriptionDeleted: async ({ subscription }) => {
-					if (subscription.referenceId.startsWith('org_')) {
-						const org = await getOrg({ id: subscription.referenceId });
-
-						if (!org) return;
-
-						// only the owner
-						if (org.members.length <= 1) return;
-
-						// already exhausted the courtesy month
-						if (
-							org.courtesyMonthEndedAt !== null &&
-							org.courtesyMonthEndedAt.valueOf() < Date.now()
-						) {
-							return;
-						}
-
-						// start a courtesy month
-						await startCourtesyMonth(org.id);
-					} else {
-						// get any org subs this user is responsible for
-						const orgSubscriptions = await db
-							.select()
-							.from(schema.subscription)
-							.where(
-								and(
-									eq(schema.subscription.stripeCustomerId, subscription.stripeCustomerId ?? ''),
-									eq(schema.subscription.status, 'active'),
-									like(schema.subscription.referenceId, 'org_%'),
-									gt(schema.subscription.members, 0)
-								)
-							);
-
-						if (orgSubscriptions.length === 0) return;
-
-						// start a courtesy month for any orgs that the user owns
-						await Promise.all(orgSubscriptions.map((sub) => startCourtesyMonth(sub.referenceId)));
-					}
-				},
-				authorizeReference: async ({ user, referenceId }) => {
-					const isOrg = referenceId.startsWith('org_');
-
-					const userWithSub = await getUser({ id: user.id });
-
-					// user can only create and manage subscriptions to an org if they have a subscription
-					if (isOrg && userWithSub?.subscription === null) return false;
-
-					if (!isOrg) {
-						// don't create a duplicate subscription for the user
-						if (userWithSub?.subscription !== null) {
-							return false;
-						}
-
-						assert(
-							referenceId === user.id,
-							'user is trying to subscribe with a reference id that is not their own'
-						);
-
-						return true;
-					}
-
-					// check if user owns the org the id belongs to
-					const org = await getOrg({ id: referenceId });
-
-					if (org === null) return false;
-
-					const member = org.members.find((m) => m.userId === user.id && m.role === 'owner');
-
-					// user is not an owning member
-					if (!member) {
-						return false;
-					}
-
-					return true;
-				},
-				plans
 			}
 		})
 	],

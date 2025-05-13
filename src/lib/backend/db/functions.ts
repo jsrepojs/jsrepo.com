@@ -17,8 +17,7 @@ import {
 	SQL,
 	countDistinct,
 	not,
-	gt,
-	notLike
+	gt
 } from 'drizzle-orm';
 import { generateId, type User } from 'better-auth';
 import assert from 'assert';
@@ -29,7 +28,6 @@ import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
 import semver from 'semver';
 import { posthog } from '$lib/ts/posthog';
 import { DAY, MINUTE } from '$lib/ts/time';
-import { checkUserSubscription, PLANS } from '$lib/ts/stripe/client';
 import { lower } from './schema';
 import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
@@ -42,36 +40,16 @@ export type tx = PgTransaction<
 	TablesRelationalConfig
 >;
 
-export type UserWithSubscription = tables.User & {
-	subscription: tables.Subscription | null;
-};
-
 export type FullOrg = tables.Org & {
-	subscription: tables.Subscription | null;
 	members: (tables.OrgMember & { user: tables.User })[];
-	status: {
-		type: 'paid' | 'freebee' | 'delinquent';
-		message?: string;
-	};
-	billPayer: tables.User | null;
-	billPayerSubscription: tables.Subscription | null;
 };
 
 export async function canPublishToScope(
-	user: UserWithSubscription,
-	scope: tables.Scope,
-	access: tables.RegistryAccess
+	user: User,
+	scope: tables.Scope
 ): Promise<{ canPublish: boolean; reason?: string }> {
 	if (scope.userId === user.id) {
-		if (access === 'public') return { canPublish: true };
-
-		// any paid plan is fine
-		if (checkUserSubscription(user) !== null) return { canPublish: true };
-
-		return {
-			canPublish: false,
-			reason: 'you must be subscribed to pro to publish private registries'
-		};
+		return { canPublish: true };
 	}
 
 	// scope is owned by a user but not you, sorry
@@ -89,9 +67,6 @@ export async function canPublishToScope(
 	// if we aren't the owner and we can't publish on our own
 	if (member.role !== null && !canPublish(member.role))
 		return { canPublish: false, reason: "you don't have publish access for this org" };
-
-	if (org.status.type === 'delinquent')
-		return { canPublish: false, reason: "you haven't paid your org subscription" };
 
 	return { canPublish: true };
 }
@@ -127,26 +102,15 @@ export async function getUser({
 	id,
 	email,
 	username
-}: GetUserOptions): Promise<UserWithSubscription | null> {
+}: GetUserOptions): Promise<tables.User | null> {
 	const result = await db
-		.select({
-			...getTableColumns(tables.user),
-			subscription: tables.subscription
-		})
+		.select()
 		.from(tables.user)
-		// only get an active subscription
-		.leftJoin(
-			tables.subscription,
-			and(
-				eq(tables.subscription.referenceId, tables.user.id),
-				eq(tables.subscription.status, 'active')
-			)
-		)
 		.where(
 			and(
 				id ? eq(tables.user.id, id) : undefined,
 				email ? eq(tables.user.email, email) : undefined,
-				username ? eq(tables.user.username, username) : undefined
+				username ? eq(lower(tables.user.username), username.toLowerCase()) : undefined
 			)
 		);
 
@@ -186,9 +150,8 @@ export async function getRegistry({
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 	const linkedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const registries = await db
 		.select({
@@ -219,19 +182,30 @@ export async function getRegistry({
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
+			userOrgMember,
+
+			and(
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
+			)
+		)
+		.leftJoin(
 			linkedStripeAccount,
 			eq(linkedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
-		)
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
-		.leftJoin(
-			billPayerSubscription,
-			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
-			)
 		)
 		.where(
 			and(
@@ -242,7 +216,7 @@ export async function getRegistry({
 							eq(lower(tables.registry.name), registryName!.toLowerCase())
 						),
 
-				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
+				checkAccessQuery({ userOrgMember, readonlyAccess: true })
 			)
 		)
 		.groupBy(
@@ -319,8 +293,7 @@ export async function getVersion({
 	const isTag = !semver.valid(version);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
@@ -341,15 +314,26 @@ export async function getVersion({
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.leftJoin(
-			billPayerSubscription,
+			userOrgMember,
+
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(
@@ -358,9 +342,7 @@ export async function getVersion({
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
-				userId !== undefined
-					? checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
-					: undefined
+				userId !== undefined ? checkAccessQuery({ userOrgMember, readonlyAccess: true }) : undefined
 			)
 		);
 
@@ -466,11 +448,13 @@ export async function getFileContentsFast({
 }): Promise<{ content: string; access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
-		.select({ access: tables.registry.access, content: tables.file.content })
+		.select({
+			access: tables.registry.access,
+			content: tables.file.content
+		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
@@ -486,15 +470,26 @@ export async function getFileContentsFast({
 			tables.user,
 			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
 		)
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.leftJoin(
-			billPayerSubscription,
+			userOrgMember,
+
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(
@@ -504,7 +499,7 @@ export async function getFileContentsFast({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				eq(tables.file.name, fileName),
 
-				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
+				checkAccessQuery({ userOrgMember })
 			)
 		);
 
@@ -519,6 +514,8 @@ type GetFilesOptions = {
 	registryName: string;
 	version: string;
 	fileNames: string[];
+	/** Set this to true if you are not returning file contents */
+	readonlyAccess?: boolean;
 };
 
 export async function getFiles({
@@ -526,12 +523,12 @@ export async function getFiles({
 	scopeName,
 	registryName,
 	version,
-	fileNames
+	fileNames,
+	readonlyAccess = false
 }: GetFilesOptions): Promise<tables.File[]> {
 	const isTag = !semver.valid(version);
 
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
@@ -548,15 +545,26 @@ export async function getFiles({
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.leftJoin(
-			billPayerSubscription,
+			userOrgMember,
+
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(
@@ -566,7 +574,7 @@ export async function getFiles({
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 				inArray(tables.file.name, fileNames),
 
-				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
+				checkAccessQuery({ userOrgMember, readonlyAccess })
 			)
 		);
 
@@ -629,8 +637,7 @@ export async function listMyOrganizations(userId: string) {
  * @param scopeName
  */
 export async function getScopeRegistries(userId: string | null, scopeName: string) {
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
@@ -645,15 +652,26 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
 		.leftJoin(
-			billPayerSubscription,
+			userOrgMember,
+
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(
@@ -661,7 +679,7 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 
 				// access check
-				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: false })
+				checkAccessQuery({ userOrgMember, readonlyAccess: true })
 			)
 		);
 
@@ -679,109 +697,85 @@ export async function nameIsBanned(name: string) {
 
 /** Checks if the user has access to the registry
  *
- * You need to join the following tables tables.scope, tables.registry
- *
- * You also need tables.user, tables.subscription (for the user trying to access the resource)
- *
- * You also need owner (alias of tables.user), ownerSubscription (for the owner of the scope)
+ * You need to join the following tables `tables.user`, `tables.scope`,
+ * `tables.registry`, `tables.orgMember`, `tables.marketplacePurchase`.
  */
 function checkAccessQuery({
-	orgSubscription,
-	billPayerSubscription,
-	checkSubscription = true,
-	readonlyAccess = true
+	userOrgMember,
+	readonlyAccess = false,
+	hasSettingsAccess = false
 }: {
-	orgSubscription: typeof tables.subscription;
-	billPayerSubscription: typeof tables.subscription;
-	checkSubscription: boolean;
+	userOrgMember: typeof tables.orgMember;
+	/** User can view the registry even if they don't have access to it.
+	 * This is just for marketplace listing. This should only be used if `hasSettingsAccess` is false */
+	readonlyAccess?: boolean;
 	/** Readonly access means that a user can view the contents of the registry
 	 * regardless of whether or not they are a part of its ownership */
-	readonlyAccess?: boolean;
+	hasSettingsAccess?: boolean;
 }) {
-	if (readonlyAccess) {
+	if (!hasSettingsAccess) {
 		return or(
 			eq(tables.registry.access, 'public'),
 
-			// registry is private/marketplace but they have access and have paid their subscription
+			// access to view the registry
+			readonlyAccess
+				? // registry is willfully listed on the marketplace
+					and(
+						eq(tables.registry.access, 'marketplace'),
+						eq(tables.registry.listOnMarketplace, true)
+					)
+				: undefined,
+
 			or(
-				// User owned scope
-				and(
-					isNotNull(tables.scope.userId),
+				// registry owners always have access
+				or(
+					// User owned scope
+					and(
+						isNotNull(tables.scope.userId),
 
-					// check if we own the scope
-					eq(tables.scope.userId, tables.user.id),
+						// check if we own the scope
+						eq(tables.scope.userId, tables.user.id)
+					),
 
-					// check the status of the users subscription plan
-					checkSubscription
-						? and(
-								// has an active Pro plan
-								eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
-								eq(tables.subscription.status, 'active')
-							)
-						: undefined
+					// Org owned scope
+					and(
+						isNotNull(tables.scope.orgId),
+
+						// check if we are part of the organization
+						eq(tables.orgMember.userId, tables.user.id)
+					)
 				),
 
-				// Org owned scope
+				// rules for users that purchased from the marketplace
 				and(
-					isNotNull(tables.scope.orgId),
+					eq(tables.registry.access, 'marketplace'),
 
-					// check if we are part of the organization
-					eq(tables.orgMember.userId, tables.user.id),
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+					eq(tables.marketplacePurchase.status, 'paid'),
 
-					// check the status of the owners subscription plan
-					checkSubscription
-						? or(
-								// courtesy month
-								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
+					or(
+						// owns the individual license
+						eq(tables.user.id, tables.marketplacePurchase.referenceId),
 
-								// paid
-								or(
-									// no need to pay for a subscription if the org only has one member
-									and(
-										// we are the owner
-										eq(tables.orgMember.role, 'owner'),
-										// we are the sole member
-										eq(tables.org.memberCount, 1),
-										// we have an active pro plan
-										eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
-										eq(tables.subscription.status, 'active')
-									),
+						// is part of licensed org
+						and(
+							eq(userOrgMember.userId, tables.user.id),
 
-									// org has seats and bill payer has an active pro plan
-									and(
-										isNotNull(orgSubscription.id),
-										eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-										eq(orgSubscription.status, 'active'),
-										eq(orgSubscription.hasEnoughSeats, true),
-										isNotNull(billPayerSubscription.id)
-									)
-								)
-							)
-						: undefined
+							eq(userOrgMember.orgId, tables.marketplacePurchase.referenceId)
+						)
+					)
 				)
 			)
 		);
 	} else {
+		// only grant access to the scope owner or org members regardless of the access level
 		return or(
 			// User owned scope
 			and(
 				isNotNull(tables.scope.userId),
 
 				// check if we own the scope
-				eq(tables.scope.userId, tables.user.id),
-
-				or(
-					eq(tables.registry.access, 'public'),
-
-					// if not public check the users plan
-					checkSubscription
-						? and(
-								// has an active Pro plan
-								eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
-								eq(tables.subscription.status, 'active')
-							)
-						: undefined
-				)
+				eq(tables.scope.userId, tables.user.id)
 			),
 
 			// Org owned scope
@@ -789,42 +783,7 @@ function checkAccessQuery({
 				isNotNull(tables.scope.orgId),
 
 				// check if we are part of the organization
-				eq(tables.orgMember.userId, tables.user.id),
-
-				or(
-					eq(tables.registry.access, 'public'),
-
-					// check the status of the owners subscription plan
-					checkSubscription
-						? or(
-								// courtesy month
-								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
-
-								// paid
-								or(
-									// no need to pay for a subscription if the org only has one member
-									and(
-										// we are the owner
-										eq(tables.orgMember.role, 'owner'),
-										// we are the sole member
-										eq(tables.org.memberCount, 1),
-										// we have an active pro plan
-										eq(tables.subscription.plan, PLANS['pro'].name.toLowerCase()),
-										eq(tables.subscription.status, 'active')
-									),
-
-									// org has seats and bill payer has an active pro plan
-									and(
-										isNotNull(orgSubscription.id),
-										eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-										eq(orgSubscription.status, 'active'),
-										eq(orgSubscription.hasEnoughSeats, true),
-										isNotNull(billPayerSubscription.id)
-									)
-								)
-							)
-						: undefined
-				)
+				eq(tables.orgMember.userId, tables.user.id)
 			)
 		);
 	}
@@ -834,42 +793,18 @@ export async function getOrg({
 	id,
 	name
 }: { id: string; name?: never } | { name: string; id?: never }): Promise<FullOrg | null> {
-	const billPayer = aliasedTable(tables.user, 'bill_payer');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
-
 	const result: (tables.Org & {
-		subscription: tables.Subscription | null;
 		member: tables.OrgMember;
 		user: tables.User;
-		billPayer: tables.User | null;
-		billPayerSubscription: tables.Subscription | null;
 	})[] = await db
 		.select({
 			...getTableColumns(tables.org),
-			subscription: tables.subscription,
 			member: tables.orgMember,
-			user: tables.user,
-			billPayer: billPayer,
-			billPayerSubscription: billPayerSubscription
+			user: tables.user
 		})
 		.from(tables.org)
-		.leftJoin(
-			tables.subscription,
-			and(
-				eq(tables.subscription.referenceId, tables.org.id),
-				eq(tables.subscription.status, 'active')
-			)
-		)
 		.innerJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.user, eq(tables.user.id, tables.orgMember.userId))
-		.leftJoin(billPayer, eq(billPayer.stripeCustomerId, tables.subscription.stripeCustomerId))
-		.leftJoin(
-			billPayerSubscription,
-			and(
-				eq(billPayerSubscription.referenceId, billPayer.id),
-				eq(billPayerSubscription.status, 'active')
-			)
-		)
 		.where(
 			id === undefined ? eq(lower(tables.org.name), name.toLowerCase()) : eq(tables.org.id, id)
 		);
@@ -879,63 +814,9 @@ export async function getOrg({
 	const org = result[0];
 	const members = result.map((r) => ({ ...r.member, user: r.user }));
 
-	let status: FullOrg['status'] = { type: 'paid' };
-
-	const billPayerUnpaid = org.billPayer !== null && org.billPayerSubscription === null;
-
-	// give the org a free seat for the owner
-	const neededSeats = members.length - 1;
-	const seats = org.subscription?.seats ?? 0;
-
-	if (org.subscription === null || billPayerUnpaid) {
-		if (billPayerUnpaid) {
-			if (org.courtesyMonthEndedAt !== null && org.courtesyMonthEndedAt.valueOf() > Date.now()) {
-				status = {
-					type: 'freebee',
-					message: `The person paying the bill for this org is not maintaining an active subscription. Subscribe to the Pro plan before ${org.courtesyMonthEndedAt?.toDateString()} to prevent your team from losing access.`
-				};
-			} else {
-				status = {
-					type: 'delinquent',
-					message:
-						'The person paying the bill for this org is not maintaining an active subscription. Subscribe to pro to allow your team to regain access.'
-				};
-			}
-		} else {
-			if (neededSeats > 0) {
-				if (org.courtesyMonthEndedAt !== null && org.courtesyMonthEndedAt.valueOf() > Date.now()) {
-					status = {
-						type: 'freebee',
-						message: `You need to purchase at least ${neededSeats} seat(s) before ${org.courtesyMonthEndedAt?.toDateString()} or your team will lose access.`
-					};
-				} else {
-					status = {
-						type: 'delinquent',
-						message: `You need to purchase at least ${neededSeats} seat(s) for your team to regain access.`
-					};
-				}
-			}
-		}
-	} else {
-		if (seats < neededSeats) {
-			if (org.courtesyMonthEndedAt === null || org.courtesyMonthEndedAt.valueOf() < Date.now()) {
-				status = {
-					type: 'freebee',
-					message: `You currently have more members than seats. Please purchase ${neededSeats - seats} seat(s) before ${org.courtesyMonthEndedAt?.toDateString()} to prevent your team from losing access.`
-				};
-			} else {
-				status = {
-					type: 'delinquent',
-					message: `You currently have more members than seats. Please ${neededSeats - seats} seat(s) for your team to regain access.`
-				};
-			}
-		}
-	}
-
 	return {
 		...org,
-		members,
-		status
+		members
 	} satisfies FullOrg;
 }
 
@@ -1011,9 +892,6 @@ export async function getScopeWithOwner(name: string): Promise<
  * @param name
  */
 export async function hasScopeAccess(userId: string | null, name: string) {
-	const orgSubscription = aliasedTable(tables.subscription, 'owner_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
-
 	const result = await db
 		.select({
 			id: tables.scope.id
@@ -1022,16 +900,6 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(orgSubscription, eq(orgSubscription.referenceId, tables.org.id))
-		.leftJoin(
-			billPayerSubscription,
-			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
-			)
-		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), name.toLowerCase()),
@@ -1049,30 +917,7 @@ export async function hasScopeAccess(userId: string | null, name: string) {
 					and(
 						isNotNull(tables.scope.orgId),
 						// we are part of the org
-						eq(tables.orgMember.userId, userId ?? ''),
-
-						// either we are the owner or we are a member of the team with the subscription active
-						or(
-							// we are an owner
-							eq(tables.orgMember.role, 'owner'),
-
-							// subscription is paid
-							or(
-								// courtesy month
-								and(gt(tables.org.courtesyMonthEndedAt, new Date())),
-
-								// paid
-								and(
-									isNotNull(orgSubscription.id),
-
-									// owner has an active Pro plan
-									eq(orgSubscription.plan, PLANS['organizationSeat'].name.toLowerCase()),
-									eq(orgSubscription.status, 'active'),
-									eq(orgSubscription.hasEnoughSeats, true),
-									isNotNull(billPayerSubscription.id)
-								)
-							)
-						)
+						eq(tables.orgMember.userId, userId ?? '')
 					)
 				)
 			)
@@ -1452,12 +1297,7 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 			.from(tables.orgMember)
 			.where(eq(tables.orgMember.orgId, orgId));
 
-		const [subRes, orgRes] = await Promise.all([
-			tx
-				.update(tables.subscription)
-				.set({ members: members.length })
-				.where(eq(tables.subscription.referenceId, orgId))
-				.returning(),
+		const [subRes] = await Promise.all([
 			tx
 				.update(tables.org)
 				.set({ memberCount: members.length })
@@ -1465,7 +1305,7 @@ export async function acceptOrgInvite(inviteId: number, userId: string) {
 				.returning()
 		]);
 
-		if (subRes.length === 0 || orgRes.length === 0) {
+		if (subRes.length === 0) {
 			tx.rollback();
 			return false;
 		}
@@ -1501,7 +1341,7 @@ export type RegistrySearchOptions = {
 	/** When true any registry the user can view will be shown
 	 *
 	 * @default true */
-	readonlyAccess: boolean;
+	hasSettingsAccess: boolean;
 	/** User that owns the scope */
 	ownedById: string;
 };
@@ -1524,14 +1364,13 @@ export async function searchRegistries({
 	userId,
 	orderBy,
 	lang,
-	readonlyAccess = true,
+	hasSettingsAccess = false,
 	ownedById
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
-	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 	const connectedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
 	// Weighted score expression
@@ -1567,10 +1406,9 @@ export async function searchRegistries({
 		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
 		checkAccessQuery({
-			orgSubscription,
-			billPayerSubscription,
-			checkSubscription: true,
-			readonlyAccess
+			userOrgMember,
+			readonlyAccess: true,
+			hasSettingsAccess
 		}),
 
 		// filter out results with 0 score
@@ -1625,23 +1463,25 @@ export async function searchRegistries({
 		)
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
-			tables.subscription,
+			userOrgMember,
+
 			and(
-				eq(tables.subscription.referenceId, tables.user.id),
-				eq(tables.subscription.status, 'active')
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
 			)
 		)
 		.leftJoin(
-			orgSubscription,
-			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
-		)
-		.leftJoin(
-			billPayerSubscription,
+			tables.marketplacePurchase,
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(whereClause)
@@ -1687,18 +1527,26 @@ export async function searchRegistries({
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(tables.subscription, eq(tables.subscription.referenceId, tables.user.id))
 		.leftJoin(
-			orgSubscription,
-			and(eq(orgSubscription.referenceId, tables.org.id), eq(orgSubscription.status, 'active'))
+			userOrgMember,
+
+			and(
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
 		)
 		.leftJoin(
-			billPayerSubscription,
+			tables.marketplacePurchase,
 			and(
-				eq(billPayerSubscription.stripeCustomerId, orgSubscription.stripeCustomerId),
-				notLike(billPayerSubscription.referenceId, 'org_%'),
-				eq(billPayerSubscription.plan, 'pro'),
-				eq(billPayerSubscription.status, 'active')
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
 			)
 		)
 		.where(whereClause);
@@ -2057,8 +1905,8 @@ export async function getUserOrOrg(name: string) {
 	const result = await db
 		.select({ user: tables.user, org: tables.org })
 		.from(tables.owner_identifier)
-		.leftJoin(tables.user, eq(tables.user.username, tables.owner_identifier.name))
-		.leftJoin(tables.org, eq(tables.org.name, tables.owner_identifier.name))
+		.leftJoin(tables.user, eq(lower(tables.user.username), lower(tables.owner_identifier.name)))
+		.leftJoin(tables.org, eq(lower(tables.org.name), lower(tables.owner_identifier.name)))
 		.where(eq(tables.owner_identifier.name, name));
 
 	if (result.length === 0 || (result[0].user === null && result[0].org === null)) {
@@ -2077,7 +1925,7 @@ export async function updateUsername(
 		if (oldUsername !== undefined) {
 			const result = await tx
 				.delete(tables.owner_identifier)
-				.where(eq(tables.owner_identifier.name, oldUsername))
+				.where(eq(lower(tables.owner_identifier.name), oldUsername.toLowerCase()))
 				.returning();
 
 			if (result.length === 0) {
@@ -2146,7 +1994,12 @@ export async function getRegistryPrices({ scopeName, name }: { scopeName: string
 		.from(tables.registryPrice)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryPrice.registryId))
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.where(and(eq(tables.scope.name, scopeName), eq(tables.registry.name, name)));
+		.where(
+			and(
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), name.toLowerCase())
+			)
+		);
 }
 
 export async function getRegistryPrice(id: number) {
@@ -2224,21 +2077,18 @@ export async function getMyLicenses(userId: string) {
 			org: tables.org
 		})
 		.from(tables.marketplacePurchase)
-		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
-		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.marketplacePurchase.referenceId))
-		.leftJoin(
-			tables.orgMember,
-			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId))
-		)
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(
 			tables.user,
 			or(
-				eq(tables.user.id, tables.marketplacePurchase.referenceId),
 				eq(tables.user.id, tables.orgMember.userId),
-				eq(tables.user.id, userId)
+				eq(tables.user.id, tables.marketplacePurchase.referenceId)
 			)
-		);
+		)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.where(eq(tables.user.id, userId));
 
 	return licenses;
 }
@@ -2291,7 +2141,12 @@ export async function getRegistryPurchases({
 		.where(
 			and(
 				id ? eq(tables.marketplacePurchase.registryId, id) : undefined,
-				scope ? and(eq(tables.scope.name, scope), eq(tables.registry.name, name)) : undefined
+				scope
+					? and(
+							eq(lower(tables.scope.name), scope.toLowerCase()),
+							eq(lower(tables.registry.name), name.toLowerCase())
+						)
+					: undefined
 			)
 		);
 }
@@ -2311,7 +2166,12 @@ export async function getRegistryPurchasesCount({
 		.where(
 			and(
 				id ? eq(tables.marketplacePurchase.registryId, id) : undefined,
-				scope ? and(eq(tables.scope.name, scope), eq(tables.registry.name, name)) : undefined
+				scope
+					? and(
+							eq(lower(tables.scope.name), scope.toLowerCase()),
+							eq(lower(tables.registry.name), name.toLowerCase())
+						)
+					: undefined
 			)
 		);
 

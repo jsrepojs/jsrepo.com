@@ -46,7 +46,7 @@ export async function PATCH({ request, locals, params }) {
 		error(400, 'you cannot make a purchased registry private');
 	}
 
-	const canPublish = await canPublishToScope(user, scope, body.access);
+	const canPublish = await canPublishToScope(user, scope);
 
 	if (!canPublish.canPublish)
 		error(401, 'only users with publish access can change the access level');

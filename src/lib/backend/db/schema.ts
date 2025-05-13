@@ -203,38 +203,38 @@ export const anonSessionCode = pgTable(
 
 export type AnonSessionCode = InferSelectModel<typeof anonSessionCode>;
 
-export const subscription = pgTable(
-	'subscription',
-	{
-		id: text('id').primaryKey(),
-		plan: text('plan').notNull(),
-		referenceId: text('reference_id').notNull(),
-		stripeCustomerId: text('stripe_customer_id'),
-		stripeSubscriptionId: text('stripe_subscription_id'),
-		status: text('status'),
-		periodStart: timestamp('period_start'),
-		periodEnd: timestamp('period_end'),
-		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
-		seats: integer('seats'),
-		// this needs to be kept in sync with the org
-		members: integer('org_members'),
-		hasEnoughSeats: boolean('has_enough_seats')
-			.generatedAlwaysAs(
-				(): SQL => sql`COALESCE(${subscription.seats} >= (${subscription.members} - 1), false)`
-			)
-			.notNull()
-	},
-	(table) => {
-		return [
-			index('subscription_reference_id_idx').on(table.referenceId),
-			index('subscription_customer_id_idx').on(table.stripeCustomerId),
-			index('subscription_subscription_id_idx').on(table.stripeSubscriptionId),
-			index('subscription_plan_idx').on(table.plan)
-		];
-	}
-).enableRLS();
+// export const subscription = pgTable(
+// 	'subscription',
+// 	{
+// 		id: text('id').primaryKey(),
+// 		plan: text('plan').notNull(),
+// 		referenceId: text('reference_id').notNull(),
+// 		stripeCustomerId: text('stripe_customer_id'),
+// 		stripeSubscriptionId: text('stripe_subscription_id'),
+// 		status: text('status'),
+// 		periodStart: timestamp('period_start'),
+// 		periodEnd: timestamp('period_end'),
+// 		cancelAtPeriodEnd: boolean('cancel_at_period_end'),
+// 		seats: integer('seats'),
+// 		// this needs to be kept in sync with the org
+// 		members: integer('org_members'),
+// 		hasEnoughSeats: boolean('has_enough_seats')
+// 			.generatedAlwaysAs(
+// 				(): SQL => sql`COALESCE(${subscription.seats} >= (${subscription.members} - 1), false)`
+// 			)
+// 			.notNull()
+// 	},
+// 	(table) => {
+// 		return [
+// 			index('subscription_reference_id_idx').on(table.referenceId),
+// 			index('subscription_customer_id_idx').on(table.stripeCustomerId),
+// 			index('subscription_subscription_id_idx').on(table.stripeSubscriptionId),
+// 			index('subscription_plan_idx').on(table.plan)
+// 		];
+// 	}
+// ).enableRLS();
 
-export type Subscription = InferSelectModel<typeof subscription>;
+// export type Subscription = InferSelectModel<typeof subscription>;
 
 export const marketplacePurchase = pgTable(
 	'marketplace_purchase',

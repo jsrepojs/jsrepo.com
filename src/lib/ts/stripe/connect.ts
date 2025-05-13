@@ -1,6 +1,6 @@
 import type { RegistryPrice } from '$lib/backend/db/schema';
 
-export const MIN_PRICE = 1;
+export const MIN_PRICE = 5;
 export const MAX_PRICE = 1000;
 
 /** 10% + 30¢ (negotiable)
@@ -31,7 +31,10 @@ export function calculateDiscountedPrice(price: RegistryPrice): {
 	//   $100 - $30
 	//   $70
 
-	return { discount: price.discount, price: price.cost - price.cost * (price.discount / 100) };
+	return {
+		discount: price.discount,
+		price: Math.ceil(price.cost - price.cost * (price.discount / 100))
+	};
 }
 
 /** Returns the projected income for the creator in dollars

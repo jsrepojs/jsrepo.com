@@ -1,6 +1,7 @@
 import {
 	canPublishToScope,
 	getRegistry,
+	getRegistryPrices,
 	getRegistryPurchasesCount,
 	getScope,
 	getUser
@@ -29,10 +30,11 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!session) error(401);
 
-	const [user, scope, registry, purchases] = await Promise.all([
+	const [user, scope, registry, prices, purchases] = await Promise.all([
 		getUser({ id: session.user.id }),
 		getScope(scopeName),
 		getRegistry({ scopeName, registryName: name, userId: session.user.id }),
+		getRegistryPrices({ scopeName, name }),
 		getRegistryPurchasesCount({ scope: scopeName, name })
 	]);
 
@@ -42,11 +44,15 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	if (purchases > 0 && body.listOnMarketplace === false) {
+	if (prices.length === 0 && body.listOnMarketplace) {
+		error(400, 'cannot list a registry that does not have a price!');
+	}
+
+	if (purchases > 0 && !body.listOnMarketplace) {
 		error(400, 'cannot un-list purchased registries');
 	}
 
-	const canPublish = await canPublishToScope(user, scope, registry.access);
+	const canPublish = await canPublishToScope(user, scope);
 
 	if (!canPublish.canPublish) error(401, 'only users with publish access can list on marketplace');
 

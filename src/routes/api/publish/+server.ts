@@ -34,6 +34,19 @@ const MAX_FILE_SIZE = MEGABYTE / 8;
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
 	const dryRun = request.headers.get('x-dry-run') === '1';
+	let access = request.headers.get('x-access') as 'private' | 'public' | 'marketplace' | null;
+	const publishPrivate = request.headers.get('x-private') === '1';
+
+	// this allows us to change this without it being breaking in the future this can be removed
+	if (access === null) {
+		access = publishPrivate ? 'private' : 'public';
+	}
+
+	if (!tables.registryAccessLevels.includes(access)) {
+		error(400, `invalid access level ${access}`);
+	}
+
+	console.log(access);
 
 	if (apiKey === null) {
 		error(401, 'generate an api key to publish to the jsrepo.com registry');
@@ -118,8 +131,6 @@ export async function POST({ request }) {
 		error(400, `invalid version ${manifest.version} is not semver compatible`);
 	}
 
-	const access = manifest.access ?? 'public';
-
 	const hasReadme = files.find((f) => f.name === 'README.md') !== undefined;
 
 	validateAndScore(manifest, hasReadme).match(
@@ -146,7 +157,7 @@ export async function POST({ request }) {
 
 	assert(user !== null, 'User should be defined!');
 
-	const canPublishResult = await canPublishToScope(user, scope, access);
+	const canPublishResult = await canPublishToScope(user, scope);
 
 	if (!canPublishResult.canPublish) {
 		error(

@@ -45,7 +45,7 @@ export async function POST({ locals, request, params }) {
 
 	if (prices.length > 0) error(400, 'this is meant only for initial setup');
 
-	const canPublish = await canPublishToScope(user, scope, registry.access);
+	const canPublish = await canPublishToScope(user, scope);
 
 	if (!canPublish.canPublish)
 		error(401, 'you do not have permission to manage the pricing for this registry');

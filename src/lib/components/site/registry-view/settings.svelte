@@ -160,7 +160,9 @@
 				</div>
 				<Switch
 					bind:checked={listOnMarketplace}
-					disabled={(listOnMarketplace && data.purchases > 0) || listOnMarketplaceQuery.loading}
+					disabled={(listOnMarketplace && data.purchases > 0) ||
+						data.prices.length === 0 ||
+						listOnMarketplaceQuery.loading}
 					onCheckedChange={listOnMarketplaceQuery.run}
 				/>
 			</FieldSet.Content>

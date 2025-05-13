@@ -6,7 +6,6 @@
 	import * as FieldSet from '$lib/components/ui/field-set';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
-	import SubBadge from '$lib/components/site/sub-badge.svelte';
 	import { authClient } from '$lib/auth/client.js';
 	import { toRelative } from '$lib/ts/dates.js';
 	import { invalidateAll } from '$app/navigation';
@@ -73,68 +72,27 @@
 		</div>
 	</div>
 	<FieldSet.Root>
-		<FieldSet.Content class="flex flex-row place-items-center justify-between">
-			<div class="flex flex-col gap-1">
-				<FieldSet.Title>Your Subscription</FieldSet.Title>
-				<p class="flex place-items-center gap-2 text-muted-foreground">
-					<SubBadge user={data.user} />
-					{#if data.user.subscription && data.user.subscription.cancelAtPeriodEnd && data.user.subscription?.periodEnd}
-						<span class="text-sm text-muted-foreground">
-							Ends {toRelative(data.user.subscription.periodEnd)}
-						</span>
-					{/if}
-				</p>
-			</div>
-			{#if data.user.subscription !== null}
-				{#if data.user.subscription.cancelAtPeriodEnd}
-					<Button
-						onClickPromise={async () => {
-							await authClient.subscription.restore();
-
-							await invalidateAll();
-						}}
-					>
-						<RefreshCcw />
-						Un-cancel
-					</Button>
-				{:else}
-					<Button
-						onClickPromise={() => authClient.subscription.cancel({ returnUrl: '/account' })}
-						variant="outline"
-					>
-						<X />
-						Cancel
-					</Button>
-				{/if}
-			{:else}
-				<Button href="/pricing">Get Pro</Button>
-			{/if}
-		</FieldSet.Content>
-	</FieldSet.Root>
-	{#if data.user.subscription === null}
-		<FieldSet.Root>
-			<FieldSet.Content class="flex flex-col gap-2">
-				<FieldSet.Title>Your Usage</FieldSet.Title>
-				<div class="flex flex-col gap-2">
-					<div class="flex place-items-center justify-between">
-						<Nav.Title>Scope Usage</Nav.Title>
-						<span class="text-sm text-muted-foreground">
-							{scopesPromise.current === null ? '...' : scopesPromise.current?.userScopes.length} /
-							{data.user.scopeLimit}
-						</span>
-					</div>
-					<Meter
-						min={0}
-						max={data.user.scopeLimit}
-						value={scopesPromise.current?.userScopes.length ?? 0}
-					/>
-					<span class="text-xs text-muted-foreground">
-						Free users are limited to 5 scopes per account to prevent abuse.
+		<FieldSet.Content class="flex flex-col gap-2">
+			<FieldSet.Title>Your Usage</FieldSet.Title>
+			<div class="flex flex-col gap-2">
+				<div class="flex place-items-center justify-between">
+					<Nav.Title>Scope Usage</Nav.Title>
+					<span class="text-sm text-muted-foreground">
+						{scopesPromise.current === null ? '...' : scopesPromise.current?.userScopes.length} /
+						{data.user.scopeLimit}
 					</span>
 				</div>
-			</FieldSet.Content>
-		</FieldSet.Root>
-	{/if}
+				<Meter
+					min={0}
+					max={data.user.scopeLimit}
+					value={scopesPromise.current?.userScopes.length ?? 0}
+				/>
+				<span class="text-xs text-muted-foreground">
+					If you need more scopes reach out to support@jsrepo.com.
+				</span>
+			</div>
+		</FieldSet.Content>
+	</FieldSet.Root>
 	{#if data.user.stripeSellerAccountId === null}
 		<FieldSet.Root>
 			<FieldSet.Content class="flex flex-row place-items-center justify-between gap-4">

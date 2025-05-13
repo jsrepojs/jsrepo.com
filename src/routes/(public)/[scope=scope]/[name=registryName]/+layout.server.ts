@@ -15,20 +15,21 @@ export async function load({ params, locals }) {
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
 
-	const [version, hasAccess, userOrgs, prices, licenses, user, purchases] = await Promise.all([
-		getVersion({
-			scopeName,
-			registryName,
-			version: 'latest',
-			userId: session?.user.id ?? null
-		}),
-		hasScopeAccess(session?.user.id ?? null, scopeName),
-		listMyOrganizations(session?.user.id ?? ''),
-		getRegistryPrices({ scopeName, name: registryName }),
-		getMyLicenses(session?.user.id ?? ''),
-		getUser({ id: session?.user.id ?? '' }),
-		getRegistryPurchasesCount({ scope: scopeName, name: registryName })
-	]);
+	const [version, hasSettingsAccess, userOrgs, prices, licenses, user, purchases] =
+		await Promise.all([
+			getVersion({
+				scopeName,
+				registryName,
+				version: 'latest',
+				userId: session?.user.id ?? null
+			}),
+			hasScopeAccess(session?.user.id ?? null, scopeName),
+			listMyOrganizations(session?.user.id ?? ''),
+			getRegistryPrices({ scopeName, name: registryName }),
+			getMyLicenses(session?.user.id ?? ''),
+			getUser({ id: session?.user.id ?? '' }),
+			getRegistryPurchasesCount({ scope: scopeName, name: registryName })
+		]);
 
 	if (version === null) error(404);
 
@@ -36,7 +37,7 @@ export async function load({ params, locals }) {
 		scopeName,
 		registryName,
 		version,
-		hasAccess,
+		hasSettingsAccess,
 		userOrgs,
 		prices,
 		licenses,

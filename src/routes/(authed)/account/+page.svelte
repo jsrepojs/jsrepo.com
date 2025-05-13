@@ -47,7 +47,7 @@
 	})}
 	{@render card({
 		title: 'Settings',
-		description: 'Manage your subscription and preferences.',
+		description: 'Manage your account settings and preferences.',
 		href: '/account/settings',
 		Icon: Settings
 	})}

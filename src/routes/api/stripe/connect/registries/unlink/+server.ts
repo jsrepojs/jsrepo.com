@@ -35,7 +35,7 @@ export async function PATCH({ locals, request }) {
 		error(400, 'you are not the currently linked account');
 	}
 
-	const canLink = await canPublishToScope(user, registry.scope, registry.access);
+	const canLink = await canPublishToScope(user, registry.scope);
 
 	if (!canLink.canPublish) error(401, 'you are not allowed to link your account to this registry');
 
