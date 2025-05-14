@@ -6,8 +6,6 @@ import { isTag } from '$lib/ts/versioning.js';
 import { base64Url } from '@better-auth/utils/base64';
 import { createHash } from '@better-auth/utils/hash';
 import { storage } from '$lib/backend/s3/index.js';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { Readable } from 'node:stream';
 
 /** The max age of a public cached asset in seconds */
@@ -49,12 +47,7 @@ export async function GET({ params, request, getClientAddress }) {
 			sessionToken,
 			apiKey
 		}),
-		storage.client.send(
-			new GetObjectCommand({
-				Bucket: PUBLIC_STORAGE_BUCKET,
-				Key: storageKey
-			})
-		)
+		storage.getObject(storageKey)
 	]);
 
 	if (accessResult === null) {
@@ -77,7 +70,7 @@ export async function GET({ params, request, getClientAddress }) {
 		});
 	} else {
 		// has been stored to s3 but we didn't find it
-		if (!s3Response.Body) error(404, 'File not found');
+		if (s3Response === null || !s3Response.Body) error(404, 'File not found');
 	}
 
 	waitUntil(

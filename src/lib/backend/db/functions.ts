@@ -35,11 +35,12 @@ import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
 import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
-import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
 import { streamToBuffer } from '$lib/ts/tarz';
 import { Readable } from 'stream';
+import pLimit from 'p-limit';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -417,32 +418,12 @@ export async function createFiles(
 		files: { name: string; content: string }[];
 	}
 ): Promise<number[] | null> {
+	const limit = pLimit(20);
+
 	const uploaded = await Promise.all(
-		files.map(async (f) => {
-			const key = storage.getRegistryFileKey({ scope, registry, version, fileName: f.name });
-
-			await storage.client.send(
-				new PutObjectCommand({
-					Bucket: PUBLIC_STORAGE_BUCKET,
-					Key: key,
-					Body: f.content
-				})
-			);
-
-			// if there is a tagged version duplicate
-			// old tagged files are just overwritten
-			if (tag !== null) {
-				await storage.client.send(
-					new PutObjectCommand({
-						Bucket: PUBLIC_STORAGE_BUCKET,
-						Key: storage.getRegistryFileKey({ scope, registry, version: tag, fileName: f.name }),
-						Body: f.content
-					})
-				);
-			}
-
-			return { name: f.name, versionId: versionId, content: f.content, storageKey: key };
-		})
+		files.map(async (file) =>
+			limit(() => uploadFile({ scope, registry, version, versionId, file, tag }))
+		)
 	);
 
 	const result = await tx.insert(tables.file).values(uploaded).returning({ id: tables.file.id });
@@ -452,6 +433,46 @@ export async function createFiles(
 	}
 
 	return result.map((v) => v.id);
+}
+
+async function uploadFile({
+	scope,
+	registry,
+	version,
+	versionId,
+	tag,
+	file
+}: {
+	scope: string;
+	registry: string;
+	version: string;
+	versionId: number;
+	tag: string | null;
+	file: { name: string; content: string };
+}) {
+	const key = storage.getRegistryFileKey({ scope, registry, version, fileName: file.name });
+
+	await storage.client.send(
+		new PutObjectCommand({
+			Bucket: PUBLIC_STORAGE_BUCKET,
+			Key: key,
+			Body: file.content
+		})
+	);
+
+	// if there is a tagged version duplicate
+	// old tagged files are just overwritten
+	if (tag !== null) {
+		await storage.client.send(
+			new PutObjectCommand({
+				Bucket: PUBLIC_STORAGE_BUCKET,
+				Key: storage.getRegistryFileKey({ scope, registry, version: tag, fileName: file.name }),
+				Body: file.content
+			})
+		);
+	}
+
+	return { name: file.name, versionId: versionId, content: file.content, storageKey: key };
 }
 
 type GetFileContentsFastOptions = {
@@ -584,22 +605,25 @@ export async function getFiles({
 			)
 		);
 
+	const limit = pLimit(100);
+
 	await Promise.all(
-		result.map(async (_, i) => {
-			const file = result[i];
+		result.map((_, i) =>
+			limit(async () => {
+				const file = result[i];
 
-			if (file.storageKey === null) return;
+				if (file.storageKey === null) return;
 
-			const s3Response = await storage.client.send(
-				new GetObjectCommand({ Bucket: PUBLIC_STORAGE_BUCKET, Key: file.storageKey })
-			);
+				const s3Response = await storage.getObject(file.storageKey);
 
-			if (!s3Response.Body) throw new Error(`Could not find file '${file.storageKey}'`);
+				if (s3Response === null || !s3Response.Body)
+					throw new Error(`Could not find file '${file.storageKey}'`);
 
-			result[i].content = (
-				await streamToBuffer(Readable.toWeb(s3Response.Body as Readable) as never)
-			).toString();
-		})
+				result[i].content = (
+					await streamToBuffer(Readable.toWeb(s3Response.Body as Readable) as never)
+				).toString();
+			})
+		)
 	);
 
 	return result;

@@ -3,7 +3,8 @@ import {
 	STORAGE_BUCKET_URL,
 	STORAGE_SECRET_ACCESS_KEY
 } from '$env/static/private';
-import { S3Client } from '@aws-sdk/client-s3';
+import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
 	region: 'auto',
@@ -16,6 +17,20 @@ const s3Client = new S3Client({
 
 export const storage = {
 	client: s3Client,
+	getObject: async (storageKey: string) => {
+		try {
+			const response = await s3Client.send(
+				new GetObjectCommand({
+					Bucket: PUBLIC_STORAGE_BUCKET,
+					Key: storageKey
+				})
+			);
+
+			return response;
+		} catch {
+			return null;
+		}
+	},
 	getStorageUrl: (key: string) => {
 		return new URL(key, STORAGE_BUCKET_URL).toString();
 	},

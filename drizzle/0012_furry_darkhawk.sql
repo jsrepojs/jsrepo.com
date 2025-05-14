@@ -1,1 +1,0 @@
-ALTER TABLE "anon_session_code" DROP COLUMN "expires";
