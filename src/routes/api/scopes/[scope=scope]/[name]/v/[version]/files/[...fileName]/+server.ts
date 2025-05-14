@@ -1,6 +1,6 @@
 import { getSessionCookie } from 'better-auth/cookies';
 import { getFileContentsFast, postFileFetch } from '$lib/backend/db/functions.js';
-import { error, text } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import { isTag } from '$lib/ts/versioning.js';
 import { base64Url } from '@better-auth/utils/base64';
@@ -54,24 +54,7 @@ export async function GET({ params, request, getClientAddress }) {
 		error(404);
 	}
 
-	// LEGACY to support registries that are not serving from s3 temporarily
-	// !! DELETE THIS LATER !!
-	if (accessResult.key === null) {
-		// never cache tags or non public registries
-		if (accessResult.access !== 'public' || isTag(version)) {
-			return text(accessResult.content);
-		}
-
-		// caching
-		// we only cache public registries. A public registry is forever public and cannot be changed to be private.
-
-		return text(accessResult.content, {
-			headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` }
-		});
-	} else {
-		// has been stored to s3 but we didn't find it
-		if (s3Response === null || !s3Response.Body) error(404, 'File not found');
-	}
+	if (s3Response === null || !s3Response.Body) error(404, 'File not found');
 
 	waitUntil(
 		postFileFetch({

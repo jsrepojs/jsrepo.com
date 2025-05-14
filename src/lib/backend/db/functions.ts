@@ -498,7 +498,7 @@ export async function getFileContentsFast({
 }: Omit<GetFileContentsFastOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
-}): Promise<{ content: string; key: string | null; access: tables.RegistryAccess } | null> {
+}): Promise<{ key: string; access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
@@ -507,8 +507,7 @@ export async function getFileContentsFast({
 	const result = await db
 		.select({
 			access: tables.registry.access,
-			key: tables.file.storageKey,
-			content: tables.file.content
+			key: tables.file.storageKey
 		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
@@ -566,7 +565,7 @@ export async function getFiles({
 	registryName,
 	version,
 	fileNames
-}: GetFilesOptions): Promise<tables.File[]> {
+}: GetFilesOptions): Promise<(tables.File & { content: string })[]> {
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
@@ -607,26 +606,26 @@ export async function getFiles({
 
 	const limit = pLimit(100);
 
-	await Promise.all(
+	const files = await Promise.all(
 		result.map((_, i) =>
 			limit(async () => {
 				const file = result[i];
-
-				if (file.storageKey === null) return;
 
 				const s3Response = await storage.getObject(file.storageKey);
 
 				if (s3Response === null || !s3Response.Body)
 					throw new Error(`Could not find file '${file.storageKey}'`);
 
-				result[i].content = (
+				const content = (
 					await streamToBuffer(Readable.toWeb(s3Response.Body as Readable) as never)
 				).toString();
+
+				return { ...file, content };
 			})
 		)
 	);
 
-	return result;
+	return files;
 }
 
 export async function listApiKeys(userId: string) {
