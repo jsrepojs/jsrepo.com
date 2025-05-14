@@ -35,9 +35,11 @@ import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
 import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
+import { streamToBuffer } from '$lib/ts/tarz';
+import { Readable } from 'stream';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -581,6 +583,24 @@ export async function getFiles({
 				checkAccessQuery({ orgSubscription, billPayerSubscription, checkSubscription: true })
 			)
 		);
+
+	await Promise.all(
+		result.map(async (_, i) => {
+			const file = result[i];
+
+			if (file.storageKey === null) return;
+
+			const s3Response = await storage.client.send(
+				new GetObjectCommand({ Bucket: PUBLIC_STORAGE_BUCKET, Key: file.storageKey })
+			);
+
+			if (!s3Response.Body) throw new Error(`Could not find file '${file.storageKey}'`);
+
+			result[i].content = (
+				await streamToBuffer(Readable.toWeb(s3Response.Body as Readable) as never)
+			).toString();
+		})
+	);
 
 	return result;
 }
