@@ -2,13 +2,10 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Meter } from '$lib/components/ui/meter';
-	import { ArrowUpRight, ChevronLeft, LogOut, RefreshCcw, Unplug, X } from '@lucide/svelte';
+	import { ArrowUpRight, ChevronLeft, LogOut, Unplug } from '@lucide/svelte';
 	import * as FieldSet from '$lib/components/ui/field-set';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
-	import { authClient } from '$lib/auth/client.js';
-	import { toRelative } from '$lib/ts/dates.js';
-	import { invalidateAll } from '$app/navigation';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
 
 	let { data } = $props();

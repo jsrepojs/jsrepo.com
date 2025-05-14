@@ -13,6 +13,7 @@
 	import { toRelative } from '$lib/ts/dates';
 	import ReviewsCard from './reviews-card.svelte';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
+	import * as List from '$lib/components/site/list';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -27,7 +28,7 @@
 		}
 	});
 
-	const { form: formData, enhance, message, submitting } = form;
+	const { form: formData, enhance, submitting } = form;
 
 	$effect(() => {
 		if ($formData.rating === 0) {
@@ -49,7 +50,7 @@
 			const res = (await response.json()) as typeof data.reviews;
 
 			for (let i = 0; i < res.length; i++) {
-				res[i].createdAt = new Date(res[i].createdAt)
+				res[i].createdAt = new Date(res[i].createdAt);
 			}
 
 			reviews = [...reviews, ...res];
@@ -67,14 +68,12 @@
 			</div>
 			<div class="flex flex-wrap place-items-center gap-2 md:justify-end">
 				{#if data.session}
-					<Button
-						variant="outline"
-						disabled={!data.canLeaveReview}
-						onclick={() => (reviewOpen = true)}
-					>
-						<MessageSquareMore />
-						Leave a Review
-					</Button>
+					{#if data.canLeaveReview}
+						<Button variant="outline" onclick={() => (reviewOpen = true)}>
+							<MessageSquareMore />
+							Leave a Review
+						</Button>
+					{/if}
 				{:else}
 					<Button variant="outline" href="/login?redirect_to={page.url.pathname}{page.url.search}">
 						<MessageSquareMore />
@@ -91,28 +90,35 @@
 		</div>
 		<ReviewsCard class="lg:hidden" ratings={data.ratings} />
 		<div class="flex flex-col gap-2">
-			{#each reviews as review (review.id)}
-				<div class="flex flex-col gap-2 py-4">
-					<div class="flex place-items-center gap-2">
-						<span class="text-nowrap font-medium">
-							{review.user.username}
-						</span>
-						<span class="hidden text-muted-foreground sm:inline">
-							{toRelative(review.createdAt)}
-						</span>
-						<StarRating readonly value={review.rating} />
+			{#if reviews.length > 0}
+				{#each reviews as review (review.id)}
+					<div class="flex flex-col gap-2 py-4">
+						<div class="flex place-items-center gap-2">
+							<a
+								href="/users/{review.user.username}"
+								class="text-nowrap font-medium underline-offset-2 hover:underline"
+							>
+								{review.user.username}
+							</a>
+							<span class="hidden text-muted-foreground sm:inline">
+								{toRelative(review.createdAt)}
+							</span>
+							<StarRating readonly value={review.rating} />
+						</div>
+						<p>
+							{review.comment}
+						</p>
 					</div>
-					<p>
-						{review.comment}
-					</p>
-				</div>
-			{/each}
-			{#if moreExist}
-				<div>
-					<Button variant="outline" loading={loadMoreQuery.loading} onclick={loadMoreQuery.run}>
-						Load More
-					</Button>
-				</div>
+				{/each}
+				{#if moreExist}
+					<div>
+						<Button variant="outline" loading={loadMoreQuery.loading} onclick={loadMoreQuery.run}>
+							Load More
+						</Button>
+					</div>
+				{/if}
+			{:else}
+				<List.Empty>There aren't any reviews yet.</List.Empty>
 			{/if}
 		</div>
 	</div>

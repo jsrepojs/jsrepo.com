@@ -79,7 +79,9 @@
 </svelte:head>
 
 <div class="flex flex-col gap-2 py-2">
-	<div class="flex md:flex-row flex-col place-items-start gap-2 md:place-items-center justify-between">
+	<div
+		class="flex flex-col place-items-start justify-between gap-2 md:flex-row md:place-items-center"
+	>
 		<div>
 			<Tabs.Root bind:value={regType} onValueChange={(v) => ($params.type = v)}>
 				<Tabs.List class="p-0">
@@ -89,7 +91,7 @@
 				</Tabs.List>
 			</Tabs.Root>
 		</div>
-		<div class="flex flex-wrap place-items-center md:justify-end gap-2">
+		<div class="flex flex-wrap place-items-center gap-2 md:justify-end">
 			<Select.Root
 				type="single"
 				allowDeselect

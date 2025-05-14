@@ -14,7 +14,7 @@ import {
 	type AnyPgColumn,
 	uniqueIndex,
 	check,
-	real,
+	real
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -461,7 +461,7 @@ export const registry = pgTable(
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),
 			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
-			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace),
+			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace)
 		];
 	}
 ).enableRLS();

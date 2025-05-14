@@ -6,7 +6,7 @@
 		rating: number;
 		stars?: number;
 		class?: string;
-		fill?: 'background' | 'border'
+		fill?: 'background' | 'border';
 	};
 
 	let { rating, stars = 5, class: className, fill = 'background' }: Props = $props();

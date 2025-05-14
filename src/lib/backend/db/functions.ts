@@ -2337,7 +2337,7 @@ export async function getRegistryRatings({
 	};
 }
 
-/** User can leave a review if they haven't left one before */
+/** Anyone can leave a review so long as they aren't the owner and haven't left a review before */
 export async function canLeaveReview({
 	userId,
 	scope,
@@ -2349,22 +2349,27 @@ export async function canLeaveReview({
 }) {
 	if (!userId) return false;
 
-	const result = await db
-		.select({
-			...getTableColumns(tables.registryReview),
-		})
-		.from(tables.registryReview)
-		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))
-		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.where(
-			and(
-				eq(lower(tables.scope.name), scope.toLowerCase()),
-				eq(lower(tables.registry.name), registry.toLowerCase()),
-				eq(tables.registryReview.userId, userId)
-			)
-		);
+	const [previousReviews, isOwner] = await Promise.all([
+		db
+			.select({
+				...getTableColumns(tables.registryReview)
+			})
+			.from(tables.registryReview)
+			.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))
+			.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+			.where(
+				and(
+					eq(lower(tables.scope.name), scope.toLowerCase()),
+					eq(lower(tables.registry.name), registry.toLowerCase()),
+					eq(tables.registryReview.userId, userId)
+				)
+			),
+		hasScopeAccess(userId, scope)
+	]);
 
-	return result.length === 0;
+	if (isOwner) return false;
+
+	return previousReviews.length === 0;
 }
 
 export async function leaveReview(record: InferInsertModel<typeof tables.registryReview>) {

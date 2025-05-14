@@ -1,1 +1,1 @@
-export { default as StarRating } from './star-rating.svelte'
+export { default as StarRating } from './star-rating.svelte';

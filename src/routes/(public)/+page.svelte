@@ -130,9 +130,7 @@
 				Share code with your team, completely free.
 			</p>
 		</div>
-		<Button variant="outline" href="/account/organizations/new">
-			Get Started with Orgs
-		</Button>
+		<Button variant="outline" href="/account/organizations/new">Get Started with Orgs</Button>
 	</div>
 	<div class="my-20 flex flex-col place-items-center gap-2">
 		<div>
@@ -141,8 +139,6 @@
 				With the jsrepo.com marketplace you can monetize your registries with just a few clicks!
 			</p>
 		</div>
-		<Button variant="outline" href="/marketplace">
-			Learn More
-		</Button>
+		<Button variant="outline" href="/marketplace">Learn More</Button>
 	</div>
 </div>

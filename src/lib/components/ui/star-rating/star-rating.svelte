@@ -9,7 +9,13 @@
 		readonly?: boolean;
 	};
 
-	let { value = $bindable(1), stars = 5, disabled = false, readonly = false, ...rest }: Props = $props();
+	let {
+		value = $bindable(1),
+		stars = 5,
+		disabled = false,
+		readonly = false,
+		...rest
+	}: Props = $props();
 
 	function setRating(rating: number) {
 		if (disabled || readonly) return;
@@ -26,7 +32,7 @@
 	orientation="horizontal"
 	loop={false}
 	disabled={disabled || readonly}
-    {...rest}
+	{...rest}
 >
 	{#each { length: stars } as _, i (i)}
 		{@const rating = i + 1}
