@@ -589,7 +589,7 @@ export async function getFiles({
 	version,
 	fileNames,
 	readonlyAccess = false
-}: GetFilesOptions): Promise<tables.File[]> {
+}: GetFilesOptions): Promise<(tables.File & { content: string })[]> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
