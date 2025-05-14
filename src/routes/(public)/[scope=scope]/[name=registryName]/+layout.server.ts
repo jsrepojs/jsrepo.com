@@ -7,7 +7,8 @@ import {
 	getVersion,
 	hasScopeAccess,
 	listMyOrganizations,
-	searchReviews
+	getReviews,
+	getRegistryRatings
 } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
 
@@ -16,6 +17,8 @@ export async function load({ params, locals }) {
 
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
+
+	const ratings = getRegistryRatings({ scope: scopeName, registry: registryName });
 
 	const [version, hasSettingsAccess, userOrgs, prices, licenses, user, purchases, reviews, canReview] =
 		await Promise.all([
@@ -31,7 +34,7 @@ export async function load({ params, locals }) {
 			getMyLicenses(session?.user.id ?? ''),
 			getUser({ id: session?.user.id ?? '' }),
 			getRegistryPurchasesCount({ scope: scopeName, name: registryName }),
-			searchReviews({ scope: scopeName, registry: registryName }),
+			getReviews({ scope: scopeName, registry: registryName, limit: 5, offset: 0 }),
 			canLeaveReview({ userId: session?.user.id, scope: scopeName, registry: registryName })
 		]);
 
@@ -48,6 +51,7 @@ export async function load({ params, locals }) {
 		user,
 		purchases,
 		reviews,
-		canLeaveReview: canReview
+		canLeaveReview: canReview,
+		ratings
 	};
 }

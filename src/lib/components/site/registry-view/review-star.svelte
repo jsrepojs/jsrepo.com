@@ -4,9 +4,10 @@
 	type Props = {
 		percent: number;
 		class?: string;
+		fill?: 'background' | 'border';
 	};
 
-	let { percent, class: className }: Props = $props();
+	let { percent, class: className, fill = 'background' }: Props = $props();
 </script>
 
 <span class={cn('size-5', className)} style="position: relative; display: inline-block;">
@@ -21,7 +22,7 @@
 	>
 		<path
 			d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-			class="fill-background"
+			class={{ 'fill-background': fill === 'background', 'fill-border': fill === 'border' }}
 		/>
 	</svg>
 	<!-- Filled star (foreground) -->

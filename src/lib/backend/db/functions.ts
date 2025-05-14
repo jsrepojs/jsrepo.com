@@ -2265,24 +2265,79 @@ export async function getRegistryPurchasesCount({
 	return res[0].count;
 }
 
-export async function searchReviews({ scope, registry }: { scope: string; registry: string }) {
+export async function getReviews({
+	scope,
+	registry,
+	offset = 0,
+	limit = 20
+}: {
+	scope: string;
+	registry: string;
+	offset?: number;
+	limit?: number;
+}) {
 	return await db
 		.select({
-			...getTableColumns(tables.marketplaceReview),
+			...getTableColumns(tables.registryReview),
 			user: tables.user
 		})
-		.from(tables.marketplaceReview)
-		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplaceReview.registryId))
+		.from(tables.registryReview)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.innerJoin(tables.user, eq(tables.user.id, tables.marketplaceReview.userId))
+		.innerJoin(tables.user, eq(tables.user.id, tables.registryReview.userId))
+		.where(
+			and(
+				eq(lower(tables.scope.name), scope.toLowerCase()),
+				eq(lower(tables.registry.name), registry.toLowerCase())
+			)
+		)
+		.offset(offset)
+		.limit(limit)
+		.orderBy(desc(tables.registryReview.createdAt));
+}
+
+export type RegistryRatings = {
+	overall: number;
+	totalRatings: number;
+	/** `ratings[0]` = 1 star ratings count */
+	ratings: [number, number, number, number, number];
+};
+
+export async function getRegistryRatings({
+	scope,
+	registry
+}: {
+	registry: string;
+	scope: string;
+}): Promise<RegistryRatings> {
+	const reviews = await db
+		.select({
+			...getTableColumns(tables.registryReview)
+		})
+		.from(tables.registryReview)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.where(
 			and(
 				eq(lower(tables.scope.name), scope.toLowerCase()),
 				eq(lower(tables.registry.name), registry.toLowerCase())
 			)
 		);
+
+	const ratings: RegistryRatings['ratings'] = [0, 0, 0, 0, 0];
+
+	reviews.map((r) => ratings[r.rating - 1]++);
+
+	const overall = array.average(reviews, (r) => r.rating);
+
+	return {
+		overall,
+		totalRatings: reviews.length,
+		ratings
+	};
 }
 
+/** User can leave a review if they haven't left one before */
 export async function canLeaveReview({
 	userId,
 	scope,
@@ -2296,45 +2351,25 @@ export async function canLeaveReview({
 
 	const result = await db
 		.select({
-			...getTableColumns(tables.marketplacePurchase),
-			marketplaceReview: tables.marketplaceReview
+			...getTableColumns(tables.registryReview),
 		})
-		.from(tables.marketplacePurchase)
-		.leftJoin(tables.org, eq(tables.org.id, tables.marketplacePurchase.referenceId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
+		.from(tables.registryReview)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.innerJoin(
-			tables.user,
-			or(
-				eq(tables.user.id, tables.orgMember.userId),
-				eq(tables.user.id, tables.marketplacePurchase.referenceId)
-			)
-		)
-		.leftJoin(
-			tables.marketplaceReview,
-			and(
-				eq(tables.marketplaceReview.registryId, tables.registry.id),
-				eq(tables.marketplaceReview.userId, tables.user.id)
-			)
-		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scope.toLowerCase()),
 				eq(lower(tables.registry.name), registry.toLowerCase()),
-
-				eq(tables.user.id, userId)
+				eq(tables.registryReview.userId, userId)
 			)
 		);
 
-	if (result.length > 0 && result[0].marketplaceReview === null) return true;
-
-	return false;
+	return result.length === 0;
 }
 
-export async function leaveReview(record: InferInsertModel<typeof tables.marketplaceReview>) {
+export async function leaveReview(record: InferInsertModel<typeof tables.registryReview>) {
 	await db.transaction(async (tx) => {
-		const result = await tx.insert(tables.marketplaceReview).values(record).returning();
+		const result = await tx.insert(tables.registryReview).values(record).returning();
 
 		if (result.length === 0) {
 			tx.rollback();
@@ -2342,8 +2377,8 @@ export async function leaveReview(record: InferInsertModel<typeof tables.marketp
 
 		const reviews = await tx
 			.select()
-			.from(tables.marketplaceReview)
-			.where(eq(tables.marketplaceReview.registryId, record.registryId));
+			.from(tables.registryReview)
+			.where(eq(tables.registryReview.registryId, record.registryId));
 
 		const averageRating = (array.sum(reviews, (r) => r.rating) / reviews.length).toFixed(1);
 

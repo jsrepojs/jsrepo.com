@@ -35,6 +35,7 @@
 	import { Link } from '$lib/components/ui/link';
 	import { PageBanner } from '../page-banner';
 	import Reviews from './reviews.svelte';
+	import ReviewStars from './review-stars.svelte';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -122,6 +123,9 @@
 			<span class="text-sm text-muted-foreground">
 				Published {toRelative(data.version.createdAt)}
 			</span>
+			{#if data.registry.rating}
+				<ReviewStars rating={data.registry.rating} class="size-4" fill="border"/>
+			{/if}
 		</div>
 		{#if data.registry.metaDescription}
 			<p class="text-muted-foreground">{data.registry.metaDescription}</p>

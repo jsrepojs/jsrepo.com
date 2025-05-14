@@ -6,6 +6,7 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import ReviewStars from '../registry-view/review-stars.svelte';
 
 	type Props = {
 		registry: RegistryDetails;
@@ -45,6 +46,9 @@
 						<Tooltip.Content>Not Listed</Tooltip.Content>
 					</Tooltip.Root>
 				{/if}
+			{/if}
+			{#if registry.rating}
+				<ReviewStars class="size-4" rating={registry.rating} />
 			{/if}
 		</div>
 		<span class="text-muted-foreground">

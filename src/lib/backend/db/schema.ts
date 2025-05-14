@@ -14,7 +14,7 @@ import {
 	type AnyPgColumn,
 	uniqueIndex,
 	check,
-	real
+	real,
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -263,8 +263,8 @@ export const marketplacePurchase = pgTable(
 
 export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>;
 
-export const marketplaceReview = pgTable(
-	'marketplace_review',
+export const registryReview = pgTable(
+	'registry_review',
 	{
 		id: serial('id').primaryKey(),
 		registryId: integer('registry_id')
@@ -280,13 +280,13 @@ export const marketplaceReview = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT valid_rating CHECK (${table.rating} >= 1 AND ${table.rating} <= 5)`,
-			index('marketplace_review_rating_idx').on(table.rating),
-			index('marketplace_review_user_id_idx').on(table.userId)
+			index('registry_review_rating_idx').on(table.rating),
+			index('registry_review_user_id_idx').on(table.userId)
 		];
 	}
 ).enableRLS();
 
-export type MarketplaceReview = InferSelectModel<typeof marketplaceReview>;
+export type RegistryReview = InferSelectModel<typeof registryReview>;
 
 // ---
 
@@ -462,7 +462,6 @@ export const registry = pgTable(
 			index('registry_meta_authors').on(table.metaAuthors),
 			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
 			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace),
-			index('registry_rating_idx').on(table.rating)
 		];
 	}
 ).enableRLS();

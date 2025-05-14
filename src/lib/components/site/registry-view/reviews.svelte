@@ -10,9 +10,9 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { invalidateAll } from '$app/navigation';
-	import * as Avatar from '$lib/components/ui/avatar';
 	import { toRelative } from '$lib/ts/dates';
 	import ReviewsCard from './reviews-card.svelte';
+	import { UseQuery } from '$lib/hooks/use-query.svelte';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -21,6 +21,7 @@
 		onResult: async ({ result }) => {
 			if (result.type === 'success') {
 				await invalidateAll();
+				moreExist = data.reviews.length > 4;
 				reviewOpen = false;
 			}
 		}
@@ -35,6 +36,27 @@
 	});
 
 	let reviewOpen = $state(false);
+
+	let reviews = $derived(data.reviews.slice(0, 4));
+	let moreExist = $state(data.reviews.length > 4);
+
+	const loadMoreQuery = new UseQuery(async () => {
+		const response = await fetch(
+			`/api/scopes/${page.params.scope}/${page.params.name}/reviews?limit=${5}&offset=${reviews.length}`
+		);
+
+		if (response.ok) {
+			const res = (await response.json()) as typeof data.reviews;
+
+			for (let i = 0; i < res.length; i++) {
+				res[i].createdAt = new Date(res[i].createdAt)
+			}
+
+			reviews = [...reviews, ...res];
+
+			moreExist = res.length === 5;
+		}
+	});
 </script>
 
 <div class="grid gap-2 py-4 lg:grid-cols-[1fr_20rem]">
@@ -43,7 +65,7 @@
 			<div>
 				<h1 class="text-4xl font-semibold">Ratings & Reviews</h1>
 			</div>
-			<div class="flex flex-wrap place-items-center md:justify-end gap-2">
+			<div class="flex flex-wrap place-items-center gap-2 md:justify-end">
 				{#if data.session}
 					<Button
 						variant="outline"
@@ -67,15 +89,15 @@
 				{/if}
 			</div>
 		</div>
-		<ReviewsCard class="lg:hidden" reviews={data.reviews} />
+		<ReviewsCard class="lg:hidden" ratings={data.ratings} />
 		<div class="flex flex-col gap-2">
-			{#each data.reviews as review (review.id)}
+			{#each reviews as review (review.id)}
 				<div class="flex flex-col gap-2 py-4">
 					<div class="flex place-items-center gap-2">
-						<span class="font-medium text-nowrap">
-							{review.user.name}
+						<span class="text-nowrap font-medium">
+							{review.user.username}
 						</span>
-						<span class="text-muted-foreground hidden sm:inline">
+						<span class="hidden text-muted-foreground sm:inline">
 							{toRelative(review.createdAt)}
 						</span>
 						<StarRating readonly value={review.rating} />
@@ -85,9 +107,16 @@
 					</p>
 				</div>
 			{/each}
+			{#if moreExist}
+				<div>
+					<Button variant="outline" loading={loadMoreQuery.loading} onclick={loadMoreQuery.run}>
+						Load More
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
-	<ReviewsCard class="hidden lg:flex max-w-80" reviews={data.reviews} />
+	<ReviewsCard class="hidden max-w-80 lg:flex" ratings={data.ratings} />
 </div>
 
 <Modal bind:open={reviewOpen} class="p-0">
