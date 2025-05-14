@@ -1,10 +1,17 @@
 import { getSessionCookie } from 'better-auth/cookies';
-import { getFileContentsFast, postFileFetch } from '$lib/backend/db/functions.js';
+import {
+	getFileContentsFast,
+	postFileFetch
+} from '$lib/backend/db/functions.js';
 import { error, text } from '@sveltejs/kit';
 import { waitUntil } from '@vercel/functions';
 import { isTag } from '$lib/ts/versioning.js';
 import { base64Url } from '@better-auth/utils/base64';
 import { createHash } from '@better-auth/utils/hash';
+import { storage } from '$lib/backend/s3/index.js';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
+import { Readable } from 'node:stream';
 
 /** The max age of a public cached asset in seconds */
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -29,17 +36,46 @@ export async function GET({ params, request, getClientAddress }) {
 		apiKey = hashed;
 	}
 
-	const result = await getFileContentsFast({
-		scopeName,
-		registryName: name,
-		version,
-		fileName,
-		sessionToken,
-		apiKey
-	});
+	const storageKey = storage.getRegistryFileKey({ scope: scopeName, registry: name, version, fileName });
 
-	if (result === null) {
+	const [accessResult, s3Response] = await Promise.all([
+		getFileContentsFast({
+			scopeName,
+			registryName: name,
+			version,
+			fileName,
+			sessionToken,
+			apiKey
+		}),
+		storage.client.send(
+			new GetObjectCommand({
+				Bucket: PUBLIC_STORAGE_BUCKET,
+				Key: storageKey
+			})
+		)
+	]);
+
+	if (accessResult === null) {
 		error(404);
+	}
+
+	// LEGACY to support registries that are not serving from s3 temporarily
+	// !! DELETE THIS LATER !!
+	if (accessResult.key === null) {
+		// never cache tags or non public registries
+		if (accessResult.access !== 'public' || isTag(version)) {
+			return text(accessResult.content);
+		}
+
+		// caching
+		// we only cache public registries. A public registry is forever public and cannot be changed to be private.
+
+		return text(accessResult.content, {
+			headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` }
+		});
+	} else {
+		// has been stored to s3 but we didn't find it
+		if (!s3Response.Body) error(404, 'File not found');
 	}
 
 	waitUntil(
@@ -52,15 +88,24 @@ export async function GET({ params, request, getClientAddress }) {
 		})
 	);
 
-	// never cache tags or non public registries
-	if (result.access !== 'public' || isTag(version)) {
-		return text(result.content);
+	const stream = Readable.toWeb(s3Response.Body as Readable);
+
+	const headers = new Headers({
+		'Content-Type': s3Response.ContentType ?? 'application/octet-stream'
+	});
+
+	if (s3Response.ContentLength) {
+		headers.append('Content-Length', s3Response.ContentLength.toString());
 	}
 
-	// caching
-	// we only cache public registries. A public registry is forever public and cannot be changed to be private.
+	if (s3Response.ContentDisposition) {
+		headers.append('Content-Disposition', s3Response.ContentDisposition);
+	}
 
-	return text(result.content, {
-		headers: { 'cache-control': `max-age=${MAX_AGE}, immutable, public` }
-	});
+	// never cache tags or non public registries
+	if (accessResult.access === 'public' && !isTag(version)) {
+		headers.append('cache-control', `max-age=${MAX_AGE}, immutable, public`);
+	}
+
+	return new Response(stream as never, { headers });
 }

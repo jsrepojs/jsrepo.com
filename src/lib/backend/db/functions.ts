@@ -35,6 +35,9 @@ import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
 import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
+import { storage } from '../s3';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -396,15 +399,53 @@ export async function getApiKey(userId: string, name: string): Promise<tables.AP
 
 export async function createFiles(
 	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	versionId: number,
-	records: { name: string; content: string }[]
+	{
+		scope,
+		registry,
+		version,
+		versionId,
+		tag,
+		files
+	}: {
+		scope: string;
+		registry: string;
+		version: string;
+		versionId: number;
+		tag: string | null;
+		files: { name: string; content: string }[];
+	}
 ): Promise<number[] | null> {
-	const result = await tx
-		.insert(tables.file)
-		.values(records.map((v) => ({ ...v, versionId })))
-		.returning({ id: tables.file.id });
+	const uploaded = await Promise.all(
+		files.map(async (f) => {
+			const key = storage.getRegistryFileKey({ scope, registry, version, fileName: f.name });
 
-	if (result.length !== records.length) {
+			await storage.client.send(
+				new PutObjectCommand({
+					Bucket: PUBLIC_STORAGE_BUCKET,
+					Key: key,
+					Body: f.content
+				})
+			);
+
+			// if there is a tagged version duplicate
+			// old tagged files are just overwritten
+			if (tag !== null) {
+				await storage.client.send(
+					new PutObjectCommand({
+						Bucket: PUBLIC_STORAGE_BUCKET,
+						Key: storage.getRegistryFileKey({ scope, registry, version: tag, fileName: f.name }),
+						Body: f.content
+					})
+				);
+			}
+
+			return { name: f.name, versionId: versionId, content: f.content, storageKey: key };
+		})
+	);
+
+	const result = await tx.insert(tables.file).values(uploaded).returning({ id: tables.file.id });
+
+	if (result.length !== files.length) {
 		return null;
 	}
 
@@ -434,14 +475,18 @@ export async function getFileContentsFast({
 }: Omit<GetFileContentsFastOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
-}): Promise<{ content: string; access: tables.RegistryAccess } | null> {
+}): Promise<{ content: string; key: string | null; access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
 	const orgSubscription = aliasedTable(tables.subscription, 'org_subscription');
 	const billPayerSubscription = aliasedTable(tables.subscription, 'bill_payer_subscription');
 
 	const result = await db
-		.select({ access: tables.registry.access, content: tables.file.content })
+		.select({
+			access: tables.registry.access,
+			key: tables.file.storageKey,
+			content: tables.file.content
+		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
@@ -506,11 +551,7 @@ export async function getFiles({
 
 	const result = await db
 		.select({
-			id: tables.file.id,
-			name: tables.file.name,
-			content: tables.file.content,
-			versionId: tables.file.versionId,
-			createdAt: tables.file.createdAt
+			...getTableColumns(tables.file)
 		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
