@@ -445,6 +445,7 @@ export const file = pgTable(
 			.notNull()
 			.references(() => version.id, { onDelete: 'cascade' }),
 		content: text('content').notNull(),
+		storageKey: text('storage_key'),
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {

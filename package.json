@@ -17,6 +17,7 @@
 		"migrations:migrate": "drizzle-kit migrate"
 	},
 	"devDependencies": {
+		"@aws-sdk/client-s3": "^3.808.0",
 		"@better-auth/stripe": "1.2.8-beta.3",
 		"@better-auth/utils": "^0.2.4",
 		"@eslint/compat": "^1.2.8",
@@ -100,7 +101,9 @@
 		"vite": "^6.3.2"
 	},
 	"dependencies": {
-		"dotenv": "^16.5.0"
+		"chalk": "^5.4.1",
+		"dotenv": "^16.5.0",
+		"p-limit": "^6.2.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

@@ -272,7 +272,14 @@ export async function POST({ request }) {
 
 		// add files
 
-		const fileIds = await createFiles(tx, versionId, files);
+		const fileIds = await createFiles(tx, {
+			registry: registryName,
+			scope: scopeName,
+			tag: releaseTag,
+			version: manifest.version,
+			versionId,
+			files
+		});
 
 		if (fileIds === null) {
 			return tx.rollback();
