@@ -51,6 +51,16 @@ export function sum<T>(arr: T[], fn: (item: T) => number): number {
 	return total;
 }
 
+export function average<T>(arr: T[], fn: (item: T) => number): number {
+	let total = 0;
+
+	for (const item of arr) {
+		total = total + fn(item);
+	}
+
+	return total / arr.length;
+}
+
 /** Maps the provided array into a map
  *
  * @param arr Array of items to be entered into a map

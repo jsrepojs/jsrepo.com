@@ -1,5 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { getInfo } from './registry-view-server.js';
+import { getInfo, actions } from './registry-view-server.js';
+import { superValidate } from 'sveltekit-superforms';
+import { valibot } from 'sveltekit-superforms/adapters';
+import { reviewSchema } from '$lib/components/site/registry-view/types.js';
 
 export async function load({ params, locals }) {
 	const session = await locals.auth();
@@ -18,7 +21,10 @@ export async function load({ params, locals }) {
 		error(404);
 	}
 
+	const reviewForm = await superValidate(valibot(reviewSchema));
+
 	return {
+		reviewForm,
 		scopeName,
 		registryName,
 		versionParam: 'latest',
@@ -26,3 +32,5 @@ export async function load({ params, locals }) {
 		...info
 	};
 }
+
+export { actions };

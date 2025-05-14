@@ -34,6 +34,7 @@
 	import Settings from './settings.svelte';
 	import { Link } from '$lib/components/ui/link';
 	import { PageBanner } from '../page-banner';
+	import Reviews from './reviews.svelte';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -148,6 +149,7 @@
 			</Tabs.Tab>
 			{#if data.registry.access === 'marketplace'}
 				<Tabs.Tab href="?tab=pricing" isSearch class="hidden md:flex">Pricing</Tabs.Tab>
+				<Tabs.Tab href="?tab=reviews" isSearch class="hidden md:flex">Reviews</Tabs.Tab>
 			{/if}
 			{#if data.hasSettingsAccess}
 				<Tabs.Tab href="?tab=settings" isSearch class="hidden md:flex">Settings</Tabs.Tab>
@@ -199,6 +201,14 @@
 							style="--line-height: 24px;"
 						>
 							Pricing
+						</a>
+						<a
+							href="?tab=reviews"
+							onclick={() => (tabListPopoverOpen = false)}
+							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+							style="--line-height: 24px;"
+						>
+							Reviews
 						</a>
 					{/if}
 					{#if data.hasSettingsAccess}
@@ -470,6 +480,8 @@
 			</div>
 		{:else if tab === 'pricing' && data.registry.access === 'marketplace'}
 			<Pricing {data} />
+		{:else if tab === 'reviews' && data.registry.access === 'marketplace'}
+			<Reviews {data} />
 		{:else if tab === 'settings' && data.hasSettingsAccess}
 			<Settings {data} />
 		{/if}

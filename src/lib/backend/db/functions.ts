@@ -39,6 +39,7 @@ import { storage } from '../s3';
 import { streamToBuffer } from '$lib/ts/tarz';
 import { Readable } from 'stream';
 import pLimit from 'p-limit';
+import * as array from '$lib/ts/array';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -2262,4 +2263,95 @@ export async function getRegistryPurchasesCount({
 	if (res.length === 0) return 0;
 
 	return res[0].count;
+}
+
+export async function searchReviews({ scope, registry }: { scope: string; registry: string }) {
+	return await db
+		.select({
+			...getTableColumns(tables.marketplaceReview),
+			user: tables.user
+		})
+		.from(tables.marketplaceReview)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplaceReview.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.user, eq(tables.user.id, tables.marketplaceReview.userId))
+		.where(
+			and(
+				eq(lower(tables.scope.name), scope.toLowerCase()),
+				eq(lower(tables.registry.name), registry.toLowerCase())
+			)
+		);
+}
+
+export async function canLeaveReview({
+	userId,
+	scope,
+	registry
+}: {
+	userId: string | undefined;
+	scope: string;
+	registry: string;
+}) {
+	if (!userId) return false;
+
+	const result = await db
+		.select({
+			...getTableColumns(tables.marketplacePurchase),
+			marketplaceReview: tables.marketplaceReview
+		})
+		.from(tables.marketplacePurchase)
+		.leftJoin(tables.org, eq(tables.org.id, tables.marketplacePurchase.referenceId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.marketplacePurchase.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(
+			tables.user,
+			or(
+				eq(tables.user.id, tables.orgMember.userId),
+				eq(tables.user.id, tables.marketplacePurchase.referenceId)
+			)
+		)
+		.leftJoin(
+			tables.marketplaceReview,
+			and(
+				eq(tables.marketplaceReview.registryId, tables.registry.id),
+				eq(tables.marketplaceReview.userId, tables.user.id)
+			)
+		)
+		.where(
+			and(
+				eq(lower(tables.scope.name), scope.toLowerCase()),
+				eq(lower(tables.registry.name), registry.toLowerCase()),
+
+				eq(tables.user.id, userId)
+			)
+		);
+
+	if (result.length > 0 && result[0].marketplaceReview === null) return true;
+
+	return false;
+}
+
+export async function leaveReview(record: InferInsertModel<typeof tables.marketplaceReview>) {
+	await db.transaction(async (tx) => {
+		const result = await tx.insert(tables.marketplaceReview).values(record).returning();
+
+		if (result.length === 0) {
+			tx.rollback();
+		}
+
+		const reviews = await tx
+			.select()
+			.from(tables.marketplaceReview)
+			.where(eq(tables.marketplaceReview.registryId, record.registryId));
+
+		const averageRating = (array.sum(reviews, (r) => r.rating) / reviews.length).toFixed(1);
+
+		await tx
+			.update(tables.registry)
+			.set({ rating: parseFloat(averageRating) })
+			.where(eq(tables.registry.id, record.registryId));
+	});
+
+	return true;
 }

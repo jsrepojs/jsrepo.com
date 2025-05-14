@@ -13,7 +13,8 @@ import {
 	date,
 	type AnyPgColumn,
 	uniqueIndex,
-	check
+	check,
+	real
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -262,6 +263,31 @@ export const marketplacePurchase = pgTable(
 
 export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>;
 
+export const marketplaceReview = pgTable(
+	'marketplace_review',
+	{
+		id: serial('id').primaryKey(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		rating: integer('rating').notNull(),
+		comment: text('comment').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			sql`CONSTRAINT valid_rating CHECK (${table.rating} >= 1 AND ${table.rating} <= 5)`,
+			index('marketplace_review_rating_idx').on(table.rating),
+			index('marketplace_review_user_id_idx').on(table.userId)
+		];
+	}
+).enableRLS();
+
+export type MarketplaceReview = InferSelectModel<typeof marketplaceReview>;
+
 // ---
 
 export const org = pgTable(
@@ -422,6 +448,7 @@ export const registry = pgTable(
 		// marketplace
 		listOnMarketplace: boolean('list_on_marketplace').default(false),
 		stripeConnectAccountId: text('stripe_connect_account'),
+		rating: real('rating'),
 
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
@@ -433,7 +460,9 @@ export const registry = pgTable(
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),
-			index('registry_meta_primary_language').on(table.metaPrimaryLanguage)
+			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
+			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace),
+			index('registry_rating_idx').on(table.rating)
 		];
 	}
 ).enableRLS();
