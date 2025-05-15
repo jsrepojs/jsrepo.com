@@ -9,7 +9,7 @@ export function shouldShowSearch() {
 	return true;
 }
 
-export const NO_SEARCH_BAR_ROUTES = ['/', '/login', '/pricing', '/help'];
+export const NO_SEARCH_BAR_ROUTES = ['/', '/login', '/pricing', '/help', '/marketplace'];
 
 export class UseReactive<T> {
 	#current = $state<T>();

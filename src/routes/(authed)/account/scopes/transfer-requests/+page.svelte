@@ -57,7 +57,7 @@
 	);
 </script>
 
-<MetaTags title="Transfer Requests - Scopes - Account - jsrepo"/>
+<MetaTags title="Transfer Requests - Scopes - Account - jsrepo" />
 
 {#if data.transferRequestInbox.length === 0}
 	<List.Empty>You have no pending scope transfer requests.</List.Empty>

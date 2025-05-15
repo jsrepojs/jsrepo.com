@@ -5,7 +5,7 @@
 	let { data } = $props();
 </script>
 
-<MetaTags title="Licenses - Registries - Account - jsrepo"/>
+<MetaTags title="Licenses - Registries - Account - jsrepo" />
 
 <div class="flex flex-col gap-4">
 	{#if data.licenses.length === 0}

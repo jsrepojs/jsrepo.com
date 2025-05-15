@@ -8,9 +8,10 @@
 
 	type Props = WithChildren<{
 		class?: string;
+		innerWindowClass?: string;
 	}>;
 
-	let { children, class: className }: Props = $props();
+	let { children, class: className, innerWindowClass }: Props = $props();
 </script>
 
 <div class={cn('aspect-video w-full rounded-lg border border-border bg-background', className)}>
@@ -21,7 +22,7 @@
 			<div class="size-2 rounded-full bg-[#22c55e]"></div>
 		</div>
 	</div>
-	<div class="p-4">
+	<div class={cn('p-4', innerWindowClass)}>
 		{@render children?.()}
 	</div>
 </div>

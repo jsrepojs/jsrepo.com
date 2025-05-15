@@ -36,7 +36,7 @@
 	} satisfies Partial<MetaTagsProps>);
 </script>
 
-<MetaTags {...baseTags}/>
+<MetaTags {...baseTags} />
 
 <ModeWatcher />
 <Posthog />

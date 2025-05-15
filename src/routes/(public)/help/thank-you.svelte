@@ -4,7 +4,7 @@
 	import { ArrowUpRight } from '@lucide/svelte';
 </script>
 
-<MetaTags title="Thank you! - jsrepo"/> 
+<MetaTags title="Thank you! - jsrepo" />
 
 <main
 	class="flex min-h-[calc(100svh-var(--header-height))] flex-col place-items-center justify-center"

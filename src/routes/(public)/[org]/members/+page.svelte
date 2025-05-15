@@ -76,7 +76,7 @@
 	);
 </script>
 
-<MetaTags title="Members - {data.org.name} - Organizations - jsrepo"/>
+<MetaTags title="Members - {data.org.name} - Organizations - jsrepo" />
 
 <!-- we can only view the options if we are part of the org -->
 {#if data.member}

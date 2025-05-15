@@ -24,7 +24,7 @@
 	}
 </script>
 
-<MetaTags title="New Registry - jsrepo"/>
+<MetaTags title="New Registry - jsrepo" />
 
 <div class="flex flex-col gap-2">
 	<a

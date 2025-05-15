@@ -31,7 +31,7 @@
 	});
 </script>
 
-<MetaTags title="Device Authorization - jsrepo"/>
+<MetaTags title="Device Authorization - jsrepo" />
 
 <div
 	class="flex min-h-[calc(100svh-var(--header-height))] flex-col place-items-center justify-center gap-2"

@@ -1,1 +1,1 @@
-export { default as MetaTags } from './meta-tags.svelte'
+export { default as MetaTags } from './meta-tags.svelte';

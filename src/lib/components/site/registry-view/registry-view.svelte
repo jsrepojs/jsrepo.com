@@ -75,9 +75,7 @@
 	);
 </script>
 
-<MetaTags
-	title="@{data.scopeName}/{data.registryName}@{data.versionParam} - jsrepo"
-/>
+<MetaTags title="@{data.scopeName}/{data.registryName}@{data.versionParam} - jsrepo" />
 
 <div class="flex flex-col">
 	{#if data.registry.access === 'marketplace'}

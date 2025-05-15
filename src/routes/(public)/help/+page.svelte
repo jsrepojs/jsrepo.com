@@ -53,7 +53,7 @@
 	);
 </script>
 
-<MetaTags title="Help - jsrepo"/>
+<MetaTags title="Help - jsrepo" />
 
 {#if !success}
 	<div

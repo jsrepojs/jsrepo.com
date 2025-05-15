@@ -4,7 +4,7 @@
 	import { MetaTags } from '$lib/components/site/meta-tags';
 </script>
 
-<MetaTags title="Log in - jsrepo"/>
+<MetaTags title="Log in - jsrepo" />
 
 <div class="h-[calc(100svh-var(--header-height)] flex flex-col place-items-center justify-center">
 	<div class="mt-[25svh] flex w-full max-w-sm flex-col place-items-center gap-4">

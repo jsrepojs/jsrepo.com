@@ -7,7 +7,7 @@
 	let { data } = $props();
 </script>
 
-<MetaTags title="Organizations - Account - jsrepo"/>
+<MetaTags title="Organizations - Account - jsrepo" />
 
 <div class="flex flex-col gap-4">
 	<List.Root title="Your Organizations">

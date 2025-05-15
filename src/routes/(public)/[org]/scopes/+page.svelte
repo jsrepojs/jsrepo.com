@@ -8,7 +8,7 @@
 	let { data } = $props();
 </script>
 
-<MetaTags title="Scopes - {page.params.org} - Organizations - jsrepo"/>
+<MetaTags title="Scopes - {page.params.org} - Organizations - jsrepo" />
 
 <div class="flex flex-col gap-2">
 	{#if data.member !== null}

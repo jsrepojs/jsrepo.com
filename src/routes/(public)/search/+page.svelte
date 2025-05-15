@@ -75,7 +75,7 @@
 	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);
 </script>
 
-<MetaTags title="Search Registries - jsrepo"/>
+<MetaTags title="Search Registries - jsrepo" />
 
 <div class="flex flex-col gap-2 py-2">
 	<div

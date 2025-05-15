@@ -9,7 +9,7 @@
 	let { data } = $props();
 </script>
 
-<MetaTags title="Scopes - Account - jsrepo"/>
+<MetaTags title="Scopes - Account - jsrepo" />
 
 <div class="flex flex-col gap-4">
 	<div class="flex flex-col gap-2">

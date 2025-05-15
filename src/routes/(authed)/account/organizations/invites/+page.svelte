@@ -61,7 +61,7 @@
 	);
 </script>
 
-<MetaTags title="Invites - Organizations - Account - jsrepo"/>
+<MetaTags title="Invites - Organizations - Account - jsrepo" />
 
 {#if data.orgInvitesInbox.length === 0}
 	<List.Empty>You have no organization invitations.</List.Empty>

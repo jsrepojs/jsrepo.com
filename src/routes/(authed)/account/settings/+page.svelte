@@ -52,7 +52,7 @@
 	});
 </script>
 
-<MetaTags title="Settings - Account - jsrepo"/>
+<MetaTags title="Settings - Account - jsrepo" />
 
 <div class="flex flex-col gap-4">
 	<a

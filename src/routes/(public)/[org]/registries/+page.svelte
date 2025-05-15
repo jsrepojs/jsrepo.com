@@ -6,7 +6,7 @@
 	let { data } = $props();
 </script>
 
-<MetaTags title="Registries - {page.params.org} - Organizations - jsrepo"/>
+<MetaTags title="Registries - {page.params.org} - Organizations - jsrepo" />
 
 {#if data.registries.length === 0}
 	<List.Empty>This organization hasn't published any registries yet.</List.Empty>

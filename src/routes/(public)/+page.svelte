@@ -2,17 +2,10 @@
 	import { MetaTags } from '$lib/components/site/meta-tags';
 	import RegistrySearch from '$lib/components/site/registry-search.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronRight, Flame, Lock, Milestone, TerminalIcon } from '@lucide/svelte';
-	import * as Terminal from '$lib/components/ui/terminal';
+	import { ChevronRight, Check } from '@lucide/svelte';
 	import * as Icons from '$lib/components/icons';
 	import { Marquee } from '$lib/components/animation/marquee';
 	import * as AvatarGroup from '$lib/components/ui/avatar-group';
-
-	type Feature = {
-		name: string;
-		description: string;
-		icon: typeof ChevronRight;
-	};
 
 	const description =
 		'The future of component registries. Distribute your source with incredible tooling at every step.';
@@ -62,12 +55,12 @@
 	</div>
 	<div class="mb-20 mt-[25svh]">
 		<div class="flex max-w-4xl flex-col gap-2">
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:grid-cols-3">
+			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				<div
-					class="sm:col-start-1 flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6"
+					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-start-1"
 				>
 					<div class="flex h-10 place-items-center">
-						<code class="rounded-lg bg-black px-2 py-1 font-mono text-sm font-thin">
+						<code class="rounded-lg bg-black px-2 py-1 font-mono text-sm font-thin text-white">
 							{'>'} <span class="text-primary">jsrepo</span> publish
 						</code>
 					</div>
@@ -79,7 +72,7 @@
 					</div>
 				</div>
 				<div
-					class="sm:col-span-2 sm:col-start-1 sm:row-start-2 lg:row-start-1 flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 lg:col-span-1 lg:col-start-2"
+					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-span-2 sm:col-start-1 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1"
 				>
 					<Icons.Semver class="size-10" />
 					<div>
@@ -90,7 +83,7 @@
 					</div>
 				</div>
 				<div
-					class="sm:col-start-2 flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 lg:col-start-3"
+					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-start-2 lg:col-start-3"
 				>
 					<div class="flex h-10 place-items-center gap-2">
 						<div>
@@ -108,7 +101,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+			<div class="grid grid-cols-1 gap-2 md:grid-cols-2">
 				<div class="relative rounded-xl border border-border bg-card p-6">
 					<h2 class="text-lg font-medium">Framework Agnostic</h2>
 					<p class="text-muted-foreground">Use what you use and let jsrepo.com do the rest.</p>
@@ -128,7 +121,7 @@
 						</Marquee>
 					</div>
 				</div>
-				<div class="relative rounded-xl border border-border bg-card p-6">
+				<div class="rounded-xl border border-border bg-card p-6">
 					<h2 class="text-lg font-medium">Work With Your Team</h2>
 					<p class="text-muted-foreground">
 						Publish and share code with your entire team with jsrepo.com organizations.
@@ -146,6 +139,72 @@
 					</AvatarGroup.Root>
 				</div>
 			</div>
+			<div
+				class="relative flex place-items-start justify-between gap-4 overflow-hidden rounded-xl border border-border bg-card p-6 sm:min-h-64"
+			>
+				<div class="sm:pt-2">
+					<h2 class="text-center text-lg font-medium sm:text-start">Monetize Your Registry</h2>
+					<p class="text-center text-muted-foreground sm:max-w-[calc(75%)] sm:text-start">
+						Publish and sell your registry on jsrepo.com with the jsrepo.com marketplace.
+					</p>
+					<div class="flex place-items-center justify-center gap-2 pt-2 sm:justify-normal">
+						<Button href="/login" size="sm">
+							Start Selling
+							<ChevronRight />
+						</Button>
+						<Button href="https://jsrepo.dev/docs/jsrepo-com/marketplace" size="sm" variant="ghost">
+							Learn More
+						</Button>
+					</div>
+				</div>
+				<div class="absolute left-3/4 top-6 hidden sm:block">
+					<div class="w-72 rounded-xl border border-border bg-background p-2">
+						<div class="relative flex w-80 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+							<div class="flex flex-col gap-2">
+								<div class="flex flex-col gap-2">
+									<span class="text-lg font-bold">Individual License</span>
+									<div class="flex flex-col gap-2">
+										<div class="flex place-items-start gap-1">
+											<span class="text-5xl">
+												${99.99}
+											</span>
+										</div>
+										<div class="flex place-items-center gap-2">
+											<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
+										</div>
+									</div>
+								</div>
+								<div>
+									{@render feature_list({
+										features: ['Lifetime Access', 'Unlimited Downloads', '']
+									})}
+								</div>
+								<div class="h-9"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
+	<div class="my-20 flex flex-col place-items-center gap-2">
+		<h2 class="text-center text-2xl font-semibold">Ready to start shipping?</h2>
+		<Button href="/login" size="sm">Let's Go!</Button>
+	</div>
 </div>
+
+{#snippet feature_list({ features }: { features: string[] })}
+	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
+		{#each features as feature (feature)}
+			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
+				<span
+					data-visible={feature.length > 0}
+					class="flex h-[var(--line-height)] place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+				>
+					<Check class="size-4 text-green-400" />
+				</span>
+				{feature}
+			</li>
+		{/each}
+	</ul>
+{/snippet}

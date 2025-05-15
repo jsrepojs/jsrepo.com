@@ -44,7 +44,7 @@
 	);
 </script>
 
-<MetaTags title="Choose your Username - jsrepo"/>
+<MetaTags title="Choose your Username - jsrepo" />
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] place-items-center justify-center">
 	<form method="POST" use:enhance class="flex w-full max-w-xs flex-col place-items-center gap-2">
