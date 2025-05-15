@@ -3,13 +3,13 @@ import type { RegistryPrice } from '$lib/backend/db/schema';
 export const MIN_PRICE = 5;
 export const MAX_PRICE = 1000;
 
-/** 5% + 55¢
+/** 5% + 30¢
  *
  * @param transactionCost cost in cents
  * @returns
  */
 export function calculatePlatformFee(transactionCost: number) {
-	return Math.ceil(transactionCost * 0.05 + 55);
+	return Math.ceil(transactionCost * 0.05 + 30);
 }
 
 /** Calculates the price with discount (if there was one) */
