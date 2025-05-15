@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
+
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>{data.org.name} - jsrepo</title>
-</svelte:head>
+<MetaTags title="{data.org.name} - jsrepo"/>\
 
 <div class="grid grid-cols-[1fr_16rem]">
 	<div></div>

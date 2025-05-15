@@ -7,6 +7,7 @@
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 	import { page } from '$app/state';
 	import * as Select from '$lib/components/ui/select';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -32,9 +33,7 @@
 		data.orgs.find((o) => o.org.name === (page.url.searchParams.get('org') ?? ''))?.org.name ?? '';
 </script>
 
-<svelte:head>
-	<title>New - Scopes - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="New - Scopes - Account - jsrepo" />
 
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a

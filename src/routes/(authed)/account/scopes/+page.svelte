@@ -4,13 +4,12 @@
 	import { Meter } from '$lib/components/ui/meter';
 	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Scopes - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Scopes - Account - jsrepo"/>
 
 <div class="flex flex-col gap-4">
 	<div class="flex flex-col gap-2">

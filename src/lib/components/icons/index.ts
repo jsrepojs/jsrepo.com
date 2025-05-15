@@ -15,6 +15,7 @@ import Yaml from './yaml.svelte';
 import Svg from './svg.svelte';
 import HTML from './html.svelte';
 import SASS from './sass.svelte';
+import Semver from './semver.svelte'
 
 export interface Props extends HTMLAttributes<SVGElement> {
 	class?: string;
@@ -38,5 +39,6 @@ export {
 	BitBucket,
 	Yaml,
 	SASS,
-	Svg
+	Svg,
+	Semver
 };

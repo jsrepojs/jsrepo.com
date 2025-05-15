@@ -2,13 +2,12 @@
 	import * as Tabs from '$lib/components/site/tabs';
 	import { toRelative } from '$lib/ts/dates.js';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data, children } = $props();
 </script>
 
-<svelte:head>
-	<title>@{data.scope.name} - Scopes - jsrepo</title>
-</svelte:head>
+<MetaTags title="@{data.scope.name} - Scopes - jsrepo" />
 
 <div class="flex flex-col gap-2 py-6">
 	<Breadcrumb.Root>

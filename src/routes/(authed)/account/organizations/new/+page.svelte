@@ -7,6 +7,7 @@
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -49,9 +50,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>New - Organizations - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="New - Organizations - Account - jsrepo" />
 
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a

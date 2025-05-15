@@ -2,13 +2,12 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Organizations - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Organizations - Account - jsrepo"/>
 
 <div class="flex flex-col gap-4">
 	<List.Root title="Your Organizations">

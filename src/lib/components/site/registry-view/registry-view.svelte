@@ -36,6 +36,7 @@
 	import { PageBanner } from '../page-banner';
 	import Reviews from './reviews.svelte';
 	import ReviewStars from './review-stars.svelte';
+	import { MetaTags } from '../meta-tags';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -74,9 +75,9 @@
 	);
 </script>
 
-<svelte:head>
-	<title>@{data.scopeName}/{data.registryName}@{data.versionParam} - jsrepo</title>
-</svelte:head>
+<MetaTags
+	title="@{data.scopeName}/{data.registryName}@{data.versionParam} - jsrepo"
+/>
 
 <div class="flex flex-col">
 	{#if data.registry.access === 'marketplace'}

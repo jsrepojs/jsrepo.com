@@ -3,13 +3,12 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Plus } from '@lucide/svelte';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Scopes - {page.params.org} - Organizations - jsrepo</title>
-</svelte:head>
+<MetaTags title="Scopes - {page.params.org} - Organizations - jsrepo"/>
 
 <div class="flex flex-col gap-2">
 	{#if data.member !== null}

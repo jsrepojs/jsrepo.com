@@ -7,6 +7,7 @@
 	import { UsePromise } from '$lib/hooks/use-promise.svelte.js';
 	import { signOut } from '$lib/auth/components/utils';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -51,9 +52,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Settings - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Settings - Account - jsrepo"/>
 
 <div class="flex flex-col gap-4">
 	<a

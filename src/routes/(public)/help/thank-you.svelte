@@ -1,11 +1,10 @@
 <script lang="ts">
 	import BlurFade from '$lib/components/animation/blur-fade.svelte';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 	import { ArrowUpRight } from '@lucide/svelte';
 </script>
 
-<svelte:head>
-	<title>Thank you! - jsrepo</title>
-</svelte:head>
+<MetaTags title="Thank you! - jsrepo"/> 
 
 <main
 	class="flex min-h-[calc(100svh-var(--header-height))] flex-col place-items-center justify-center"

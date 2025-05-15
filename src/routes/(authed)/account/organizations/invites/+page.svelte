@@ -8,6 +8,7 @@
 	import type { RejectInviteRequest } from '../../../../api/orgs/[org]/members/invite/reject/+server.js';
 	import * as casing from '$lib/ts/casing';
 	import { toast } from 'svelte-sonner';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 
@@ -60,9 +61,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Invites - Organizations - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Invites - Organizations - Account - jsrepo"/>
 
 {#if data.orgInvitesInbox.length === 0}
 	<List.Empty>You have no organization invitations.</List.Empty>

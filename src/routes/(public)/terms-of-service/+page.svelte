@@ -1,12 +1,11 @@
 <script lang="ts">
+	import { MetaTags } from '$lib/components/site/meta-tags';
 	import '../../../markdown.css';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Terms of Service</title>
-</svelte:head>
+<MetaTags title="Terms of Service" />
 
 <div class="flex w-full flex-col place-items-center">
 	<div class="flex w-full max-w-4xl flex-col gap-8">

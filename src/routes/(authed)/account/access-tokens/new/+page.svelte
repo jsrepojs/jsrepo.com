@@ -9,6 +9,7 @@
 	import { Check, ChevronLeft, X } from '@lucide/svelte';
 	import * as Select from '$lib/components/ui/select';
 	import { DAY, getSeconds } from '$lib/ts/time.js';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	const expiresInOptions = [
 		{
@@ -81,9 +82,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>New - Access Tokens - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="New - Access Tokens - Account - jsrepo" />
 
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a

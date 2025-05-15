@@ -1,11 +1,10 @@
 <script lang="ts">
 	import * as Auth from '$lib/auth/components';
 	import * as Icons from '$lib/components/icons';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 </script>
 
-<svelte:head>
-	<title>Log in - jsrepo</title>
-</svelte:head>
+<MetaTags title="Log in - jsrepo"/>
 
 <div class="h-[calc(100svh-var(--header-height)] flex flex-col place-items-center justify-center">
 	<div class="mt-[25svh] flex w-full max-w-sm flex-col place-items-center gap-4">

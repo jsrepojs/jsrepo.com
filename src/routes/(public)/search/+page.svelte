@@ -7,6 +7,7 @@
 	import type { ListItem } from '$lib/ts/types.js';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	const langOptions: ListItem<string>[] = [
 		{
@@ -74,9 +75,7 @@
 	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);
 </script>
 
-<svelte:head>
-	<title>Search Registries - jsrepo</title>
-</svelte:head>
+<MetaTags title="Search Registries - jsrepo"/>
 
 <div class="flex flex-col gap-2 py-2">
 	<div

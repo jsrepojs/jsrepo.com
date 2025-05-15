@@ -104,7 +104,8 @@
 	"dependencies": {
 		"chalk": "^5.4.1",
 		"dotenv": "^16.5.0",
-		"p-limit": "^6.2.0"
+		"p-limit": "^6.2.0",
+		"svelte-meta-tags": "^4.3.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

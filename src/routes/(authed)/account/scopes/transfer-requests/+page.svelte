@@ -6,6 +6,7 @@
 	import type { RejectTransferRequest } from '../../../../api/scopes/[scope=scope]/transfer/reject/+server.js';
 	import { invalidateAll } from '$app/navigation';
 	import type { AcceptTransferRequest } from '../../../../api/scopes/[scope=scope]/transfer/accept/+server.js';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 
@@ -56,9 +57,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Transfer Requests - Scopes - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Transfer Requests - Scopes - Account - jsrepo"/>
 
 {#if data.transferRequestInbox.length === 0}
 	<List.Empty>You have no pending scope transfer requests.</List.Empty>

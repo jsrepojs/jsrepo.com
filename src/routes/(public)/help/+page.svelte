@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import { SUPPORT_REASONS } from '$lib/ts/help.js';
 	import ThankYou from './thank-you.svelte';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -52,9 +53,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Help - jsrepo</title>
-</svelte:head>
+<MetaTags title="Help - jsrepo"/>
 
 {#if !success}
 	<div

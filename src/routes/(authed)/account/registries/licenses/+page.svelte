@@ -1,12 +1,11 @@
 <script lang="ts">
 	import * as List from '$lib/components/site/list';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Licenses - Registries - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Licenses - Registries - Account - jsrepo"/>
 
 <div class="flex flex-col gap-4">
 	{#if data.licenses.length === 0}

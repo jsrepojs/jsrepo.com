@@ -5,6 +5,7 @@
 	import { Check, X } from '@lucide/svelte';
 	import { NAME_REGEX } from '$lib/ts/registry/name.js';
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -43,9 +44,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Choose your Username - jsrepo</title>
-</svelte:head>
+<MetaTags title="Choose your Username - jsrepo"/>
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] place-items-center justify-center">
 	<form method="POST" use:enhance class="flex w-full max-w-xs flex-col place-items-center gap-2">

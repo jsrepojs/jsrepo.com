@@ -7,6 +7,7 @@
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import { page } from '$app/state';
 	import { LoaderCircle } from '@lucide/svelte';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -30,9 +31,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Device Authorization - jsrepo</title>
-</svelte:head>
+<MetaTags title="Device Authorization - jsrepo"/>
 
 <div
 	class="flex min-h-[calc(100svh-var(--header-height))] flex-col place-items-center justify-center gap-2"

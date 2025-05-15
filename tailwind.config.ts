@@ -91,9 +91,6 @@ const config: Config = {
 					to: { transform: 'translateY(calc(-100% - var(--gap)))' }
 				}
 			},
-			aspectRatio: {
-				card: '9 / 10'
-			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
