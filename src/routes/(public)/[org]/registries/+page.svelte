@@ -1,13 +1,12 @@
 <script lang="ts">
 	import * as List from '$lib/components/site/list';
 	import { page } from '$app/state';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>Registries - {page.params.org} - Organizations - jsrepo</title>
-</svelte:head>
+<MetaTags title="Registries - {page.params.org} - Organizations - jsrepo" />
 
 {#if data.registries.length === 0}
 	<List.Empty>This organization hasn't published any registries yet.</List.Empty>

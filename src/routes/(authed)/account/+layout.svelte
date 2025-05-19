@@ -2,7 +2,6 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { getInitials } from '$lib/ts/initials';
 	import { Separator } from '$lib/components/ui/separator';
-	import SubBadge from '$lib/components/site/sub-badge.svelte';
 
 	let { data, children } = $props();
 
@@ -22,9 +21,6 @@
 				<span class="max-w-full truncate text-start text-xl font-medium md:text-center">
 					{user.username}
 				</span>
-				<div>
-					<SubBadge user={data.user} />
-				</div>
 			</div>
 		</div>
 		<Separator class="md:hidden" />

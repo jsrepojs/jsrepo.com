@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Common from './registry-view.svelte';
+	import { RegistryView } from '$lib/components/site/registry-view/index.js';
 
 	let { data } = $props();
 </script>
 
-<Common {data} />
+<RegistryView {data} />

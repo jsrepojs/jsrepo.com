@@ -32,7 +32,11 @@ export function welcomeEmail(user: MinUser): CreateEmailOptions {
 	};
 }
 
-export function newVersionPublishedEmail(user: MinUser, name: string, version: string) {
+export function newVersionPublishedEmail(
+	user: MinUser,
+	name: string,
+	version: string
+): CreateEmailOptions {
 	const date = new Date().toISOString();
 	const html = `<p>A new version of ${name} (${version}) was just published at ${date}!</p>`;
 
@@ -152,6 +156,28 @@ export function invitedToOrgEmail(opts: {
 		from: SUPPORT_EMAIL,
 		to: [opts.invited],
 		subject: `${opts.owner.username} invited you to join ${opts.orgName}!`,
+		html,
+		text: htmlToText(html)
+	};
+}
+
+export function marketplaceNextStepsEmail(user: MinUser, registryName: string): CreateEmailOptions {
+	const html = `<p>Congrats on publishing ${registryName}!</p>
+	
+<p>Here's a few things you need to do before you continue...</p>
+
+<ol>
+	<li>Link your Stripe account to receive payments <a href="https://www.jsrepo.com/account/settings">here</a></li>
+	<li>Configure the price for your registry <a href="https://www.jsrepo.com/${registryName}?tab=pricing">here</a></li>
+	<li>List your registry on the marketplace <a href="https://www.jsrepo.com/${registryName}?tab=settings">here</a></li>
+</ol>
+
+<p>Happy Shipping!</p>`;
+
+	return {
+		from: SUPPORT_EMAIL,
+		to: [user.email],
+		subject: `${registryName} marketplace configuration`,
 		html,
 		text: htmlToText(html)
 	};

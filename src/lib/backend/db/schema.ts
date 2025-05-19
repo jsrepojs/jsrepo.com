@@ -12,7 +12,9 @@ import {
 	index,
 	date,
 	type AnyPgColumn,
-	uniqueIndex
+	uniqueIndex,
+	check,
+	real
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -39,7 +41,8 @@ export const user = pgTable(
 		banned: boolean('banned').notNull().default(false),
 		barReason: text('bar_reason'),
 		banExpires: timestamp('bar_expires'),
-		stripeCustomerId: text('stripe_customer_id')
+		stripeCustomerId: text('stripe_customer_id'),
+		stripeSellerAccountId: text('stripe_seller_account_id')
 	},
 	(table) => {
 		return [
@@ -201,6 +204,7 @@ export const anonSessionCode = pgTable(
 
 export type AnonSessionCode = InferSelectModel<typeof anonSessionCode>;
 
+/** @deprecated */
 export const subscription = pgTable(
 	'subscription',
 	{
@@ -233,6 +237,57 @@ export const subscription = pgTable(
 ).enableRLS();
 
 export type Subscription = InferSelectModel<typeof subscription>;
+
+export const marketplacePurchase = pgTable(
+	'marketplace_purchase',
+	{
+		id: text('id').primaryKey(),
+		stripePurchaseIntentId: text('stripe_purchase_intent_id').notNull().unique(),
+		stripeCustomerId: text('stripe_customer_id').notNull(),
+		referenceId: text('reference_id').notNull(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		status: text('status').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			index('marketplace_purchase_stripe_purchase_intent_id_idx').on(table.stripePurchaseIntentId),
+			index('marketplace_purchase_reference_id_idx').on(table.referenceId),
+			index('marketplace_purchase_registry_id_idx').on(table.registryId),
+			index('marketplace_purchase_status_idx').on(table.status),
+			index('marketplace_stripe_customer_id_idx').on(table.stripeCustomerId)
+		];
+	}
+).enableRLS();
+
+export type MarketplacePurchase = InferSelectModel<typeof marketplacePurchase>;
+
+export const registryReview = pgTable(
+	'registry_review',
+	{
+		id: serial('id').primaryKey(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		rating: integer('rating').notNull(),
+		comment: text('comment').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow()
+	},
+	(table) => {
+		return [
+			sql`CONSTRAINT valid_rating CHECK (${table.rating} >= 1 AND ${table.rating} <= 5)`,
+			index('registry_review_rating_idx').on(table.rating),
+			index('registry_review_user_id_idx').on(table.userId)
+		];
+	}
+).enableRLS();
+
+export type RegistryReview = InferSelectModel<typeof registryReview>;
 
 // ---
 
@@ -391,6 +446,11 @@ export const registry = pgTable(
 		metaTags: text('meta_tags').array(),
 		metaPrimaryLanguage: text('meta_primary_language').notNull(),
 
+		// marketplace
+		listOnMarketplace: boolean('list_on_marketplace').default(false),
+		stripeConnectAccountId: text('stripe_connect_account'),
+		rating: real('rating'),
+
 		createdAt: timestamp('created_at').notNull().defaultNow()
 	},
 	(table) => {
@@ -401,12 +461,43 @@ export const registry = pgTable(
 			index('registry_meta_description').on(table.metaDescription),
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),
-			index('registry_meta_primary_language').on(table.metaPrimaryLanguage)
+			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
+			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace)
 		];
 	}
 ).enableRLS();
 
 export type Registry = InferSelectModel<typeof registry>;
+
+export const registryPriceTarget = pgEnum('registry_price_target', ['individual', 'org']);
+
+export type RegistryPriceTarget = (typeof registryPriceTarget.enumValues)[number];
+
+export const registryPriceTargets = orgMemberRole.enumValues;
+
+export const registryPrice = pgTable(
+	'registry_price',
+	{
+		id: serial('id').primaryKey(),
+		registryId: integer('registry_id')
+			.notNull()
+			.references(() => registry.id, { onDelete: 'cascade' }),
+		target: registryPriceTarget('target').notNull(),
+		cost: integer('cost').notNull(),
+		// 0 - 100% discount applied to the cost
+		discount: integer('discount'),
+		discountUntil: timestamp('discount_until')
+	},
+	(table) => {
+		return [
+			index('registry_price_registry_id_idx').on(table.registryId),
+			// prevent foot-guns
+			check('cost is non-negative', sql`${table.cost} >= 0`)
+		];
+	}
+).enableRLS();
+
+export type RegistryPrice = InferSelectModel<typeof registryPrice>;
 
 export const version = pgTable(
 	'version',

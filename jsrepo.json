@@ -1,6 +1,6 @@
 {
 	"$schema": "https://unpkg.com/jsrepo@1.47.0/schemas/project-config.json",
-	"repos": ["@ieedan/std", "@ieedan/shadcn-svelte-extras"],
+	"repos": ["@ieedan/std", "@ieedan/shadcn-svelte-extras@2.1.1"],
 	"includeTests": false,
 	"watermark": true,
 	"formatter": "prettier",

@@ -25,7 +25,7 @@ export class UseQuery<T, Args extends unknown[] = []> {
 	#data = $state<T>();
 	#loading = $state(false);
 	#loadingKey = $state<string>();
-	#error = $state<unknown | null>(null);
+	#error = $state<Error | null>(null);
 	fn: QueryFn<T, Args>;
 
 	constructor(fn: QueryFn<T, Args>, { debounceMs = 250, invalidateOnCall = false }: Options = {}) {
@@ -45,7 +45,7 @@ export class UseQuery<T, Args extends unknown[] = []> {
 	}
 
 	async run(...args: Args) {
-		this.#error = undefined;
+		this.#error = null;
 		if (this.invalidateOnCall) {
 			this.#data = undefined;
 		}
@@ -67,7 +67,7 @@ export class UseQuery<T, Args extends unknown[] = []> {
 		} catch (err) {
 			// don't count aborted as an error
 			if (!UseQuery.wasAborted(err)) {
-				this.#error = err;
+				this.#error = err as Error;
 				this.#data = undefined;
 			}
 			this.#data = undefined;

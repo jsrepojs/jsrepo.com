@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MetaTags } from '$lib/components/site/meta-tags';
 	import {
 		ArrowRight,
 		Building,
@@ -10,9 +11,7 @@
 	} from '@lucide/svelte';
 </script>
 
-<svelte:head>
-	<title>Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Account - jsrepo" />
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 	{@render card({
@@ -47,7 +46,7 @@
 	})}
 	{@render card({
 		title: 'Settings',
-		description: 'Manage your subscription and preferences.',
+		description: 'Manage your account settings and preferences.',
 		href: '/account/settings',
 		Icon: Settings
 	})}

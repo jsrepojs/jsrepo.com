@@ -6,6 +6,8 @@
 	import * as Select from '$lib/components/ui/select';
 	import type { ListItem } from '$lib/ts/types.js';
 	import { FileIcon } from '$lib/components/ui/file-icon';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	const langOptions: ListItem<string>[] = [
 		{
@@ -68,22 +70,27 @@
 	let page = $state($params.page ?? 1);
 	let sortBy = $state($params.order_by ?? 'default');
 	let lang = $state($params.lang ?? '');
+	let regType = $state($params.type ?? 'all');
 
 	const langLabel = $derived(langOptions.find((o) => o.value === lang)?.label);
 </script>
 
-<svelte:head>
-	<title>Search Registries - jsrepo</title>
-</svelte:head>
+<MetaTags title="Search Registries - jsrepo" />
 
 <div class="flex flex-col gap-2 py-2">
-	<div class="flex place-items-center justify-between">
+	<div
+		class="flex flex-col place-items-start justify-between gap-2 md:flex-row md:place-items-center"
+	>
 		<div>
-			<span class="hidden md:block">
-				{data.total} registries found
-			</span>
+			<Tabs.Root bind:value={regType} onValueChange={(v) => ($params.type = v)}>
+				<Tabs.List class="p-0">
+					<Tabs.Trigger value="all" class="w-14">All</Tabs.Trigger>
+					<Tabs.Trigger value="paid" class="w-14">Paid</Tabs.Trigger>
+					<Tabs.Trigger value="free" class="w-14">Free</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
 		</div>
-		<div class="flex flex-wrap place-items-center justify-end gap-2">
+		<div class="flex flex-wrap place-items-center gap-2 md:justify-end">
 			<Select.Root
 				type="single"
 				allowDeselect

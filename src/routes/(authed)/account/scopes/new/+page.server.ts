@@ -13,7 +13,6 @@ import {
 	type FullOrg
 } from '$lib/backend/db/functions';
 import assert from 'assert';
-import { checkUserSubscription } from '$lib/ts/stripe/client';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { immediate } from '$lib/ts/promises';
 import { posthog } from '$lib/ts/posthog';
@@ -85,9 +84,10 @@ export const actions = {
 
 		if (org === null) {
 			if (scopes.userScopes.length >= user.scopeLimit) {
-				if (!checkUserSubscription(user)) {
-					return error(400, { message: 'You are at your scope limit!' });
-				}
+				error(
+					400,
+					`You have reached your scope limit (${user.scopeLimit}). To increase this limit reach out to support@jsrepo.com.`
+				);
 			}
 		}
 

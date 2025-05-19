@@ -1,9 +1,22 @@
-import { getFiles, getRegistry, getVersions } from '$lib/backend/db/functions';
+import {
+	canLeaveReview,
+	getFiles,
+	getRegistry,
+	getVersions,
+	leaveReview,
+	type RegistryDetails
+} from '$lib/backend/db/functions';
 import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
 import * as v from 'valibot';
 import DOMPurify from 'isomorphic-dompurify';
 import { rehype } from '$lib/ts/markdown';
+import { fail } from '@sveltejs/kit';
+import { message, superValidate } from 'sveltekit-superforms';
+import { valibot } from 'sveltekit-superforms/adapters';
+import { reviewSchema } from '$lib/components/site/registry-view/types';
+import type { Action } from './$types';
+import assert from 'assert';
 
 export type Options = {
 	scopeName: string;
@@ -16,7 +29,7 @@ export type Info = {
 	readme: string | null;
 	manifest: Manifest;
 	versions: tables.Version[];
-	registry: tables.Registry;
+	registry: RegistryDetails;
 };
 
 export async function getInfo({
@@ -25,7 +38,7 @@ export async function getInfo({
 	version,
 	userId
 }: Options): Promise<Info | null> {
-	const registryPromise = getRegistry(scopeName, registryName, userId);
+	const registryPromise = getRegistry({ scopeName, registryName, userId });
 
 	const promises = Promise.all([
 		getVersions(scopeName, registryName),
@@ -34,6 +47,7 @@ export async function getInfo({
 			scopeName,
 			registryName,
 			version,
+			readonlyAccess: true,
 			fileNames: ['README.md', 'jsrepo-manifest.json']
 		})
 	]);
@@ -64,3 +78,47 @@ export async function getInfo({
 		versions
 	};
 }
+
+const review: Action = async ({ request, locals, params }) => {
+	const form = await superValidate(request, valibot(reviewSchema));
+
+	if (!form.valid) {
+		return fail(400, { form });
+	}
+
+	const session = await locals.auth();
+
+	if (!session) return fail(401);
+
+	const scopeName = params.scope.slice(1);
+	const registryName = params.name;
+
+	const [authorized, registry] = await Promise.all([
+		canLeaveReview({
+			userId: session?.user.id,
+			scope: params.scope.slice(1),
+			registry: params.name
+		}),
+		getRegistry({ scopeName, registryName, userId: session?.user.id ?? null })
+	]);
+
+	if (!authorized) return fail(401);
+
+	assert(registry !== null, 'registry must be defined');
+
+	// create review
+
+	const result = await leaveReview({
+		...form.data,
+		registryId: registry.id,
+		userId: session?.user.id
+	});
+
+	if (!result) return fail(500, { message: 'error leaving review' });
+
+	return message(form, 'Success');
+};
+
+export const actions = {
+	review
+};

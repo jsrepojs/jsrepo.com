@@ -24,6 +24,7 @@
 		"@eslint/js": "^9.25.1",
 		"@fontsource-variable/jetbrains-mono": "^5.2.5",
 		"@fontsource-variable/oxanium": "^5.2.5",
+		"@internationalized/date": "^3.8.0",
 		"@lucide/svelte": "^0.503.0",
 		"@shikijs/langs": "^3.3.0",
 		"@shikijs/themes": "^3.3.0",
@@ -103,7 +104,8 @@
 	"dependencies": {
 		"chalk": "^5.4.1",
 		"dotenv": "^16.5.0",
-		"p-limit": "^6.2.0"
+		"p-limit": "^6.2.0",
+		"svelte-meta-tags": "^4.3.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

@@ -17,6 +17,9 @@ importers:
       p-limit:
         specifier: ^6.2.0
         version: 6.2.0
+      svelte-meta-tags:
+        specifier: ^4.3.0
+        version: 4.3.0(svelte@5.28.2)
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.808.0
@@ -39,6 +42,9 @@ importers:
       '@fontsource-variable/oxanium':
         specifier: ^5.2.5
         version: 5.2.5
+      '@internationalized/date':
+        specifier: ^3.8.0
+        version: 3.8.0
       '@lucide/svelte':
         specifier: ^0.503.0
         version: 0.503.0(svelte@5.28.2)
@@ -3429,6 +3435,9 @@ packages:
   scheduler@0.26.0:
     resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
 
+  schema-dts@1.1.5:
+    resolution: {integrity: sha512-RJr9EaCmsLzBX2NDiO5Z3ux2BVosNZN5jo0gWgsyKvxKIUL5R3swNvoorulAeL9kLB0iTSX7V6aokhla2m7xbg==}
+
   selderee@0.11.0:
     resolution: {integrity: sha512-5TF+l7p4+OsnP8BCCvSyZiSPc4x4//p5uPwK8TCnVPJYRmU2aYKMpOXvw8zM5a5JvuuCGN1jmsMwuU2W02ukfA==}
 
@@ -3578,6 +3587,11 @@ packages:
     resolution: {integrity: sha512-PlXNSHHijvQ6MhmSYUj6cMyS+39NttoTffk7W5WYF8T2tsyLgJnKhyuAF+/hSujbY0vpsmqXaMd2nolEKvR8Kw==}
     peerDependencies:
       svelte: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^5.0.0-next
+
+  svelte-meta-tags@4.3.0:
+    resolution: {integrity: sha512-iwiepOc8p5MauzZpu0nxKsTCj6bLCOnhmR299w04W7vpdJ63sL3adjAj715hOG+TnHxxtlPlc/CeDX6tbc35Dw==}
+    peerDependencies:
+      svelte: ^5.0.0
 
   svelte-sonner@0.3.28:
     resolution: {integrity: sha512-K3AmlySeFifF/cKgsYNv5uXqMVNln0NBAacOYgmkQStLa/UoU0LhfAACU6Gr+YYC8bOCHdVmFNoKuDbMEsppJg==}
@@ -7633,6 +7647,8 @@ snapshots:
 
   scheduler@0.26.0: {}
 
+  schema-dts@1.1.5: {}
+
   selderee@0.11.0:
     dependencies:
       parseley: 0.12.1
@@ -7811,6 +7827,11 @@ snapshots:
 
   svelte-inview@4.0.4(svelte@5.28.2):
     dependencies:
+      svelte: 5.28.2
+
+  svelte-meta-tags@4.3.0(svelte@5.28.2):
+    dependencies:
+      schema-dts: 1.1.5
       svelte: 5.28.2
 
   svelte-sonner@0.3.28(svelte@5.28.2):

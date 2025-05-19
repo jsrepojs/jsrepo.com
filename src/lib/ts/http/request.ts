@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, isHttpError } from '@sveltejs/kit';
 import * as v from 'valibot';
 import * as vercel from '@vercel/functions';
 
@@ -15,7 +15,9 @@ export async function validateRequest<
 		}
 
 		return result.output;
-	} catch {
+	} catch (err) {
+		if (isHttpError(err)) throw err;
+
 		error(400, 'expected json request body');
 	}
 }

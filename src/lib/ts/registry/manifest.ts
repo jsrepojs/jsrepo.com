@@ -58,10 +58,17 @@ export const manifestConfigFileSchema = v.object({
 	devDependencies: v.optional(v.array(v.string()))
 });
 
+export const accessLevel = v.union([
+	v.literal('public'),
+	v.literal('private'),
+	v.literal('marketplace')
+]);
+
 export const manifestSchema = v.object({
 	name: v.string(),
-	version: v.pipe(v.string(), v.minLength(1)),
+	version: v.string(),
 	meta: v.optional(manifestMeta),
+	access: v.optional(accessLevel),
 	peerDependencies: v.optional(peerDependencySchema),
 	configFiles: v.optional(v.array(manifestConfigFileSchema)),
 	categories: v.array(categorySchema)

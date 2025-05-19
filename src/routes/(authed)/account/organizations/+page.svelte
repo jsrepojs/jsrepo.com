@@ -1,22 +1,18 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { checkUserSubscription } from '$lib/ts/stripe/client.js';
 	import { Plus } from '@lucide/svelte';
 	import * as List from '$lib/components/site/list';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
-
-	const subscription = $derived(checkUserSubscription(data.user));
 </script>
 
-<svelte:head>
-	<title>Organizations - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Organizations - Account - jsrepo" />
 
 <div class="flex flex-col gap-4">
 	<List.Root title="Your Organizations">
 		{#snippet actions()}
-			<Button href="/account/organizations/new" disabled={subscription === null}>
+			<Button href="/account/organizations/new">
 				<Plus /> New
 			</Button>
 		{/snippet}

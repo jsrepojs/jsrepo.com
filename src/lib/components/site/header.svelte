@@ -43,13 +43,6 @@
 		<div class="flex place-items-center gap-6">
 			<div class="hidden place-content-center gap-4 md:flex">
 				<a
-					href="/pricing"
-					class="text-nowrap text-sm text-muted-foreground transition-all hover:text-foreground data-[active=true]:text-foreground"
-					use:active={{ activeForSubdirectories: true }}
-				>
-					Pricing
-				</a>
-				<a
 					href="https://jsrepo.dev/docs"
 					target="_blank"
 					class="text-nowrap text-sm text-muted-foreground transition-all hover:text-foreground data-[active=true]:text-foreground"

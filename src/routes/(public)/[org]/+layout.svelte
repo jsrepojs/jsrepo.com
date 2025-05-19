@@ -11,26 +11,6 @@
 	let tabListPopoverOpen = $state(false);
 </script>
 
-<!-- seats warning banner -->
-{#if data.member && data.org.status.type !== 'paid'}
-	<div
-		class="fixed left-0 top-[--header-height] w-full bg-destructive py-2 text-destructive-foreground"
-	>
-		<div class="container">
-			<span>
-				{data.org.status.message}
-			</span>
-		</div>
-	</div>
-	<!-- surely there's a better way to do this but idk right now -->
-	<div class="py-2 opacity-0">
-		<div>
-			<span>
-				{data.org.status.message}
-			</span>
-		</div>
-	</div>
-{/if}
 <div class="flex flex-col py-6">
 	<div class="flex flex-col gap-2">
 		<Breadcrumb.Root>

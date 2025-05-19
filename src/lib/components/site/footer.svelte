@@ -11,12 +11,12 @@
 			href: '/'
 		},
 		{
-			title: 'Pricing',
-			href: '/pricing'
-		},
-		{
 			title: 'Help',
 			href: '/help'
+		},
+		{
+			title: 'Terms of Service',
+			href: '/terms-of-service'
 		},
 		{
 			title: 'Docs',

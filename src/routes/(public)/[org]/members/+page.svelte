@@ -13,6 +13,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { toast } from 'svelte-sonner';
 	import type { FullOrg } from '$lib/backend/db/functions';
+	import { MetaTags } from '$lib/components/site/meta-tags';
 
 	let { data } = $props();
 
@@ -75,9 +76,7 @@
 	);
 </script>
 
-<svelte:head>
-	<title>Members - {data.org.name} - Organizations - jsrepo</title>
-</svelte:head>
+<MetaTags title="Members - {data.org.name} - Organizations - jsrepo" />
 
 <!-- we can only view the options if we are part of the org -->
 {#if data.member}

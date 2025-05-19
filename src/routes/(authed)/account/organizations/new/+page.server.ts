@@ -5,7 +5,6 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { getUser, nameIsBanned, createOrg, getUserOrOrg } from '$lib/backend/db/functions';
 import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
-import { checkUserSubscription } from '$lib/ts/stripe/client';
 
 export async function load({ locals, url }) {
 	const form = await superValidate(valibot(schema));
@@ -13,14 +12,6 @@ export async function load({ locals, url }) {
 	const session = await locals.auth();
 
 	if (!session) redirectToLogin(url);
-
-	const user = await getUser({ id: session.user.id });
-
-	assert(user !== null, 'user must be defined');
-
-	if (checkUserSubscription(user) === null) {
-		redirect(303, `/pricing`);
-	}
 
 	return {
 		form
@@ -52,11 +43,6 @@ export const actions = {
 		const user = await userPromise;
 
 		assert(user !== null, 'User must be defined');
-
-		if (checkUserSubscription(user) === null) {
-			// we will rudely redirect them since they aren't supposed to be here anyways
-			redirect(303, '/pricing');
-		}
 
 		if (await nameIsBanned(form.data.name)) {
 			return error(400, {

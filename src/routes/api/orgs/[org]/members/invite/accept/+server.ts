@@ -23,11 +23,6 @@ export async function PATCH({ locals, request, params }) {
 
 	if (invite.userId !== session.user.id) error(401, 'this invite is not intended for you');
 
-	// org is already full
-	if ((org.subscription?.seats ?? 0) + 1 < org.members.length + 1) {
-		error(400, "this org doesn't have any seats left");
-	}
-
 	const result = await acceptOrgInvite(body.inviteId, session.user.id);
 
 	if (!result) error(500, 'error accepting org invite');

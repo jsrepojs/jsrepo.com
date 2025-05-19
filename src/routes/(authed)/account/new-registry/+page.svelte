@@ -6,6 +6,7 @@
 	import * as Steps from '$lib/components/ui/steps';
 	import { Code } from '$lib/components/ui/code/index.js';
 	import { Snippet } from '$lib/components/ui/snippet';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 
@@ -23,9 +24,7 @@
 	}
 </script>
 
-<svelte:head>
-	<title>New Registry - jsrepo</title>
-</svelte:head>
+<MetaTags title="New Registry - jsrepo" />
 
 <div class="flex flex-col gap-2">
 	<a

@@ -1,4 +1,10 @@
-import { canPublishToScope, getRegistry, getScope, getUser } from '$lib/backend/db/functions.js';
+import {
+	canPublishToScope,
+	getRegistry,
+	getRegistryPurchasesCount,
+	getScope,
+	getUser
+} from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { validateRequest } from '$lib/ts/http/request.js';
 import { error, json } from '@sveltejs/kit';
@@ -16,8 +22,6 @@ export type UpdateRegistryAccessRequest = v.InferOutput<typeof schema>;
 export async function PATCH({ request, locals, params }) {
 	const body = await validateRequest(schema, request);
 
-	if (body.access === 'marketplace') error(400, 'marketplace is not supported at this time!');
-
 	const scopeName = params.scope.slice(1);
 	const { name } = params;
 
@@ -25,10 +29,11 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!session) error(401);
 
-	const [user, scope, registry] = await Promise.all([
+	const [user, scope, registry, purchases] = await Promise.all([
 		getUser({ id: session.user.id }),
 		getScope(scopeName),
-		getRegistry(scopeName, name, session.user.id)
+		getRegistry({ scopeName, registryName: name, userId: session.user.id }),
+		getRegistryPurchasesCount({ scope: scopeName, name })
 	]);
 
 	assert(user !== null, 'user must be defined');
@@ -37,9 +42,14 @@ export async function PATCH({ request, locals, params }) {
 
 	if (!registry) error(404);
 
-	const canPublish = await canPublishToScope(user, scope, body.access === 'private');
+	if (purchases > 0 && body.access === 'private') {
+		error(400, 'you cannot make a purchased registry private');
+	}
 
-	if (!canPublish) error(401, 'only users with publish access can change the access level');
+	const canPublish = await canPublishToScope(user, scope);
+
+	if (!canPublish.canPublish)
+		error(401, 'only users with publish access can change the access level');
 
 	if (body.access === registry.access) return json({});
 

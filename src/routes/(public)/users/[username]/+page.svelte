@@ -5,15 +5,14 @@
 	import * as Tabs from '$lib/components/site/tabs';
 	import { page } from '$app/state';
 	import * as List from '$lib/components/site/list';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 
 	const tab = $derived(page.url.searchParams.get('tab') ?? '/');
 </script>
 
-<svelte:head>
-	<title>{data.user.username} - jsrepo</title>
-</svelte:head>
+<MetaTags title="{data.user.username} - jsrepo" />
 
 <div class="flex min-h-[calc(100svh-var(--header-height))] flex-col gap-4 pb-4 pt-10">
 	<div class="grid grid-cols-1 place-items-start gap-4 md:grid-cols-[8rem_1fr] md:gap-8">

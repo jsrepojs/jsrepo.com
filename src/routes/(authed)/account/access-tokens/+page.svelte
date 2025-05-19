@@ -10,6 +10,7 @@
 	import { Snippet } from '$lib/components/ui/snippet/index.js';
 	import * as List from '$lib/components/site/list';
 	import { invalidateAll } from '$app/navigation';
+	import { MetaTags } from '$lib/components/site/meta-tags/index.js';
 
 	let { data } = $props();
 
@@ -58,9 +59,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Access Tokens - Account - jsrepo</title>
-</svelte:head>
+<MetaTags title="Access Tokens - Account - jsrepo" />
 
 <Dialog.Root bind:open={deleteDialogOpen}>
 	<div class="flex flex-col gap-2">

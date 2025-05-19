@@ -44,6 +44,7 @@
 	const transferQuery = new UseQuery(async () => {
 		const response = await fetch(`/api/scopes/@${data.scope.name}/transfer`, {
 			method: 'POST',
+			headers: { 'content-type': 'applications/json' },
 			body: JSON.stringify({ transferTo: userOrOrg })
 		});
 

@@ -21,19 +21,30 @@ import * as v from 'valibot';
 import semver from 'semver';
 import { getPreReleaseTag } from '$lib/ts/versioning.js';
 import type { Version } from '$lib/backend/db/schema.js';
-import { newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
+import { marketplaceNextStepsEmail, newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
 import * as tables from '$lib/backend/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { waitUntil } from '@vercel/functions';
 import { determinePrimaryLanguage } from '$lib/ts/registry/index.js';
 import { displaySize, MEGABYTE } from '$lib/ts/sizes.js';
+import type { CreateEmailOptions } from 'resend';
 
 const MAX_FILE_SIZE = MEGABYTE / 8;
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
 	const dryRun = request.headers.get('x-dry-run') === '1';
+	let access = request.headers.get('x-access') as 'private' | 'public' | 'marketplace' | null;
 	const publishPrivate = request.headers.get('x-private') === '1';
+
+	// this allows us to change this without it being breaking in the future this can be removed
+	if (access === null) {
+		access = publishPrivate ? 'private' : 'public';
+	}
+
+	if (!tables.registryAccessLevels.includes(access)) {
+		error(400, `invalid access level ${access}`);
+	}
 
 	if (apiKey === null) {
 		error(401, 'generate an api key to publish to the jsrepo.com registry');
@@ -144,11 +155,16 @@ export async function POST({ request }) {
 
 	assert(user !== null, 'User should be defined!');
 
-	if (!canPublishToScope(user, scope, publishPrivate)) {
-		error(401, `you don't have permission to publish to the scope \`@${scopeName}\``);
+	const canPublishResult = await canPublishToScope(user, scope);
+
+	if (!canPublishResult.canPublish) {
+		error(
+			401,
+			`you don't have permission to publish to the scope \`@${scopeName}\` because ${canPublishResult?.reason}`
+		);
 	}
 
-	const registry = await getRegistry(scopeName, registryName, user.id);
+	const registry = await getRegistry({ scopeName, registryName, userId: user.id });
 
 	let registryId = registry?.id ?? null;
 
@@ -184,7 +200,9 @@ export async function POST({ request }) {
 			registryId = await createRegistry(tx, {
 				name: registryName,
 				scopeId: scope.id,
-				access: publishPrivate ? 'private' : 'public',
+				// automatically link the users seller account to a new registry
+				stripeConnectAccountId: user.stripeSellerAccountId,
+				access,
 				metaAuthors: manifest.meta?.authors ?? null,
 				metaBugs: manifest.meta?.bugs ?? null,
 				metaDescription: manifest.meta?.description ?? null,
@@ -292,9 +310,6 @@ export async function POST({ request }) {
 		error(500, 'error publishing to jsrepo.com');
 	}
 
-	// if the registry already existed we use it's setting else we use the setting provided
-	const registryAccess = registry ? registry.access : publishPrivate ? 'private' : 'public';
-
 	posthog.capture({
 		event: 'publish-registry',
 		distinctId: verifyResult.key.userId,
@@ -304,13 +319,21 @@ export async function POST({ request }) {
 			scope: scopeName,
 			registry: registryName,
 			version: manifest.version,
-			access: registryAccess
+			access
 		}
 	});
 
 	waitUntil(posthog.shutdown());
 
-	await resend.emails.send(newVersionPublishedEmail(user, manifest.name, manifest.version));
+	const emails: CreateEmailOptions[] = [];
+
+	emails.push(newVersionPublishedEmail(user, manifest.name, manifest.version));
+
+	if (registry === null && access === 'marketplace') {
+		emails.push(marketplaceNextStepsEmail(user, `@${scopeName}/${registryName}`));
+	}
+
+	await Promise.all([emails.map((email) => resend.emails.send(email))]);
 
 	return json({
 		status: 'published',
@@ -318,6 +341,6 @@ export async function POST({ request }) {
 		registry: registryName,
 		version: manifest.version,
 		tag: releaseTag,
-		access: registryAccess
+		access
 	});
 }
