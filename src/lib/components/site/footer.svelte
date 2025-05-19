@@ -11,10 +11,6 @@
 			href: '/'
 		},
 		{
-			title: 'Pricing',
-			href: '/pricing'
-		},
-		{
 			title: 'Help',
 			href: '/help'
 		},
