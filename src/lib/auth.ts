@@ -57,6 +57,17 @@ export const auth = betterAuth({
 						stripeCustomerId: customer as string,
 						stripePurchaseIntentId: payment_intent as string
 					});
+
+					posthog.capture({
+						distinctId: referenceId,
+						event: 'registry-purchase',
+						properties: {
+							registryId,
+							customer
+						}
+					});
+
+					waitUntil(posthog.shutdown());
 				}
 			},
 			onCustomerCreate: async ({ user }) => {
