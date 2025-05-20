@@ -1,4 +1,4 @@
-import Stream, { Readable } from 'stream';
+import Stream, { PassThrough, Readable } from 'stream';
 import tar from 'tar-stream';
 import { createGunzip } from 'zlib';
 import { Err, Ok, type Result } from './result';
@@ -66,13 +66,13 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 
 		tex.on('entry', (header, stream, next) => {
 			let index: number = -1;
-			console.log(need)
+			console.log(need);
 			if (need !== null) {
-				console.log(fileNames)
+				console.log(fileNames);
 				index = fileNames.indexOf(header.name);
 
-				console.log(index)
-				console.log(header.name)
+				console.log(index);
+				console.log(header.name);
 
 				// we don't need this file
 				if (index === -1) {
@@ -110,9 +110,22 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 
 		tex.on('error', rej);
 
-		stream.on('error', rej)
+		stream.on('error', rej);
 
 		stream.pipe(createGunzip()).pipe(tex);
+	});
+}
+
+export async function consume(stream: PassThrough): Promise<Buffer<ArrayBuffer>> {
+	return new Promise((res, rej) => {
+		const chunks: Buffer[] = [];
+		stream.on('data', (chunk) => chunks.push(chunk));
+
+		stream.on('end', () => {
+			res(Buffer.concat(chunks));
+		});
+
+		stream.on('error', rej);
 	});
 }
 

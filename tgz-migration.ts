@@ -10,10 +10,10 @@ import { PgTransaction } from 'drizzle-orm/pg-core';
 import { StopWatch } from './src/lib/ts/stopwatch';
 import { formatDuration } from './src/lib/ts/time';
 import { PassThrough, Readable } from 'stream';
-import { streamToBuffer } from './src/lib/ts/tarz.js';
+import { consume, streamToBuffer } from './src/lib/ts/tarz.js';
 import tar from 'tar-stream';
-import { Upload } from '@aws-sdk/lib-storage';
 import { createGzip } from 'zlib';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 
 // initial setup
 
@@ -162,20 +162,18 @@ async function migrateVersion(
 
 	log.info(`🛜 Uploading ${uploadingKeys.join(', and ')} to R2...`);
 
+	const consumed = await consume(tarGzStream);
+
 	// Upload to S3
 	await Promise.all(
 		uploadingKeys.map(async (key) => {
-			const upload = new Upload({
-				client: s3Client,
-				params: {
-					Bucket: BUCKET,
-					Key: key,
-					Body: tarGzStream,
-					ContentType: 'application/x-tar'
-				}
+			const cmd = new PutObjectCommand({
+				Bucket: BUCKET,
+				Key: key,
+				Body: consumed
 			});
 
-			await upload.done();
+			await storage.client.send(cmd);
 		})
 	);
 

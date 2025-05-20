@@ -33,14 +33,14 @@ import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
 import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
-import { Upload } from '@aws-sdk/lib-storage';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
-import { extractSpecific } from '$lib/ts/tarz';
+import { consume, extractSpecific } from '$lib/ts/tarz';
 import Stream, { PassThrough } from 'stream';
 import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
 import { createGzip } from 'zlib';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -426,6 +426,8 @@ export async function uploadArchive({
 	const tarGzStream = new PassThrough();
 	pack.pipe(gzip).pipe(tarGzStream);
 
+	const consumed = await consume(tarGzStream);
+
 	const uploadingKeys: string[] = [];
 
 	const versionKey = storage.getRegistryTarballKey({
@@ -450,17 +452,13 @@ export async function uploadArchive({
 	// Upload to S3
 	await Promise.all(
 		uploadingKeys.map(async (key) => {
-			const upload = new Upload({
-				client: storage.client,
-				params: {
-					Bucket: PUBLIC_STORAGE_BUCKET,
-					Key: key,
-					Body: tarGzStream,
-					ContentType: 'application/x-tar'
-				}
+			const cmd = new PutObjectCommand({
+				Bucket: PUBLIC_STORAGE_BUCKET,
+				Key: key,
+				Body: consumed
 			});
 
-			await upload.done();
+			await storage.client.send(cmd);
 		})
 	);
 
