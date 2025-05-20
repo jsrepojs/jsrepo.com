@@ -3,7 +3,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ArrowUpRight, Menu, X } from '@lucide/svelte';
 	import { Dialog } from 'bits-ui';
-	import { active } from '$lib/actions/active.svelte';
 	import HeaderOptions from '$lib/auth/components/header-options.svelte';
 	import { page } from '$app/state';
 	import RegistrySearchCompact from './registry-search-compact.svelte';

@@ -43,6 +43,40 @@ export const auth = betterAuth({
 					await deleteMarketPurchase(event.data.object.payment_intent as string);
 				}
 
+				if (event.type === 'account.updated') {
+					const account = event.data.object;
+
+					if (account.charges_enabled && account.payouts_enabled) {
+						const DELAY_DAYS = 30;
+						const INTERVAL = 'monthly';
+						const MONTHLY_ANCHOR = 1;
+
+						const schedule = account.settings?.payouts?.schedule;
+
+						// no need to update
+						if (
+							schedule &&
+							schedule.delay_days === DELAY_DAYS &&
+							schedule.interval === INTERVAL &&
+							schedule.monthly_anchor === MONTHLY_ANCHOR
+						)
+							return;
+
+						// update the user
+						await stripeClient.accounts.update(account.id, {
+							settings: {
+								payouts: {
+									schedule: {
+										interval: INTERVAL,
+										delay_days: DELAY_DAYS,
+										monthly_anchor: MONTHLY_ANCHOR
+									}
+								}
+							}
+						});
+					}
+				}
+
 				if (event.type === 'checkout.session.completed') {
 					const { customer, metadata, payment_status, payment_intent } = event.data.object;
 
