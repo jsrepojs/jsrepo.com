@@ -2,7 +2,7 @@ import { auth } from '$lib/auth.js';
 import {
 	canPublishToScope,
 	nameIsBanned,
-	createFiles,
+	uploadArchive,
 	createRegistry,
 	createVersion,
 	getRegistry,
@@ -28,8 +28,9 @@ import { waitUntil } from '@vercel/functions';
 import { determinePrimaryLanguage } from '$lib/ts/registry/index.js';
 import { displaySize, MEGABYTE } from '$lib/ts/sizes.js';
 import type { CreateEmailOptions } from 'resend';
+import tar from 'tar-stream';
 
-const MAX_FILE_SIZE = MEGABYTE / 8;
+const MAX_UNPACKED_SIZE = MEGABYTE * 5;
 
 export async function POST({ request }) {
 	const apiKey = request.headers.get('x-api-key');
@@ -88,17 +89,6 @@ export async function POST({ request }) {
 		(val) => val,
 		(err) => error(500, `error extracting files ${err}`)
 	);
-
-	for (const file of files) {
-		const byteLength = new TextEncoder().encode(file.content).length;
-
-		if (byteLength > MAX_FILE_SIZE) {
-			error(
-				400,
-				`${file.name} exceeds ${displaySize(MAX_FILE_SIZE)} in size! If this limitation is a problem for your application please reach out at https://jsrepo.com/help`
-			);
-		}
-	}
 
 	const manifestFile = files.find((f) => f.name === 'jsrepo-manifest.json');
 
@@ -174,6 +164,38 @@ export async function POST({ request }) {
 			error(400, `We'd appreciate if you didn't use ${registryName} as the name of your registry.`);
 		}
 	}
+
+	// repack files
+
+	const pack = tar.pack();
+
+	let size = 0;
+	for (const file of files) {
+		size += new TextEncoder().encode(file.content).length;
+
+		pack.entry({ name: file.name }, file.content).end();
+	}
+
+	if (size > MAX_UNPACKED_SIZE) {
+		posthog.capture({
+			distinctId: user.id,
+			event: 'registry-oversize',
+			properties: {
+				registry: registryName,
+				scope: scopeName,
+				size
+			}
+		});
+
+		waitUntil(posthog.shutdown());
+
+		error(
+			400,
+			`Your registry exceeds ${displaySize(MAX_UNPACKED_SIZE)} in size! If this limitation is a problem for your application please reach out at https://jsrepo.com/help`
+		);
+	}
+
+	pack.finalize();
 
 	if (dryRun) {
 		// check if the version exists
@@ -270,6 +292,14 @@ export async function POST({ request }) {
 			oldTaggedVersion = latestVersion;
 		}
 
+		const tarballKey = await uploadArchive({
+			registry: registryName,
+			scope: scopeName,
+			tag: releaseTag,
+			version: manifest.version,
+			pack
+		});
+
 		// create version
 
 		const versionId = await createVersion(
@@ -279,27 +309,13 @@ export async function POST({ request }) {
 				version: manifest.version,
 				tag: releaseTag,
 				hasReadme,
-				releasedById: verifyResult.key?.userId ?? '' // we asserted this to be defined earlier
+				releasedById: verifyResult.key?.userId ?? '', // we asserted this to be defined earlier
+				tarball: tarballKey
 			},
 			oldTaggedVersion?.id
 		);
 
 		if (versionId === null) {
-			return tx.rollback();
-		}
-
-		// add files
-
-		const fileIds = await createFiles(tx, {
-			registry: registryName,
-			scope: scopeName,
-			tag: releaseTag,
-			version: manifest.version,
-			versionId,
-			files
-		});
-
-		if (fileIds === null) {
 			return tx.rollback();
 		}
 

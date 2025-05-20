@@ -1,5 +1,5 @@
-import { Readable } from 'stream';
-import tarS from 'tar-stream';
+import Stream, { Readable } from 'stream';
+import tar from 'tar-stream';
 import { createGunzip } from 'zlib';
 import { Err, Ok, type Result } from './result';
 
@@ -13,7 +13,7 @@ export async function extract(buffer: Buffer): Promise<Result<File[], string>> {
 	try {
 		const files: File[] = [];
 
-		const extract = tarS.extract();
+		const extract = tar.extract();
 
 		const extractionPromise = new Promise<void>((res, rej) => {
 			extract.on('entry', (header, stream, next) => {
@@ -53,6 +53,67 @@ export async function extract(buffer: Buffer): Promise<Result<File[], string>> {
 	} catch (err) {
 		return Err(`${err}`);
 	}
+}
+
+export async function extractSpecific(stream: Stream, ...fileNames: string[]): Promise<File[]> {
+	return new Promise<File[]>((res, rej) => {
+		const tex = tar.extract();
+
+		/** null means everything */
+		let need = fileNames.length > 0 ? [...fileNames] : null;
+
+		const files: File[] = [];
+
+		tex.on('entry', (header, stream, next) => {
+			let index: number = -1;
+			console.log(need)
+			if (need !== null) {
+				console.log(fileNames)
+				index = fileNames.indexOf(header.name);
+
+				console.log(index)
+				console.log(header.name)
+
+				// we don't need this file
+				if (index === -1) {
+					stream.resume();
+					stream.on('end', next);
+					return;
+				}
+			}
+
+			const chunks: Buffer[] = [];
+			stream.on('data', (chunk) => chunks.push(chunk));
+			stream.on('end', () => {
+				files.push({ name: header.name, content: Buffer.concat(chunks).toString() });
+
+				if (need !== null) {
+					need = [...fileNames.slice(0, index), ...fileNames.slice(index + 1)];
+				}
+
+				// continue if we need everything or we need more
+				if (need === null || need.length > 0) {
+					next();
+					return;
+				}
+
+				// once we have everything we need let's stop streaming and move on
+				res(files);
+
+				stream.destroy();
+				tex.destroy();
+			});
+		});
+
+		// return here
+		tex.on('finish', () => res(files));
+
+		tex.on('error', rej);
+
+		stream.on('error', rej)
+
+		stream.pipe(createGunzip()).pipe(tex);
+	});
 }
 
 /** Convert a ReadableStream to a buffer */

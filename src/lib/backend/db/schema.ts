@@ -512,7 +512,8 @@ export const version = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		hasReadme: boolean('has_readme').notNull().default(false),
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		tarball: text('tarball')
 	},
 	(table) => {
 		return [
@@ -527,6 +528,7 @@ export const version = pgTable(
 
 export type Version = InferSelectModel<typeof version>;
 
+/** @deprecated */
 export const file = pgTable(
 	'file',
 	{

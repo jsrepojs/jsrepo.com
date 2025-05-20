@@ -33,13 +33,14 @@ import { customAlphabet, nanoid } from 'nanoid';
 import * as crypto from '$lib/ts/crypto';
 import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
-import { streamToBuffer } from '$lib/ts/tarz';
-import { Readable } from 'stream';
-import pLimit from 'p-limit';
+import { extractSpecific } from '$lib/ts/tarz';
+import Stream, { PassThrough } from 'stream';
 import * as array from '$lib/ts/array';
+import type { Pack } from 'tar-stream';
+import { createGzip } from 'zlib';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -256,13 +257,7 @@ export async function getVersions(
 ): Promise<tables.Version[] | null> {
 	const versions = await db
 		.select({
-			id: tables.version.id,
-			version: tables.version.version,
-			tag: tables.version.tag,
-			registryId: tables.version.registryId,
-			releasedById: tables.version.releasedById,
-			hasReadme: tables.version.hasReadme,
-			createdAt: tables.version.createdAt
+			...getTableColumns(tables.version)
 		})
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
@@ -380,6 +375,7 @@ export async function createVersion(
 		tag: string | null;
 		releasedById: string;
 		hasReadme: boolean;
+		tarball: string;
 	},
 	oldTaggedVersionId?: number
 ): Promise<number | null> {
@@ -412,79 +408,63 @@ export async function getApiKey(userId: string, name: string): Promise<tables.AP
 	return apiKeys[0];
 }
 
-export async function createFiles(
-	tx: PgTransaction<PostgresJsQueryResultHKT, Record<string, never>, TablesRelationalConfig>,
-	{
-		scope,
-		registry,
-		version,
-		versionId,
-		tag,
-		files
-	}: {
-		scope: string;
-		registry: string;
-		version: string;
-		versionId: number;
-		tag: string | null;
-		files: { name: string; content: string }[];
-	}
-): Promise<number[] | null> {
-	const limit = pLimit(20);
-
-	const uploaded = await Promise.all(
-		files.map(async (file) =>
-			limit(() => uploadFile({ scope, registry, version, versionId, file, tag }))
-		)
-	);
-
-	const result = await tx.insert(tables.file).values(uploaded).returning({ id: tables.file.id });
-
-	if (result.length !== files.length) {
-		return null;
-	}
-
-	return result.map((v) => v.id);
-}
-
-async function uploadFile({
+export async function uploadArchive({
 	scope,
 	registry,
 	version,
-	versionId,
 	tag,
-	file
+	pack
 }: {
 	scope: string;
 	registry: string;
 	version: string;
-	versionId: number;
 	tag: string | null;
-	file: { name: string; content: string };
-}) {
-	const key = storage.getRegistryFileKey({ scope, registry, version, fileName: file.name });
+	pack: Pack;
+}): Promise<string> {
+	const gzip = createGzip();
 
-	await storage.client.send(
-		new PutObjectCommand({
-			Bucket: PUBLIC_STORAGE_BUCKET,
-			Key: key,
-			Body: file.content
+	const tarGzStream = new PassThrough();
+	pack.pipe(gzip).pipe(tarGzStream);
+
+	const uploadingKeys: string[] = [];
+
+	const versionKey = storage.getRegistryTarballKey({
+		scope: scope,
+		registry: registry,
+		version: version
+	});
+
+	uploadingKeys.push(versionKey);
+
+	// we upload a second archive to overwrite the tag
+	if (tag) {
+		const tagKey = storage.getRegistryTarballKey({
+			scope: scope,
+			registry: registry,
+			version: tag
+		});
+
+		uploadingKeys.push(tagKey);
+	}
+
+	// Upload to S3
+	await Promise.all(
+		uploadingKeys.map(async (key) => {
+			const upload = new Upload({
+				client: storage.client,
+				params: {
+					Bucket: PUBLIC_STORAGE_BUCKET,
+					Key: key,
+					Body: tarGzStream,
+					ContentType: 'application/x-tar'
+				}
+			});
+
+			await upload.done();
 		})
 	);
 
-	// if there is a tagged version duplicate
-	// old tagged files are just overwritten
-	if (tag !== null) {
-		await storage.client.send(
-			new PutObjectCommand({
-				Bucket: PUBLIC_STORAGE_BUCKET,
-				Key: storage.getRegistryFileKey({ scope, registry, version: tag, fileName: file.name }),
-				Body: file.content
-			})
-		);
-	}
-
-	return { name: file.name, versionId: versionId, content: file.content, storageKey: key };
+	return versionKey;
 }
 
 type GetFileContentsFastOptions = {
@@ -504,28 +484,25 @@ export async function getFileContentsFast({
 	scopeName,
 	registryName,
 	version,
-	fileName,
 	sessionToken,
 	apiKey
 }: Omit<GetFileContentsFastOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
-}): Promise<{ key: string; access: tables.RegistryAccess } | null> {
+}): Promise<{ access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
-			access: tables.registry.access,
-			key: tables.file.storageKey
+			access: tables.registry.access
 		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.leftJoin(
 			tables.apikey,
 			and(eq(tables.apikey.key, apiKey ?? ''), eq(tables.apikey.enabled, true))
@@ -562,7 +539,6 @@ export async function getFileContentsFast({
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
-				eq(tables.file.name, fileName),
 
 				checkAccessQuery({ userOrgMember })
 			)
@@ -578,7 +554,8 @@ type GetFilesOptions = {
 	scopeName: string;
 	registryName: string;
 	version: string;
-	fileNames: string[];
+	/** Files to fetch. Leave this out if you want all files associated with this registry version */
+	fileNames?: string[];
 	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
 };
@@ -588,23 +565,22 @@ export async function getFiles({
 	scopeName,
 	registryName,
 	version,
-	fileNames,
+	fileNames = [],
 	readonlyAccess = false
-}: GetFilesOptions): Promise<(tables.File & { content: string })[]> {
+}: GetFilesOptions): Promise<{ name: string; content: string }[]> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
-			...getTableColumns(tables.file)
+			tarball: tables.version.tarball
 		})
 		.from(tables.scope)
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
 		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.innerJoin(tables.file, eq(tables.version.id, tables.file.versionId))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
 			userOrgMember,
@@ -633,34 +609,28 @@ export async function getFiles({
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
-				inArray(tables.file.name, fileNames),
 
 				checkAccessQuery({ userOrgMember, readonlyAccess })
 			)
 		);
 
-	const limit = pLimit(100);
+	if (result.length === 0) return [];
 
-	const files = await Promise.all(
-		result.map((_, i) =>
-			limit(async () => {
-				const file = result[i];
+	const tarballKey = result[0].tarball;
 
-				const s3Response = await storage.getObject(file.storageKey);
+	const s3Response = await storage.getObject(tarballKey);
 
-				if (s3Response === null || !s3Response.Body)
-					throw new Error(`Could not find file '${file.storageKey}'`);
+	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
 
-				const content = (
-					await streamToBuffer(Readable.toWeb(s3Response.Body as Readable) as never)
-				).toString();
+	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
 
-				return { ...file, content };
-			})
-		)
-	);
+	return files.flatMap((file) => {
+		const og = fileNames.find((f) => f === file.name);
 
-	return files;
+		if (!og) return [];
+
+		return [{ name: og, content: file.content }];
+	});
 }
 
 export async function listApiKeys(userId: string) {
@@ -2265,6 +2235,14 @@ export async function getRegistryPurchasesCount({
 	return res[0].count;
 }
 
+export const publicUserColumns = {
+	id: tables.user.id,
+	name: tables.user.name,
+	username: tables.user.username,
+	createdAt: tables.user.createdAt,
+	image: tables.user.image
+};
+
 export async function getReviews({
 	scope,
 	registry,
@@ -2279,7 +2257,7 @@ export async function getReviews({
 	return await db
 		.select({
 			...getTableColumns(tables.registryReview),
-			user: tables.user
+			user: publicUserColumns
 		})
 		.from(tables.registryReview)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))

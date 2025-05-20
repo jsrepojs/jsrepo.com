@@ -34,6 +34,17 @@ export const storage = {
 	getStorageUrl: (key: string) => {
 		return new URL(key, STORAGE_BUCKET_URL).toString();
 	},
+	getRegistryTarballKey: ({
+		scope,
+		registry,
+		version
+	}: {
+		scope: string;
+		registry: string;
+		version: string;
+	}) => {
+		return `registries/@${scope}/${registry}/v/${version}.tgz`;
+	},
 	getRegistryFileKey: ({
 		scope,
 		registry,

@@ -261,7 +261,7 @@
 						</div>
 						<Button
 							variant="outline"
-							disabled={!hasLicense}
+							disabled={data.registry.access === 'marketplace' && !hasLicense}
 							download="{data.scopeName}_{data.registryName}_blocks.zip"
 							href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
 						>
@@ -368,7 +368,7 @@
 											<Button
 												variant="ghost"
 												size="icon"
-												disabled={!hasLicense}
+												disabled={data.registry.access === 'marketplace' && !hasLicense}
 												download="{category.name}_{block.name}.zip"
 												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
 											>

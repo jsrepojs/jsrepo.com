@@ -1,5 +1,6 @@
+import { publicUser } from '$lib/backend/db/client-functions.js';
 import { getVersion } from '$lib/backend/db/functions.js';
-import { json } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 
 export async function GET({ locals, params }) {
 	const scopeName = params.scope.slice(1);
@@ -15,5 +16,7 @@ export async function GET({ locals, params }) {
 		userId: session?.user.id ?? null
 	});
 
-	return json(ver);
+	if (ver === null) error(404);
+
+	return json({ ...ver, releasedBy: publicUser(ver.releasedBy) });
 }
