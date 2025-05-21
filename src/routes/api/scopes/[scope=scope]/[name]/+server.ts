@@ -1,5 +1,6 @@
+import { publicUser } from '$lib/backend/db/client-functions.js';
 import { getRegistry } from '$lib/backend/db/functions.js';
-import { json } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 
 export async function GET({ locals, params }) {
 	const scope = params.scope.slice(1);
@@ -13,5 +14,11 @@ export async function GET({ locals, params }) {
 		userId: session?.user.id ?? null
 	});
 
-	return json(registry);
+	if (registry === null) error(404);
+
+	return json({
+		...registry,
+		connectedStripeAccount: undefined,
+		releasedBy: publicUser(registry.releasedBy)
+	});
 }
