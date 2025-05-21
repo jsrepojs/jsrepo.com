@@ -2233,14 +2233,6 @@ export async function getRegistryPurchasesCount({
 	return res[0].count;
 }
 
-export const publicUserColumns = {
-	id: tables.user.id,
-	name: tables.user.name,
-	username: tables.user.username,
-	createdAt: tables.user.createdAt,
-	image: tables.user.image
-};
-
 export async function getReviews({
 	scope,
 	registry,
@@ -2255,7 +2247,7 @@ export async function getReviews({
 	return await db
 		.select({
 			...getTableColumns(tables.registryReview),
-			user: publicUserColumns
+			user: tables.user
 		})
 		.from(tables.registryReview)
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.registryReview.registryId))

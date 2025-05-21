@@ -1,4 +1,3 @@
-import { publicUser } from '$lib/backend/db/client-functions.js';
 import { getVersion } from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 
@@ -18,5 +17,5 @@ export async function GET({ locals, params }) {
 
 	if (ver === null) error(404);
 
-	return json({ ...ver, releasedBy: publicUser(ver.releasedBy) });
+	return json(ver);
 }

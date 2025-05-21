@@ -39,23 +39,3 @@ export function getOwnerName(opts: { scope: Scope; user: User | null; org: Org |
 		return opts.user.name;
 	}
 }
-
-export type PublicUser = {
-	id: string;
-	name: string;
-	createdAt: Date;
-	username: string | null;
-	image: string | null;
-};
-
-export function publicUser(user: User | null): PublicUser | null {
-	if (user === null) return null;
-
-	return {
-		id: user.id,
-		name: user.name,
-		createdAt: user.createdAt,
-		image: user.image,
-		username: user.username
-	} satisfies PublicUser;
-}
