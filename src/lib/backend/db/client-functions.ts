@@ -49,7 +49,7 @@ export type PublicUser = {
 };
 
 export function publicUser(user: User | null): PublicUser | null {
-	if (user === null) return null
+	if (user === null) return null;
 
 	return {
 		id: user.id,

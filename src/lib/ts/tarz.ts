@@ -66,13 +66,8 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 
 		tex.on('entry', (header, stream, next) => {
 			let index: number = -1;
-			console.log(need);
 			if (need !== null) {
-				console.log(fileNames);
 				index = fileNames.indexOf(header.name);
-
-				console.log(index);
-				console.log(header.name);
 
 				// we don't need this file
 				if (index === -1) {
