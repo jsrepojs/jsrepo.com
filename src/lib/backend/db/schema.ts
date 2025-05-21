@@ -513,7 +513,7 @@ export const version = pgTable(
 			.references(() => user.id, { onDelete: 'cascade' }),
 		hasReadme: boolean('has_readme').notNull().default(false),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
-		tarball: text('tarball')
+		tarball: text('tarball').notNull()
 	},
 	(table) => {
 		return [
@@ -527,28 +527,6 @@ export const version = pgTable(
 ).enableRLS();
 
 export type Version = InferSelectModel<typeof version>;
-
-/** @deprecated */
-export const file = pgTable(
-	'file',
-	{
-		id: serial('id').primaryKey(),
-		name: text('name').notNull(),
-		versionId: integer('version_id')
-			.notNull()
-			.references(() => version.id, { onDelete: 'cascade' }),
-		storageKey: text('storage_key').notNull(),
-		createdAt: timestamp('created_at').notNull().defaultNow()
-	},
-	(table) => {
-		return [
-			index('file_name_idx').on(table.name),
-			index('file_version_id_idx').on(table.versionId)
-		];
-	}
-).enableRLS();
-
-export type File = InferSelectModel<typeof file>;
 
 export const commonNameBan = pgTable(
 	'common_name_ban',
