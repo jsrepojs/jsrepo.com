@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { apiKey, admin } from 'better-auth/plugins';
+import { apiKey, admin, oidcProvider } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
@@ -32,6 +32,9 @@ export const auth = betterAuth({
 			rateLimit: {
 				enabled: false
 			}
+		}),
+		oidcProvider({
+			loginPage: '/login/device',
 		}),
 		admin(),
 		stripe({

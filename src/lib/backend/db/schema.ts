@@ -170,6 +170,7 @@ export const apikey = pgTable(
 
 export type APIKey = InferSelectModel<typeof apikey>;
 
+/** @deprecated */
 export const anonSession = pgTable('anon_session', {
 	id: text('id').primaryKey(),
 	hardwareId: text('hardware_id').notNull(),
@@ -182,6 +183,7 @@ export const anonSession = pgTable('anon_session', {
 
 export type AnonSession = InferSelectModel<typeof anonSession>;
 
+/** @deprecated */
 export const anonSessionCode = pgTable(
 	'anon_session_code',
 	{
@@ -203,6 +205,76 @@ export const anonSessionCode = pgTable(
 ).enableRLS();
 
 export type AnonSessionCode = InferSelectModel<typeof anonSessionCode>;
+
+export const oauthApplication = pgTable(
+	'oauth_application',
+	{
+		id: text('id').primaryKey(),
+		name: text('name'),
+		icon: text('icon'),
+		metadata: text('metadata'),
+		clientId: text('client_id').unique(),
+		clientSecret: text('client_secret'),
+		redirectURLs: text('redirect_urls'),
+		type: text('type'),
+		disabled: boolean('disabled'),
+		userId: text('user_id'),
+		createdAt: timestamp('created_at'),
+		updatedAt: timestamp('updated_at')
+	},
+	(table) => {
+		return [index('oauth_application_access_token_idx').on(table.clientId)];
+	}
+);
+
+export type OAuthApplication = InferSelectModel<typeof oauthApplication>;
+
+export const oauthAccessToken = pgTable(
+	'oauth_access_token',
+	{
+		id: text('id').primaryKey(),
+		accessToken: text('access_token').unique(),
+		refreshToken: text('refresh_token').unique(),
+		accessTokenExpiresAt: timestamp('access_token_expires_at'),
+		refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+		clientId: text('client_id'),
+		userId: text('user_id'),
+		scopes: text('scopes'),
+		createdAt: timestamp('created_at'),
+		updatedAt: timestamp('updated_at')
+	},
+	(table) => {
+		return [
+			index('oauth_access_token_access_token_idx').on(table.accessToken),
+			index('oauth_access_token_refresh_token_idx').on(table.refreshToken),
+			index('oauth_access_token_client_id_idx').on(table.clientId),
+			index('oauth_access_token_user_id_idx').on(table.userId)
+		];
+	}
+);
+
+export type OAuthAccessToken = InferSelectModel<typeof oauthAccessToken>;
+
+export const oauthConsent = pgTable(
+	'oauth_consent',
+	{
+		id: text('id').primaryKey(),
+		clientId: text('client_id'),
+		userId: text('user_id'),
+		scopes: text('scopes'),
+		createdAt: timestamp('created_at'),
+		updatedAt: timestamp('updated_at'),
+		consentGiven: boolean('consent_given')
+	},
+	(table) => {
+		return [
+			index('oauth_consent_client_id_idx').on(table.clientId),
+			index('oauth_consent_user_id_idx').on(table.userId)
+		];
+	}
+);
+
+export type OAuthConsent = InferSelectModel<typeof oauthConsent>;
 
 /** @deprecated */
 export const subscription = pgTable(
