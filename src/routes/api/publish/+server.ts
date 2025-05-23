@@ -1,4 +1,3 @@
-import { auth } from '$lib/auth.js';
 import {
 	canPublishToScope,
 	nameIsBanned,
@@ -8,7 +7,8 @@ import {
 	getRegistry,
 	getScope,
 	getUser,
-	getVersions
+	getVersions,
+	validateAccessToken
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
@@ -32,9 +32,9 @@ import tar from 'tar-stream';
 
 const MAX_UNPACKED_SIZE = MEGABYTE * 5;
 
-export async function POST({ request }) {
-	const apiKey = request.headers.get('x-api-key');
+export async function POST({ request, locals }) {
 	const dryRun = request.headers.get('x-dry-run') === '1';
+	const authorizationHeader = request.headers.get('authorization');
 	let access = request.headers.get('x-access') as 'private' | 'public' | 'marketplace' | null;
 	const publishPrivate = request.headers.get('x-private') === '1';
 
@@ -47,35 +47,16 @@ export async function POST({ request }) {
 		error(400, `invalid access level ${access}`);
 	}
 
-	if (apiKey === null) {
-		error(401, 'generate an api key to publish to the jsrepo.com registry');
+	let userId: string | null;
+	if (authorizationHeader) {
+		userId = await validateAccessToken({ headers: request.headers });
+	} else {
+		userId = (await locals.auth())?.user.id ?? null;
 	}
 
-	const verifyResult = await auth.api.verifyApiKey({
-		body: {
-			key: apiKey,
-			permissions: {
-				registries: ['publish']
-			}
-		}
-	});
+	if (!userId) error(401);
 
-	if (!verifyResult.valid) {
-		let status = 401;
-
-		if (
-			verifyResult.error?.code === 'RATE_LIMITED' ||
-			verifyResult.error?.code === 'USAGE_EXCEEDED'
-		) {
-			status = 429;
-		}
-
-		error(status, verifyResult.error?.message ?? 'error validating api key');
-	}
-
-	assert(verifyResult.key !== null);
-
-	const userPromise = getUser({ id: verifyResult.key.userId });
+	const userPromise = getUser({ id: userId });
 
 	if (request.body === null) {
 		error(400, 'body is required');
@@ -309,7 +290,7 @@ export async function POST({ request }) {
 				version: manifest.version,
 				tag: releaseTag,
 				hasReadme,
-				releasedById: verifyResult.key?.userId ?? '', // we asserted this to be defined earlier
+				releasedById: user.id, // we asserted this to be defined earlier
 				tarball: tarballKey
 			},
 			oldTaggedVersion?.id
@@ -328,7 +309,7 @@ export async function POST({ request }) {
 
 	posthog.capture({
 		event: 'publish-registry',
-		distinctId: verifyResult.key.userId,
+		distinctId: user.id,
 		properties: {
 			email: user.email,
 			username: user.username,

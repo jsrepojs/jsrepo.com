@@ -225,7 +225,7 @@ export const oauthApplication = pgTable(
 	(table) => {
 		return [index('oauth_application_access_token_idx').on(table.clientId)];
 	}
-);
+).enableRLS();
 
 export type OAuthApplication = InferSelectModel<typeof oauthApplication>;
 
@@ -251,7 +251,7 @@ export const oauthAccessToken = pgTable(
 			index('oauth_access_token_user_id_idx').on(table.userId)
 		];
 	}
-);
+).enableRLS();
 
 export type OAuthAccessToken = InferSelectModel<typeof oauthAccessToken>;
 
@@ -272,7 +272,7 @@ export const oauthConsent = pgTable(
 			index('oauth_consent_user_id_idx').on(table.userId)
 		];
 	}
-);
+).enableRLS();
 
 export type OAuthConsent = InferSelectModel<typeof oauthConsent>;
 

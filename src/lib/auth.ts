@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { apiKey, admin, oidcProvider } from 'better-auth/plugins';
+import { apiKey, admin, oidcProvider, openAPI } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './backend/db';
 import * as schema from './backend/db/schema';
@@ -16,6 +16,7 @@ import { createMarketPurchase, deleteMarketPurchase } from './backend/db/functio
 import assert from 'assert';
 import { posthog } from './ts/posthog';
 import { waitUntil } from '@vercel/functions';
+import { dev } from '$app/environment';
 
 export type Providers = 'github';
 
@@ -34,8 +35,10 @@ export const auth = betterAuth({
 			}
 		}),
 		oidcProvider({
-			loginPage: '/login/device',
+			loginPage: '/login',
+			consentPage: '/login/device',
 		}),
+		openAPI({ disableDefaultReference: !dev }),
 		admin(),
 		stripe({
 			stripeClient,

@@ -9,6 +9,9 @@ const config = {
 		adapter: adapter({}),
 		paths: {
 			relative: false
+		},
+		csrf: {
+			checkOrigin: false
 		}
 	}
 };

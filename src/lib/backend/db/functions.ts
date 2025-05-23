@@ -483,10 +483,12 @@ export async function getFileContentsFast({
 	registryName,
 	version,
 	sessionToken,
-	apiKey
+	apiKey,
+	accessToken
 }: Omit<GetFileContentsFastOptions, 'userId'> & {
 	sessionToken: string | null;
 	apiKey: string | null;
+	accessToken: string | null;
 }): Promise<{ access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
@@ -505,10 +507,21 @@ export async function getFileContentsFast({
 			tables.apikey,
 			and(eq(tables.apikey.key, apiKey ?? ''), eq(tables.apikey.enabled, true))
 		)
+		.leftJoin(
+			tables.oauthAccessToken,
+			and(
+				eq(tables.oauthAccessToken.accessToken, accessToken ?? ''),
+				gt(tables.oauthAccessToken.accessTokenExpiresAt, new Date())
+			)
+		)
 		.leftJoin(tables.session, eq(tables.session.token, sessionToken ?? ''))
 		.leftJoin(
 			tables.user,
-			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
+			or(
+				eq(tables.user.id, tables.session.userId),
+				eq(tables.user.id, tables.apikey.userId),
+				eq(tables.user.id, tables.oauthAccessToken.userId)
+			)
 		)
 		.leftJoin(
 			userOrgMember,
@@ -2362,4 +2375,31 @@ export async function leaveReview(record: InferInsertModel<typeof tables.registr
 	});
 
 	return true;
+}
+
+/** Finds the access token and returns the associated userId */
+export async function validateAccessToken({
+	headers
+}: {
+	headers: Headers;
+}): Promise<string | null> {
+	const authorizationHeader = headers.get('authorization');
+
+	if (!authorizationHeader) return null;
+
+	const accessToken = authorizationHeader.slice('Bearer '.length);
+
+	const tokens = await db
+		.select()
+		.from(tables.oauthAccessToken)
+		.where(
+			and(
+				eq(tables.oauthAccessToken.accessToken, accessToken),
+				gt(tables.oauthAccessToken.accessTokenExpiresAt, new Date())
+			)
+		);
+
+	if (tokens.length === 0) return null;
+
+	return tokens[0].userId;
 }

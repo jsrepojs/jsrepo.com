@@ -23,6 +23,7 @@ export async function GET({ params, request, getClientAddress }) {
 
 	const sessionToken = cookie?.split('.')[0] ?? null;
 	let apiKey = request.headers.get('x-api-key');
+	const accessToken = request.headers.get('authorization')?.slice('Bearer '.length) ?? null;
 
 	if (apiKey !== null) {
 		const hash = await createHash('SHA-256').digest(new TextEncoder().encode(apiKey));
@@ -46,7 +47,8 @@ export async function GET({ params, request, getClientAddress }) {
 			version,
 			fileName,
 			sessionToken,
-			apiKey
+			apiKey,
+			accessToken
 		}),
 		storage.getObject(storageKey)
 	]);

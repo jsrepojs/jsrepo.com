@@ -1,0 +1,30 @@
+diff --git a/dist/plugins/oidc-provider/index.mjs b/dist/plugins/oidc-provider/index.mjs
+index 8a1f8a03fc441913e1879bed55d632be2a33293a..9197b1bedb4977b64634c9e758c3208082769e62 100644
+--- a/dist/plugins/oidc-provider/index.mjs
++++ b/dist/plugins/oidc-provider/index.mjs
+@@ -766,9 +766,9 @@ const oidcProvider = (options) => {
+           await ctx.context.internalAdapter.deleteVerificationValue(
+             verificationValue.id
+           );
+-          if (!client_id || !client_secret) {
++          if (!client_id) {
+             throw new APIError("UNAUTHORIZED", {
+-              error_description: "client_id and client_secret are required",
++              error_description: "client_id is required required",
+               error: "invalid_client"
+             });
+           }
+@@ -815,13 +815,6 @@ const oidcProvider = (options) => {
+               error: "invalid_client"
+             });
+           }
+-          const isValidSecret = client.clientSecret === client_secret.toString();
+-          if (!isValidSecret) {
+-            throw new APIError("UNAUTHORIZED", {
+-              error_description: "invalid client_secret",
+-              error: "invalid_client"
+-            });
+-          }
+           const value = JSON.parse(
+             verificationValue.value
+           );

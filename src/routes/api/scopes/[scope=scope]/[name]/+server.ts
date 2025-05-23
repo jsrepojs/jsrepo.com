@@ -1,4 +1,9 @@
-import { getFiles, getRegistry, getVersions } from '$lib/backend/db/functions.js';
+import {
+	getFiles,
+	getRegistry,
+	getVersions,
+	validateAccessToken
+} from '$lib/backend/db/functions.js';
 import { error, json } from '@sveltejs/kit';
 import * as tables from '$lib/backend/db/schema.js';
 import type { Category, Manifest } from '$lib/ts/registry/manifest.js';
@@ -33,16 +38,23 @@ export type RegistryInfoResponse = {
 	time: Record<string, Date>;
 };
 
-export async function GET({ locals, params }) {
+export async function GET({ locals, params, request }) {
 	const scope = params.scope.slice(1);
 	const registryName = params.name;
 
-	const session = await locals.auth();
+	let userId: string | null;
+	if (request.headers.get('authorization')) {
+		userId = await validateAccessToken({ headers: request.headers });
+	} else {
+		userId = (await locals.auth())?.user.id ?? null;
+	}
+
+	if (!userId) error(401);
 
 	const registryResponse = getRegistry({
 		scopeName: scope,
 		registryName,
-		userId: session?.user.id ?? null
+		userId
 	});
 
 	const data = Promise.all([
@@ -51,7 +63,7 @@ export async function GET({ locals, params }) {
 			scopeName: scope,
 			registryName,
 			version: 'latest',
-			userId: session?.user.id,
+			userId,
 			fileNames: ['jsrepo-manifest.json']
 		})
 	]);
