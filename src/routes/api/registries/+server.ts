@@ -56,7 +56,11 @@ export async function GET({ locals, url }) {
 		lang,
 		userId: session?.user.id,
 		orderBy: orderBySQL,
-		type: typeSQL
+		type: typeSQL,
+		options: {
+			embeddingEnabled: true,
+			minSimilarity: 0.01
+		}
 	});
 
 	return json(registries);

@@ -8,7 +8,8 @@ import {
 	getRegistry,
 	getScope,
 	getUser,
-	getVersions
+	getVersions,
+	generateEmbedding
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
@@ -213,6 +214,10 @@ export async function POST({ request }) {
 	const primaryLanguage = determinePrimaryLanguage(...manifest.categories.flatMap((c) => c.blocks));
 
 	const result = await db.transaction(async (tx) => {
+		const embedded = `@${scopeName}/${registryName} ${manifest.meta?.description} ${manifest.meta?.tags?.join(', ')}`;
+
+		const embeddingPromise = generateEmbedding(embedded);
+
 		let oldTaggedVersion: Version | null = null;
 		let latestVersion: Version | null = null;
 		let isLatest = releaseTag === null;
@@ -231,7 +236,8 @@ export async function POST({ request }) {
 				metaHomepage: manifest.meta?.homepage ?? null,
 				metaRepository: manifest.meta?.repository ?? null,
 				metaTags: manifest.meta?.tags ?? null,
-				metaPrimaryLanguage: primaryLanguage
+				metaPrimaryLanguage: primaryLanguage,
+				embedding: await embeddingPromise
 			});
 
 			if (registryId === null) {
@@ -277,7 +283,8 @@ export async function POST({ request }) {
 					metaHomepage: manifest.meta?.homepage ?? null,
 					metaRepository: manifest.meta?.repository ?? null,
 					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null,
-					metaPrimaryLanguage: primaryLanguage
+					metaPrimaryLanguage: primaryLanguage,
+					embedding: await embeddingPromise
 				})
 				.where(eq(tables.registry.id, registryId))
 				.returning({ id: tables.registry.id });

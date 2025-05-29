@@ -14,7 +14,8 @@ import {
 	type AnyPgColumn,
 	uniqueIndex,
 	check,
-	real
+	real,
+	vector
 } from 'drizzle-orm/pg-core';
 
 export function lower(column: AnyPgColumn): SQL {
@@ -451,7 +452,9 @@ export const registry = pgTable(
 		stripeConnectAccountId: text('stripe_connect_account'),
 		rating: real('rating'),
 
-		createdAt: timestamp('created_at').notNull().defaultNow()
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+
+		embedding: vector('embedding', { dimensions: 1536 })
 	},
 	(table) => {
 		return [
@@ -462,7 +465,8 @@ export const registry = pgTable(
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),
 			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
-			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace)
+			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace),
+			index('registry_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops'))
 		];
 	}
 ).enableRLS();

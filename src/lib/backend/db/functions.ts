@@ -17,7 +17,8 @@ import {
 	SQL,
 	countDistinct,
 	not,
-	gt
+	gt,
+	cosineDistance
 } from 'drizzle-orm';
 import { generateId, type User } from 'better-auth';
 import assert from 'assert';
@@ -41,6 +42,7 @@ import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
 import { createGzip } from 'zlib';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { openai } from '../openai';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -365,6 +367,23 @@ export async function createRegistry(
 	if (result.length === 0) return null;
 
 	return result[0].id;
+}
+
+export async function generateEmbedding(value: string): Promise<number[] | null> {
+	try {
+		const input = value.replaceAll('\n', ' ');
+
+		const { data } = await openai.embeddings.create({
+			model: 'text-embedding-ada-002',
+			input
+		});
+
+		return data[0].embedding;
+	} catch (err) {
+		console.error(err)
+
+		return null;
+	}
 }
 
 export async function createVersion(
@@ -1395,6 +1414,10 @@ export type RegistrySearchOptions = {
 	hasSettingsAccess: boolean;
 	/** User that owns the scope */
 	ownedById: string;
+	options: {
+		embeddingEnabled?: boolean;
+		minSimilarity?: number;
+	};
 };
 
 export type RegistryDetails = tables.Registry & {
@@ -1417,17 +1440,175 @@ export async function searchRegistries({
 	lang,
 	hasSettingsAccess = false,
 	ownedById,
-	type: typeSql
+	type: typeSql,
+	options = {}
 }: Partial<RegistrySearchOptions>): Promise<{ total: number; data: RegistryDetails[] }> {
+	const { embeddingEnabled = false, minSimilarity = 0.5 } = options;
+
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 	const connectedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
-	// Weighted score expression
-	const qNoAt = q?.replace(/^@/, '') ?? '';
-	const scoreExpr = sql`
+	if (embeddingEnabled) {
+		const embedding = q ? await generateEmbedding(q) : null;
+
+		const similarity = sql<number>`1 - (${cosineDistance(tables.registry.embedding, embedding ?? new Array(1536).fill(0))})`
+
+		const whereClause = and(
+			embedding !== null ? gt(similarity, minSimilarity) : undefined,
+			org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
+			scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
+			ownedById ? eq(tables.scope.userId, ownedById) : undefined,
+			lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
+			typeSql ? typeSql : undefined,
+			checkAccessQuery({
+				userOrgMember,
+				readonlyAccess: true,
+				hasSettingsAccess
+			})
+		);
+
+		let dataQuery = db
+			.select({
+				...getTableColumns(tables.registry),
+				scope: tables.scope,
+				org: tables.org,
+				latestVersion: tables.version,
+				monthlyFetches: sum(tables.dailyRegistryFetch.count),
+				score: similarity,
+				releasedBy: releasedBy,
+				connectedStripeAccount: connectedStripeAccount
+			})
+			.from(tables.registry)
+			.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+			.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+			.leftJoin(
+				connectedStripeAccount,
+				eq(connectedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
+			)
+			.leftJoin(
+				tables.orgMember,
+				and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
+			)
+			.leftJoin(
+				tables.version,
+				and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
+			)
+			.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
+			.leftJoin(
+				tables.dailyRegistryFetch,
+				and(
+					eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
+				)
+			)
+			.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+			.leftJoin(
+				userOrgMember,
+
+				and(
+					// user is the org member
+					eq(userOrgMember.userId, tables.user.id)
+				)
+			)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+					or(
+						// purchase for org
+						eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+						// purchase for user
+						eq(tables.marketplacePurchase.referenceId, tables.user.id)
+					)
+				)
+			)
+			.where(whereClause)
+			.groupBy(
+				tables.registry.id,
+				tables.registry.name,
+				tables.registry.scopeId,
+				tables.registry.createdAt,
+				tables.scope.id,
+				tables.scope.name,
+				tables.scope.orgId,
+				tables.org.id,
+				tables.org.name,
+				tables.version.id,
+				tables.version.registryId,
+				tables.version.tag,
+				tables.version.createdAt,
+				tables.version.releasedById,
+				releasedBy.id,
+				connectedStripeAccount.id
+			);
+
+		if (orderBy) {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.orderBy(orderBy);
+		} else {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.orderBy(sql`${similarity} DESC`);
+		}
+
+		if (limit) {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.limit(limit);
+		}
+
+		// @ts-expect-error wrong
+		dataQuery = dataQuery.offset(offset ?? 0);
+
+		const countQuery = db
+			.select({ total: countDistinct(tables.registry.id) })
+			.from(tables.registry)
+			.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+			.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+			.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+			.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+			.leftJoin(
+				userOrgMember,
+
+				and(
+					// user is the org member
+					eq(userOrgMember.userId, tables.user.id)
+				)
+			)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+					or(
+						// purchase for org
+						eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+						// purchase for user
+						eq(tables.marketplacePurchase.referenceId, tables.user.id)
+					)
+				)
+			)
+			.where(whereClause);
+
+		const [data, countResult] = await Promise.all([dataQuery, countQuery]);
+		const total = countResult[0]?.total ?? 0;
+
+		return {
+			total,
+			data: data.map((r) => ({
+				...r,
+				monthlyFetches: parseInt(r.monthlyFetches ?? '0')
+			}))
+		};
+	} else {
+		// Weighted score expression
+		const qNoAt = q?.replace(/^@/, '') ?? '';
+		const scoreExpr = sql`
 	  (
 		(CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
 		+
@@ -1440,33 +1621,33 @@ export async function searchRegistries({
 	  )::int
 	`.as('score');
 
-	const whereClause = and(
-		q
-			? q.startsWith('@')
-				? ilike(sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`, `${q}%`)
-				: or(
-						ilike(sql`${tables.scope.name} || '/' || ${tables.registry.name}`, `%${qNoAt}%`),
-						ilike(tables.registry.metaDescription, `%${q}%`),
-						sql`EXISTS (
+		const whereClause = and(
+			q
+				? q.startsWith('@')
+					? ilike(sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`, `${q}%`)
+					: or(
+							ilike(sql`${tables.scope.name} || '/' || ${tables.registry.name}`, `%${qNoAt}%`),
+							ilike(tables.registry.metaDescription, `%${q}%`),
+							sql`EXISTS (
 				SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
 				WHERE tag ILIKE ${'%' + q + '%'}
 			  )`
-					)
-			: undefined,
-		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
-		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
-		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
-		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
-		typeSql ? typeSql : undefined,
-		checkAccessQuery({
-			userOrgMember,
-			readonlyAccess: true,
-			hasSettingsAccess
-		}),
+						)
+				: undefined,
+			org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
+			scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
+			ownedById ? eq(tables.scope.userId, ownedById) : undefined,
+			lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
+			typeSql ? typeSql : undefined,
+			checkAccessQuery({
+				userOrgMember,
+				readonlyAccess: true,
+				hasSettingsAccess
+			}),
 
-		// filter out results with 0 score
-		q
-			? sql`(
+			// filter out results with 0 score
+			q
+				? sql`(
 		  (CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
 		  +
 		  (CASE WHEN EXISTS (
@@ -1476,144 +1657,145 @@ export async function searchRegistries({
 		  +
 		  (CASE WHEN ${tables.registry.metaDescription} ILIKE ${'%' + q + '%'} THEN 3 ELSE 0 END)
 		) > 0`
-			: undefined
-	);
-
-	let dataQuery = db
-		.select({
-			...getTableColumns(tables.registry),
-			scope: tables.scope,
-			org: tables.org,
-			latestVersion: tables.version,
-			monthlyFetches: sum(tables.dailyRegistryFetch.count),
-			score: scoreExpr,
-			releasedBy: releasedBy,
-			connectedStripeAccount: connectedStripeAccount
-		})
-		.from(tables.registry)
-		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(
-			connectedStripeAccount,
-			eq(connectedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
-		)
-		.leftJoin(
-			tables.orgMember,
-			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
-		)
-		.leftJoin(
-			tables.version,
-			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
-		)
-		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(
-			tables.dailyRegistryFetch,
-			and(
-				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
-				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
-			)
-		)
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
-		.where(whereClause)
-		.groupBy(
-			tables.registry.id,
-			tables.registry.name,
-			tables.registry.scopeId,
-			tables.registry.createdAt,
-			tables.scope.id,
-			tables.scope.name,
-			tables.scope.orgId,
-			tables.org.id,
-			tables.org.name,
-			tables.version.id,
-			tables.version.registryId,
-			tables.version.tag,
-			tables.version.createdAt,
-			tables.version.releasedById,
-			releasedBy.id,
-			connectedStripeAccount.id
+				: undefined
 		);
 
-	if (orderBy) {
-		// @ts-expect-error wrong
-		dataQuery = dataQuery.orderBy(orderBy);
-	} else {
-		// @ts-expect-error wrong
-		dataQuery = dataQuery.orderBy(sql`score DESC`);
-	}
-
-	if (limit) {
-		// @ts-expect-error wrong
-		dataQuery = dataQuery.limit(limit);
-	}
-
-	// @ts-expect-error wrong
-	dataQuery = dataQuery.offset(offset ?? 0);
-
-	const countQuery = db
-		.select({ total: countDistinct(tables.registry.id) })
-		.from(tables.registry)
-		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
+		let dataQuery = db
+			.select({
+				...getTableColumns(tables.registry),
+				scope: tables.scope,
+				org: tables.org,
+				latestVersion: tables.version,
+				monthlyFetches: sum(tables.dailyRegistryFetch.count),
+				score: scoreExpr,
+				releasedBy: releasedBy,
+				connectedStripeAccount: connectedStripeAccount
+			})
+			.from(tables.registry)
+			.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+			.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+			.leftJoin(
+				connectedStripeAccount,
+				eq(connectedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
 			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+			.leftJoin(
+				tables.orgMember,
+				and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
+			)
+			.leftJoin(
+				tables.version,
+				and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
+			)
+			.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
+			.leftJoin(
+				tables.dailyRegistryFetch,
+				and(
+					eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
 				)
 			)
-		)
-		.where(whereClause);
+			.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+			.leftJoin(
+				userOrgMember,
 
-	const [data, countResult] = await Promise.all([dataQuery, countQuery]);
-	const total = countResult[0]?.total ?? 0;
+				and(
+					// user is the org member
+					eq(userOrgMember.userId, tables.user.id)
+				)
+			)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
 
-	return {
-		total,
-		data: data.map((r) => ({
-			...r,
-			monthlyFetches: parseInt(r.monthlyFetches ?? '0')
-		}))
-	};
+					or(
+						// purchase for org
+						eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+						// purchase for user
+						eq(tables.marketplacePurchase.referenceId, tables.user.id)
+					)
+				)
+			)
+			.where(whereClause)
+			.groupBy(
+				tables.registry.id,
+				tables.registry.name,
+				tables.registry.scopeId,
+				tables.registry.createdAt,
+				tables.scope.id,
+				tables.scope.name,
+				tables.scope.orgId,
+				tables.org.id,
+				tables.org.name,
+				tables.version.id,
+				tables.version.registryId,
+				tables.version.tag,
+				tables.version.createdAt,
+				tables.version.releasedById,
+				releasedBy.id,
+				connectedStripeAccount.id
+			);
+
+		if (orderBy) {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.orderBy(orderBy);
+		} else {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.orderBy(sql`score DESC`);
+		}
+
+		if (limit) {
+			// @ts-expect-error wrong
+			dataQuery = dataQuery.limit(limit);
+		}
+
+		// @ts-expect-error wrong
+		dataQuery = dataQuery.offset(offset ?? 0);
+
+		const countQuery = db
+			.select({ total: countDistinct(tables.registry.id) })
+			.from(tables.registry)
+			.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+			.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+			.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+			.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+			.leftJoin(
+				userOrgMember,
+
+				and(
+					// user is the org member
+					eq(userOrgMember.userId, tables.user.id)
+				)
+			)
+			.leftJoin(
+				tables.marketplacePurchase,
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+					or(
+						// purchase for org
+						eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+						// purchase for user
+						eq(tables.marketplacePurchase.referenceId, tables.user.id)
+					)
+				)
+			)
+			.where(whereClause);
+
+		const [data, countResult] = await Promise.all([dataQuery, countQuery]);
+		const total = countResult[0]?.total ?? 0;
+
+		return {
+			total,
+			data: data.map((r) => ({
+				...r,
+				monthlyFetches: parseInt(r.monthlyFetches ?? '0')
+			}))
+		};
+	}
 }
 
 export async function getOrgScopes(orgName: string) {
