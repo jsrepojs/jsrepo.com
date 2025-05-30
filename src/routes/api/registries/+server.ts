@@ -23,7 +23,7 @@ export async function GET({ locals, url }) {
 	const query = url.searchParams.get('q');
 	const limit = parseInt(url.searchParams.get('limit') ?? '15');
 	const offset = parseInt(url.searchParams.get('offset') ?? '0');
-	const orderBy = url.searchParams.get('order_by') ?? 'default';
+	const orderBy = url.searchParams.get('order_by') ?? 'most_popular';
 	const lang = url.searchParams.get('lang');
 	const type = url.searchParams.get('type') ?? 'all';
 
