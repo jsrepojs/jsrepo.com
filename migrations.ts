@@ -61,7 +61,7 @@ const logger = (prefix?: string) => {
 };
 
 async function registryScopeNameMigration() {
-	const log = logger('registry scope migration')
+	const log = logger('registry scope migration');
 
 	const result = await db.transaction(async (tx) => {
 		const registries = await tx
@@ -73,7 +73,7 @@ async function registryScopeNameMigration() {
 		if (registries.length === 0) return 0;
 
 		for (const registry of registries) {
-			log.info(`Migrating ${color.cyan(`@${registry.registry.name}/${registry.scope.name}`)}`)
+			log.info(`Migrating ${color.cyan(`@${registry.registry.name}/${registry.scope.name}`)}`);
 
 			const res = await tx
 				.update(tables.registry)
@@ -85,10 +85,10 @@ async function registryScopeNameMigration() {
 				tx.rollback();
 			}
 
-			log.info(`✅ Migrated ${color.cyan(`@${registry.registry.name}/${registry.scope.name}`)}`)
+			log.info(`✅ Migrated ${color.cyan(`@${registry.registry.name}/${registry.scope.name}`)}`);
 		}
 
-		return registries.length
+		return registries.length;
 	});
 
 	log.info(`✅ Migrated ${result} registries`);
