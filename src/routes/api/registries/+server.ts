@@ -20,12 +20,18 @@ const typeOptions: Record<string, SQL | null> = {
 export async function GET({ locals, url }) {
 	const session = await locals.auth();
 
-	const q = url.searchParams.get('q');
+	const query = url.searchParams.get('q');
 	const limit = parseInt(url.searchParams.get('limit') ?? '15');
 	const offset = parseInt(url.searchParams.get('offset') ?? '0');
 	const orderBy = url.searchParams.get('order_by') ?? 'default';
 	const lang = url.searchParams.get('lang');
 	const type = url.searchParams.get('type') ?? 'all';
+
+	const { q, keywords } = parseKeywords(query ?? '');
+
+	console.log('query', `'${q}'`);
+
+	console.log(keywords);
 
 	const orderBySQL = orderByOptions[orderBy];
 
@@ -51,6 +57,7 @@ export async function GET({ locals, url }) {
 
 	const registries = await searchRegistries({
 		q,
+		keywords,
 		limit,
 		offset,
 		lang,
@@ -60,4 +67,24 @@ export async function GET({ locals, url }) {
 	});
 
 	return json(registries);
+}
+
+function parseKeywords(q: string): { q: string; keywords: string[] } {
+	const index = q?.indexOf('keywords:');
+
+	if (index === -1) return { q, keywords: [] };
+
+	let endIndex = q?.indexOf(' ', index);
+
+	if (endIndex === -1) {
+		endIndex = q.length;
+	}
+
+	const keywords = q
+		.slice(index, endIndex)
+		.slice('keywords:'.length)
+		.split(',')
+		.filter((v) => v.trim().length !== 0);
+
+	return { q: `${q.slice(0, index)}${q.slice(endIndex)}`.trim(), keywords };
 }

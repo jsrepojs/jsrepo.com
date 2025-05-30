@@ -1,3 +1,10 @@
 {
-	"cSpell.words": ["apikey", "ilike", "inview", "posthog"]
+	"cSpell.words": [
+		"apikey",
+		"ilike",
+		"inview",
+		"posthog",
+		"setweight",
+		"tsvector"
+	]
 }
