@@ -29,10 +29,6 @@ export async function GET({ locals, url }) {
 
 	const { q, keywords } = parseKeywords(query ?? '');
 
-	console.log('query', `'${q}'`);
-
-	console.log(keywords);
-
 	const orderBySQL = orderByOptions[orderBy];
 
 	if (orderBySQL === undefined) {
