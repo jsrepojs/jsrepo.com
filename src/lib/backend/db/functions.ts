@@ -17,7 +17,8 @@ import {
 	SQL,
 	countDistinct,
 	not,
-	gt
+	gt,
+	arrayContains
 } from 'drizzle-orm';
 import { generateId, type User } from 'better-auth';
 import assert from 'assert';
@@ -1380,6 +1381,7 @@ export async function rejectOrgInvite(inviteId: number) {
 
 export type RegistrySearchOptions = {
 	q: string | null;
+	keywords: string[];
 	org: string | null;
 	scope: string | null;
 	lang: string | null;
@@ -1408,6 +1410,7 @@ export type RegistryDetails = tables.Registry & {
 
 export async function searchRegistries({
 	q,
+	keywords,
 	org,
 	scope,
 	limit,
@@ -1425,34 +1428,50 @@ export async function searchRegistries({
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 	const connectedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
-	// Weighted score expression
-	const qNoAt = q?.replace(/^@/, '') ?? '';
-	const scoreExpr = sql`
-	  (
-		(CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
-		+
-		(CASE WHEN EXISTS (
-		  SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
-		  WHERE tag ILIKE ${'%' + q + '%'}
-		) THEN 8 ELSE 0 END)
-		+
-		(CASE WHEN ${tables.registry.metaDescription} ILIKE ${'%' + q + '%'} THEN 3 ELSE 0 END)
-	  )::int
-	`.as('score');
+	const matchQuery = sql`(
+		setweight(
+			to_tsvector('english', ${tables.registry.name}),
+			'A'
+		) ||
+		setweight(
+			to_tsvector('english', ${tables.registry.scopeName}),
+			'B'
+		) ||
+		setweight(
+			to_tsvector('english', ${tables.registry.metaDescription}), 
+			'C'
+		) ||
+		setweight(
+			array_to_tsvector(${tables.registry.metaTags}),
+			'D'
+		)
+	), websearch_to_tsquery('english', ${q})`;
 
 	const whereClause = and(
 		q
-			? q.startsWith('@')
-				? ilike(sql`'@' || ${tables.scope.name} || '/' || ${tables.registry.name}`, `${q}%`)
-				: or(
-						ilike(sql`${tables.scope.name} || '/' || ${tables.registry.name}`, `%${qNoAt}%`),
-						ilike(tables.registry.metaDescription, `%${q}%`),
-						sql`EXISTS (
-				SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
-				WHERE tag ILIKE ${'%' + q + '%'}
-			  )`
-					)
+			? or(
+					sql`(
+		setweight(
+			to_tsvector('english', ${tables.registry.name}),
+			'A'
+		) ||
+		setweight(
+			to_tsvector('english', ${tables.registry.scopeName}),
+			'B'
+		) ||
+		setweight(
+			to_tsvector('english', ${tables.registry.metaDescription}), 
+			'C'
+		) ||
+		setweight(
+			array_to_tsvector(${tables.registry.metaTags}),
+			'D'
+		)
+	) @@ websearch_to_tsquery('english', ${q})`,
+					sql`'@' || ${tables.registry.scopeName} || '/' || ${tables.registry.name} ilike ${`${q}%`}`
+				)
 			: undefined,
+		keywords && keywords.length > 0 ? arrayContains(tables.registry.metaTags, keywords) : undefined,
 		org ? eq(lower(tables.org.name), org.toLowerCase()) : undefined,
 		scope ? eq(lower(tables.scope.name), scope.toLowerCase()) : undefined,
 		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
@@ -1462,21 +1481,7 @@ export async function searchRegistries({
 			userOrgMember,
 			readonlyAccess: true,
 			hasSettingsAccess
-		}),
-
-		// filter out results with 0 score
-		q
-			? sql`(
-		  (CASE WHEN (${tables.scope.name} || '/' || ${tables.registry.name}) ILIKE ${'%' + qNoAt + '%'} THEN 10 ELSE 0 END)
-		  +
-		  (CASE WHEN EXISTS (
-		    SELECT 1 FROM unnest(${tables.registry.metaTags}) AS tag
-		    WHERE tag ILIKE ${'%' + q + '%'}
-		  ) THEN 8 ELSE 0 END)
-		  +
-		  (CASE WHEN ${tables.registry.metaDescription} ILIKE ${'%' + q + '%'} THEN 3 ELSE 0 END)
-		) > 0`
-			: undefined
+		})
 	);
 
 	let dataQuery = db
@@ -1486,7 +1491,7 @@ export async function searchRegistries({
 			org: tables.org,
 			latestVersion: tables.version,
 			monthlyFetches: sum(tables.dailyRegistryFetch.count),
-			score: scoreExpr,
+			rank: sql`ts_rank(${matchQuery})`,
 			releasedBy: releasedBy,
 			connectedStripeAccount: connectedStripeAccount
 		})
@@ -1562,7 +1567,7 @@ export async function searchRegistries({
 		dataQuery = dataQuery.orderBy(orderBy);
 	} else {
 		// @ts-expect-error wrong
-		dataQuery = dataQuery.orderBy(sql`score DESC`);
+		dataQuery = dataQuery.orderBy((t) => desc(t.rank));
 	}
 
 	if (limit) {

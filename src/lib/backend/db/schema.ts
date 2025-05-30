@@ -374,7 +374,7 @@ export const scope = pgTable(
 	'scope',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull(),
+		name: varchar('name', { length: 20 }).notNull().unique(),
 		orgId: text('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -383,7 +383,7 @@ export const scope = pgTable(
 	(table) => {
 		return [
 			sql`CONSTRAINT not_null_owner CHECK (${table.orgId} IS NOT NULL OR ${table.userId} IS NOT NULL)`,
-			uniqueIndex('scope_name_idx').on(lower(table.name)),
+			index('scope_name_idx').on(lower(table.name)),
 			index('scope_org_id_idx').on(table.orgId),
 			index('scope_user_id_idx').on(table.userId)
 		];
@@ -431,6 +431,10 @@ export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
+		// TODO: Make this notNull
+		scopeName: varchar('scope_name', { length: 20 }).references(() => scope.name, {
+			onDelete: 'cascade'
+		}),
 		name: varchar('name', { length: 20 }).notNull(),
 		access: registry_access().notNull(),
 		scopeId: integer('scope_id')
@@ -462,7 +466,28 @@ export const registry = pgTable(
 			index('registry_meta_tags').on(table.metaTags),
 			index('registry_meta_authors').on(table.metaAuthors),
 			index('registry_meta_primary_language').on(table.metaPrimaryLanguage),
-			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace)
+			index('registry_list_on_marketplace_idx').on(table.listOnMarketplace),
+			index('registry_search_idx').using(
+				'gin',
+				sql`(
+					setweight(
+						to_tsvector('english', ${table.name}),
+						'A'
+					) ||
+					setweight(
+						to_tsvector('english', ${table.scopeName}),
+						'B'
+					) ||
+					setweight(
+						to_tsvector('english', ${table.metaDescription}), 
+						'C'
+					) ||
+					setweight(
+						array_to_tsvector(${table.metaTags}),
+						'D'
+					)
+				)`
+			)
 		];
 	}
 ).enableRLS();

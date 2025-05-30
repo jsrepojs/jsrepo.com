@@ -221,6 +221,7 @@ export async function POST({ request }) {
 			// create registry
 			registryId = await createRegistry(tx, {
 				name: registryName,
+				scopeName: scopeName,
 				scopeId: scope.id,
 				// automatically link the users seller account to a new registry
 				stripeConnectAccountId: user.stripeSellerAccountId,
