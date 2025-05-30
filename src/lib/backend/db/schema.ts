@@ -431,10 +431,11 @@ export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
-		// TODO: Make this notNull
-		scopeName: varchar('scope_name', { length: 20 }).references(() => scope.name, {
-			onDelete: 'cascade'
-		}),
+		scopeName: varchar('scope_name', { length: 20 })
+			.notNull()
+			.references(() => scope.name, {
+				onDelete: 'cascade'
+			}),
 		name: varchar('name', { length: 20 }).notNull(),
 		access: registry_access().notNull(),
 		scopeId: integer('scope_id')
