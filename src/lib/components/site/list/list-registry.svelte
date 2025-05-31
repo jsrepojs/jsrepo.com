@@ -8,6 +8,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import ReviewStars from '../registry-view/review-stars.svelte';
 	import { Badge } from '$lib/components/ui/badge';
+	import { page } from '$app/state';
 
 	type Props = {
 		registry: RegistryDetails;
@@ -60,7 +61,10 @@
 		{#if registry.metaTags}
 			<div class="flex flex-wrap place-items-center gap-2">
 				{#each registry.metaTags as tag (tag)}
-					<Badge href="?q=keywords:{tag}" variant="secondary">{tag}</Badge>
+					<Badge
+						href={page.url.pathname.startsWith('/search') ? `?q=keywords:${tag}` : undefined}
+						variant="secondary">{tag}</Badge
+					>
 				{/each}
 			</div>
 		{/if}

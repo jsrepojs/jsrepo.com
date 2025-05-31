@@ -1409,7 +1409,7 @@ export type RegistryDetails = tables.Registry & {
 };
 
 export async function searchRegistries({
-	q,
+	q = '',
 	keywords,
 	org,
 	scope,
