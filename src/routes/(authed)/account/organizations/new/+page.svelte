@@ -76,7 +76,7 @@
 						maxlength={50}
 						bind:value={$formData.name}
 						{placeholder}
-						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						class="aria-invalid:border-destructive aria-invalid:ring-destructive"
 					/>
 					{#if searchUserOrOrgQuery.data !== undefined}
 						{#if searchUserOrOrgQuery.data}

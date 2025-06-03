@@ -61,7 +61,7 @@
 						maxlength={20}
 						bind:value={$formData.name}
 						{placeholder}
-						class="pl-5 aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						class="pl-5 aria-invalid:border-destructive aria-invalid:ring-destructive"
 					/>
 				</div>
 			{/snippet}

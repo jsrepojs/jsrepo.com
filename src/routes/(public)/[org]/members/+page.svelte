@@ -140,7 +140,7 @@
 										disabled={member.role === 'owner' &&
 											data.org.members.filter((m) => m.id !== member.id && m.role === 'owner')
 												.length === 0}
-										class="text-destructive data-[highlighted]:text-destructive"
+										class="text-destructive data-highlighted:text-destructive"
 									>
 										<X />
 										Remove from org

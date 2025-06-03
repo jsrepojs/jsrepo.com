@@ -196,10 +196,10 @@
 {#snippet feature_list({ features }: { features: string[] })}
 	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
 		{#each features as feature (feature)}
-			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
+			<li class="flex place-items-start gap-2 text-sm/(--line-height)" style="--line-height: 20px;">
 				<span
 					data-visible={feature.length > 0}
-					class="flex h-[var(--line-height)] place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+					class="flex h-(--line-height) place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
 				>
 					<Check class="size-4 text-green-400" />
 				</span>

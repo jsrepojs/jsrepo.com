@@ -178,7 +178,7 @@
 		</div>
 		{#if canShowList}
 			<div
-				class="absolute left-0 top-[3.25rem] z-10 w-full rounded-lg border border-border bg-popover"
+				class="absolute left-0 top-13 z-10 w-full rounded-lg border border-border bg-popover"
 			>
 				<!-- Group -->
 				<div class="overflow-hidden p-1 text-foreground">
@@ -188,7 +188,7 @@
 						<!-- svelte-ignore a11y_role_supports_aria_props_implicit -->
 						<button
 							type="submit"
-							class="relative flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+							class="relative flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
 							aria-selected={selectedIndex === i}
 							onmouseover={() => (selectedIndex = i)}
 							tabindex={-1}

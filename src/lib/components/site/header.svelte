@@ -30,7 +30,7 @@
 	class="bg-background sticky top-0 left-0 z-10 flex h-(--header-height) w-full flex-col place-items-center justify-center border-b"
 >
 	<div class="container w-full">
-		<div class="flex h-[3.625rem] w-full items-center justify-between gap-6 py-2">
+		<div class="flex h-14.5 w-full items-center justify-between gap-6 py-2">
 			<div class="flex place-items-center gap-6">
 				<a href="/">
 					<Icons.Jsrepo class="size-9" />
@@ -79,7 +79,7 @@
 	>
 		{#if shouldShowSearch() && isMobile.current}
 			<div class="container w-full">
-				<div class="flex h-[3.625rem] w-full place-items-center py-2 md:hidden">
+				<div class="flex h-14.5 w-full place-items-center py-2 md:hidden">
 					<RegistrySearchCompact {search} />
 				</div>
 			</div>

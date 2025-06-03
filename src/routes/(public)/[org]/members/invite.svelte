@@ -91,7 +91,7 @@
 						oninput={validateUsernameQuery.runDB}
 						placeholder="Username"
 						aria-invalid={validateUsernameQuery.data === false}
-						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						class="aria-invalid:border-destructive aria-invalid:ring-destructive"
 					/>
 					{#if validateUsernameQuery.data !== undefined}
 						{#if validateUsernameQuery.data}
@@ -116,7 +116,7 @@
 				</Select.Root>
 			</div>
 		</div>
-		<Dialog.Footer class="flex !flex-row !place-items-center !justify-between">
+		<Dialog.Footer class="flex flex-row! place-items-center! justify-between!">
 			<small class="text-wrap text-start text-destructive">
 				{#if inviteQuery.error}
 					{inviteQuery.error}

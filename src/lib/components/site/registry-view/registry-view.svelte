@@ -172,11 +172,11 @@
 					<a
 						href="?tab=dependencies"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent sm:hidden"
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Dependencies
-						<div class="flex h-[--line-height] place-items-center justify-center">
+						<div class="flex h-(--line-height) place-items-center justify-center">
 							<div
 								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
 							>
@@ -187,11 +187,11 @@
 					<a
 						href="?tab=versions"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent sm:hidden"
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Versions
-						<div class="flex h-[--line-height] place-items-center justify-center">
+						<div class="flex h-(--line-height) place-items-center justify-center">
 							<div
 								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
 							>
@@ -203,7 +203,7 @@
 						<a
 							href="?tab=pricing"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
 							style="--line-height: 24px;"
 						>
 							Pricing
@@ -212,7 +212,7 @@
 					<a
 						href="?tab=reviews"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
 						style="--line-height: 24px;"
 					>
 						Reviews
@@ -221,7 +221,7 @@
 						<a
 							href="?tab=settings"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/[--line-height] hover:bg-accent"
+							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
 							style="--line-height: 24px;"
 						>
 							Settings

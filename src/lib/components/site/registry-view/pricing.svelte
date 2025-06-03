@@ -174,7 +174,7 @@
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl"> $ </span>
 											<Input
-												class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 !text-5xl !ring-0 focus-visible:border-b-primary aria-[invalid=true]:border-b-destructive aria-[invalid=true]:text-destructive"
+												class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 text-5xl! ring-0! focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive"
 												placeholder="10"
 												type="number"
 												min={MIN_PRICE}
@@ -223,7 +223,7 @@
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl"> $ </span>
 											<Input
-												class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 !text-5xl !ring-0 focus-visible:border-b-primary aria-[invalid=true]:border-b-destructive aria-[invalid=true]:text-destructive"
+												class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 text-5xl! ring-0! focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive"
 												placeholder="30"
 												type="number"
 												min={MIN_PRICE}
@@ -484,10 +484,10 @@
 {#snippet feature_list({ features }: { features: string[] })}
 	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
 		{#each features as feature (feature)}
-			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
+			<li class="flex place-items-start gap-2 text-sm/(--line-height)" style="--line-height: 20px;">
 				<span
 					data-visible={feature.length > 0}
-					class="flex h-[var(--line-height)] place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+					class="flex h-(--line-height) place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
 				>
 					<Check class="size-4 text-green-400" />
 				</span>
@@ -516,7 +516,7 @@
 								<div class="flex place-items-start gap-1">
 									<span class="text-5xl"> $ </span>
 									<Input
-										class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 !text-5xl !ring-0 focus-visible:border-b-primary aria-[invalid=true]:border-b-destructive aria-[invalid=true]:text-destructive"
+										class="h-12 rounded-none border-x-0 border-b border-t-0 border-b-border bg-transparent px-0 text-5xl! ring-0! focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive"
 										placeholder="10"
 										type="number"
 										min={MIN_PRICE}

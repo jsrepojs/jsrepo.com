@@ -66,7 +66,7 @@
 							placeholder="Username"
 							maxlength={50}
 							bind:value={$formData.username}
-							class="w-full aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+							class="w-full aria-invalid:border-destructive aria-invalid:ring-destructive"
 						/>
 						{#if searchUserOrOrgQuery.data !== undefined}
 							{#if searchUserOrOrgQuery.data}
