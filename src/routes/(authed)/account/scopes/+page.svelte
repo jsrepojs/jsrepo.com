@@ -15,7 +15,7 @@
 	<div class="flex flex-col gap-2">
 		<div class="flex place-items-center justify-between">
 			<Nav.Title>Scope Usage</Nav.Title>
-			<span class="text-sm text-muted-foreground">
+			<span class="text-muted-foreground text-sm">
 				{data.scopes.userScopes.length} / {data.user.scopeLimit}
 			</span>
 		</div>

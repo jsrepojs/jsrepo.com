@@ -10,7 +10,7 @@
 
 {#if $session.data}
 	<a href="/account">
-		<Avatar.Root class="size-8 ring-offset-background">
+		<Avatar.Root class="ring-offset-background size-8">
 			<Avatar.Image src={$session.data.user?.image} />
 			<Avatar.Fallback>{getInitials($session.data.user.name)}</Avatar.Fallback>
 		</Avatar.Root>

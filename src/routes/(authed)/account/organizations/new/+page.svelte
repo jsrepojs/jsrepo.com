@@ -55,7 +55,7 @@
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a
 		href="/account/organizations"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
+		class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 py-2 transition-all"
 	>
 		<ChevronLeft />
 		Back to Organizations
@@ -76,13 +76,13 @@
 						maxlength={50}
 						bind:value={$formData.name}
 						{placeholder}
-						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						class="aria-invalid:border-destructive aria-invalid:ring-destructive"
 					/>
 					{#if searchUserOrOrgQuery.data !== undefined}
 						{#if searchUserOrOrgQuery.data}
-							<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
+							<X class="text-destructive absolute top-1/2 right-2 size-3 -translate-y-1/2" />
 						{:else if $formData.name.length > 0}
-							<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+							<Check class="absolute top-1/2 right-2 size-3 -translate-y-1/2 text-green-500" />
 						{/if}
 					{/if}
 				</div>
@@ -105,6 +105,6 @@
 	</Form.Field>
 	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
 	{#if error}
-		<span class="text-sm text-destructive">{error}</span>
+		<span class="text-destructive text-sm">{error}</span>
 	{/if}
 </form>

@@ -29,7 +29,7 @@
 <div class="flex flex-col gap-2">
 	<a
 		href="/account"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
+		class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 py-2 transition-all"
 	>
 		<ChevronLeft />
 		Back to Account
@@ -57,7 +57,7 @@
 			<p>
 				<a
 					href="/account/scopes/new"
-					class="w-fit font-medium text-foreground underline underline-offset-2"
+					class="text-foreground w-fit font-medium underline underline-offset-2"
 				>
 					Claim a New Scope
 				</a>

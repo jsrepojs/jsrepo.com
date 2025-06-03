@@ -6,7 +6,7 @@
 </script>
 
 <svg
-	class={cn('size-4 fill-current text-foreground', className)}
+	class={cn('text-foreground size-4 fill-current', className)}
 	role="img"
 	viewBox="0 0 24 24"
 	xmlns="http://www.w3.org/2000/svg"

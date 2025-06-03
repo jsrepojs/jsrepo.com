@@ -93,7 +93,7 @@
 								{getInitials(data.registry.connectedStripeAccount?.name ?? '')}
 							</Avatar.Fallback>
 						</Avatar.Root>
-						<span class="text-muted-foreground transition-all group-hover:text-foreground">
+						<span class="text-muted-foreground group-hover:text-foreground transition-all">
 							{data.registry.connectedStripeAccount?.username}
 						</span>
 					</a>
@@ -101,7 +101,7 @@
 			</FieldSet.Content>
 			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
 				<div>
-					<span class="hidden truncate text-sm text-muted-foreground md:inline">
+					<span class="text-muted-foreground hidden truncate text-sm md:inline">
 						This account will receive payouts for your registry purchases.
 					</span>
 				</div>
@@ -128,7 +128,7 @@
 			</FieldSet.Content>
 			<FieldSet.Footer class="flex place-items-center justify-between gap-4">
 				<div>
-					<span class="hidden truncate text-sm text-muted-foreground md:inline">
+					<span class="text-muted-foreground hidden truncate text-sm md:inline">
 						This account will receive payouts for your registry purchases.
 					</span>
 				</div>
@@ -167,7 +167,7 @@
 				/>
 			</FieldSet.Content>
 			<FieldSet.Footer class="hidden md:flex">
-				<span class="hidden text-sm text-muted-foreground md:inline">
+				<span class="text-muted-foreground hidden text-sm md:inline">
 					Controls whether or not this registry can be purchased on the marketplace.
 				</span>
 			</FieldSet.Footer>
@@ -190,7 +190,7 @@
 		<FieldSet.Footer>
 			<div class="flex place-items-center justify-between gap-4">
 				<div>
-					<span class="hidden truncate text-sm text-muted-foreground md:block">
+					<span class="text-muted-foreground hidden truncate text-sm md:block">
 						This determines who can view your registry and add components from the CLI.
 					</span>
 				</div>

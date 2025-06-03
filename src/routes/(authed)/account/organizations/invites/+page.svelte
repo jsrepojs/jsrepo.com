@@ -71,7 +71,7 @@
 			{#each data.orgInvitesInbox as invitation (invitation.id)}
 				{@const role = casing.kebabToPascal(invitation.role)}
 				<List.Item
-					class="flex flex-col place-items-center gap-2 hover:bg-card sm:flex-row sm:justify-between"
+					class="hover:bg-card flex flex-col place-items-center gap-2 sm:flex-row sm:justify-between"
 				>
 					<span>
 						Join <span class="font-bold">{invitation.org.name}</span> as a {role}

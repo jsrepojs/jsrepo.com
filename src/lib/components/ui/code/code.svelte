@@ -112,7 +112,7 @@
 	{#if !hideCopy}
 		<div
 			class={cn(
-				'absolute right-2 top-2 flex place-items-center justify-center',
+				'absolute top-2 right-2 flex place-items-center justify-center',
 				copyButtonContainerClass
 			)}
 		>
@@ -121,7 +121,9 @@
 	{/if}
 </div>
 
-<style lang="postcss">
+<style>
+	@reference '../../../../app.css';
+
 	/* Shiki see: https://shiki.matsu.io/guide/dual-themes#class-based-dark-mode */
 	:global(html.dark .shiki, html.dark .shiki span) {
 		color: var(--shiki-dark) !important;
@@ -142,7 +144,7 @@
 	}
 
 	:global(pre.shiki code) {
-		@apply grid min-w-full break-words rounded-none border-0 bg-transparent p-0;
+		@apply grid min-w-full rounded-none border-0 bg-transparent p-0 break-words;
 		counter-reset: line;
 		box-decoration-break: clone;
 	}

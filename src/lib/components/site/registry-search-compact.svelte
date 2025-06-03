@@ -138,10 +138,10 @@
 		e.preventDefault();
 		handleSubmit();
 	}}
-	class={cn('flex h-9 w-full place-items-center bg-popover text-base md:text-sm', className)}
+	class={cn('bg-popover flex h-9 w-full place-items-center text-base md:text-sm', className)}
 >
 	<div
-		class="relative flex h-full w-full place-items-center rounded-l-lg border border-border pl-3 transition-all focus-within:border-primary"
+		class="border-border focus-within:border-primary relative flex h-full w-full place-items-center rounded-l-lg border pl-3 transition-all"
 	>
 		<Search class="mr-2 size-4 shrink-0 opacity-50" />
 		<input
@@ -152,32 +152,30 @@
 			onclick={() => (selectedIndex = undefined)}
 			oninput={query.runDB}
 			onkeydown={handleKeydown}
-			class="h-full w-full min-w-0 bg-transparent py-3 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+			class="placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent py-3 outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			placeholder="Search registries..."
 		/>
-		<div class="absolute right-0 top-0 flex h-9 place-items-center gap-2">
+		<div class="absolute top-0 right-0 flex h-9 place-items-center gap-2">
 			{#if query.loading}
 				<div class="flex size-full w-12 place-items-center justify-center">
-					<LoaderCircle class="size-4 shrink-0 animate-spin text-muted-foreground" />
+					<LoaderCircle class="text-muted-foreground size-4 shrink-0 animate-spin" />
 				</div>
 			{/if}
 			{#if query.error}
-				<div class="flex size-full w-12 place-items-center justify-center text-destructive">!</div>
+				<div class="text-destructive flex size-full w-12 place-items-center justify-center">!</div>
 			{/if}
 		</div>
 		{#if canShowList}
-			<div
-				class="absolute left-0 top-[2.5rem] z-10 w-full rounded-lg border border-border bg-popover"
-			>
+			<div class="border-border bg-popover absolute top-10 left-0 z-10 w-full rounded-lg border">
 				<!-- Group -->
-				<div class="overflow-hidden p-1 text-foreground">
+				<div class="text-foreground overflow-hidden p-1">
 					{#each filteredCompletions as registry, i (registry)}
 						{@const name = `@${registry.scope.name}/${registry.name}`}
 						<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 						<!-- svelte-ignore a11y_role_supports_aria_props_implicit -->
 						<button
 							type="submit"
-							class="relative flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+							class="aria-selected:bg-accent aria-selected:text-accent-foreground relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
 							aria-selected={selectedIndex === i}
 							onmouseover={() => (selectedIndex = i)}
 							tabindex={-1}
@@ -191,7 +189,7 @@
 									{registry.metaDescription}
 								</span>
 							</div>
-							<span class="font-mono text-sm text-muted-foreground">
+							<span class="text-muted-foreground font-mono text-sm">
 								{registry.monthlyFetches}
 								<Download class="inline size-4" />
 							</span>
@@ -203,7 +201,7 @@
 	</div>
 	<button
 		type="submit"
-		class="h-full rounded-r-lg border border-primary bg-primary px-4 text-primary-foreground"
+		class="border-primary bg-primary text-primary-foreground h-full cursor-pointer rounded-r-lg border px-4"
 	>
 		<Search class="size-4" />
 	</button>

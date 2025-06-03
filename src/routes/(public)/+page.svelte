@@ -34,12 +34,12 @@
 <div class="flex flex-col place-items-center pb-4">
 	<div class="mt-[25svh] flex w-full max-w-4xl flex-col place-items-center gap-8">
 		<div class="flex flex-col gap-4">
-			<h1 class="text-center text-5xl font-bold md:text-6xl">
+			<h1 class="text-center text-5xl font-bold text-shadow-lg md:text-6xl">
 				The future of
 				<br />
 				Component Registries
 			</h1>
-			<p class="text-center text-lg text-muted-foreground">
+			<p class="text-muted-foreground text-center text-lg">
 				jsrepo.com is a faster, simpler, more maintainable solution for hosting your component
 				registries.
 			</p>
@@ -53,11 +53,11 @@
 			</Button>
 		</div>
 	</div>
-	<div class="mb-20 mt-[25svh]">
+	<div class="mt-[25svh] mb-20">
 		<div class="flex max-w-4xl flex-col gap-2">
 			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				<div
-					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-start-1"
+					class="border-border bg-card flex flex-col place-items-center gap-4 rounded-xl border p-6 sm:col-start-1"
 				>
 					<div class="flex h-10 place-items-center">
 						<code class="rounded-lg bg-black px-2 py-1 font-mono text-sm font-thin text-white">
@@ -66,43 +66,43 @@
 					</div>
 					<div>
 						<h2 class="text-center text-lg font-medium">First Class CLI Integration</h2>
-						<p class="text-center text-muted-foreground">
+						<p class="text-muted-foreground text-center">
 							Publish, add, and update your code all from one place.
 						</p>
 					</div>
 				</div>
 				<div
-					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-span-2 sm:col-start-1 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1"
+					class="border-border bg-card flex flex-col place-items-center gap-4 rounded-xl border p-6 sm:col-span-2 sm:col-start-1 sm:row-start-2 lg:col-span-1 lg:col-start-2 lg:row-start-1"
 				>
 					<Icons.Semver class="size-10" />
 					<div>
 						<h2 class="text-center text-lg font-medium">Semantic Versioning</h2>
-						<p class="text-center text-muted-foreground">
+						<p class="text-muted-foreground text-center">
 							Distribute your registries under immutable versions with the semver standard.
 						</p>
 					</div>
 				</div>
 				<div
-					class="flex flex-col place-items-center gap-4 rounded-xl border border-border bg-card p-6 sm:col-start-2 lg:col-start-3"
+					class="border-border bg-card flex flex-col place-items-center gap-4 rounded-xl border p-6 sm:col-start-2 lg:col-start-3"
 				>
 					<div class="flex h-10 place-items-center gap-2">
 						<div>
-							<span class="font-mono text-xs text-muted-foreground">Time:</span>
+							<span class="text-muted-foreground font-mono text-xs">Time:</span>
 							<span class="font-mono text-xs text-green-400">150ms</span>
 						</div>
 						<div>
-							<span class="font-mono text-xs text-muted-foreground">Size:</span>
+							<span class="text-muted-foreground font-mono text-xs">Size:</span>
 							<span class="font-mono text-xs text-green-400">2.5 KB</span>
 						</div>
 					</div>
 					<div>
 						<h2 class="text-center text-lg font-medium">Build for Performance</h2>
-						<p class="text-center text-muted-foreground">The fastest way to serve your registry.</p>
+						<p class="text-muted-foreground text-center">The fastest way to serve your registry.</p>
 					</div>
 				</div>
 			</div>
 			<div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-				<div class="relative rounded-xl border border-border bg-card p-6">
+				<div class="border-border bg-card relative rounded-xl border p-6">
 					<h2 class="text-lg font-medium">Framework Agnostic</h2>
 					<p class="text-muted-foreground">Use what you use and let jsrepo.com do the rest.</p>
 					<div class="h-16"></div>
@@ -121,30 +121,30 @@
 						</Marquee>
 					</div>
 				</div>
-				<div class="rounded-xl border border-border bg-card p-6">
+				<div class="border-border bg-card rounded-xl border p-6">
 					<h2 class="text-lg font-medium">Work With Your Team</h2>
 					<p class="text-muted-foreground">
 						Publish and share code with your entire team with jsrepo.com organizations.
 					</p>
 					<AvatarGroup.Root class="pt-2">
 						{#each members as member (member.username)}
-							<AvatarGroup.Member class="size-8 ring-card">
+							<AvatarGroup.Member class="ring-card size-8">
 								<AvatarGroup.MemberImage src={member.image} alt={member.username} />
 								<AvatarGroup.MemberFallback>
 									{member.username[0]}
 								</AvatarGroup.MemberFallback>
 							</AvatarGroup.Member>
 						{/each}
-						<AvatarGroup.Etc class="size-8 ring-card" plus={2} />
+						<AvatarGroup.Etc class="ring-card size-8" plus={2} />
 					</AvatarGroup.Root>
 				</div>
 			</div>
 			<div
-				class="relative flex place-items-start justify-between gap-4 overflow-hidden rounded-xl border border-border bg-card p-6 sm:min-h-64"
+				class="border-border bg-card relative flex place-items-start justify-between gap-4 overflow-hidden rounded-xl border p-6 sm:min-h-64"
 			>
 				<div class="sm:pt-2">
 					<h2 class="text-center text-lg font-medium sm:text-start">Monetize Your Registry</h2>
-					<p class="text-center text-muted-foreground sm:max-w-[calc(75%)] sm:text-start">
+					<p class="text-muted-foreground text-center sm:max-w-[calc(75%)] sm:text-start">
 						Publish and sell your registry on jsrepo.com with the jsrepo.com marketplace.
 					</p>
 					<div class="flex place-items-center justify-center gap-2 pt-2 sm:justify-normal">
@@ -157,9 +157,9 @@
 						</Button>
 					</div>
 				</div>
-				<div class="absolute left-3/4 top-6 hidden sm:block">
-					<div class="w-72 rounded-xl border border-border bg-background p-2">
-						<div class="relative flex w-80 flex-col justify-between gap-10 rounded-lg bg-card p-6">
+				<div class="absolute top-6 left-3/4 hidden sm:block">
+					<div class="border-border bg-background w-72 rounded-xl border p-2">
+						<div class="bg-card relative flex w-80 flex-col justify-between gap-10 rounded-lg p-6">
 							<div class="flex flex-col gap-2">
 								<div class="flex flex-col gap-2">
 									<span class="text-lg font-bold">Individual License</span>
@@ -170,7 +170,7 @@
 											</span>
 										</div>
 										<div class="flex place-items-center gap-2">
-											<div class="rounded-md bg-background px-1 py-0.5 text-sm">one time</div>
+											<div class="bg-background rounded-md px-1 py-0.5 text-sm">one time</div>
 										</div>
 									</div>
 								</div>
@@ -194,12 +194,12 @@
 </div>
 
 {#snippet feature_list({ features }: { features: string[] })}
-	<ul class="mb-auto flex flex-col gap-2 text-sm text-muted-foreground">
+	<ul class="text-muted-foreground mb-auto flex flex-col gap-2 text-sm">
 		{#each features as feature (feature)}
-			<li class="flex place-items-start gap-2 text-sm/[--line-height]" style="--line-height: 20px;">
+			<li class="flex place-items-start gap-2 text-sm/(--line-height)" style="--line-height: 20px;">
 				<span
 					data-visible={feature.length > 0}
-					class="flex h-[var(--line-height)] place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+					class="flex h-(--line-height) place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
 				>
 					<Check class="size-4 text-green-400" />
 				</span>

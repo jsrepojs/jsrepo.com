@@ -38,7 +38,7 @@
 >
 	{#if data.expires.valueOf() < Date.now()}
 		<h1 class="text-center font-mono text-7xl font-bold">Too Late!</h1>
-		<p class="text-center text-muted-foreground">
+		<p class="text-muted-foreground text-center">
 			You're too late! Your session has expired. Please try again (with some haste this time).
 		</p>
 	{:else if !data.hasSentCode}
@@ -51,11 +51,11 @@
 		<form
 			method="POST"
 			use:enhance
-			class="flex flex-col place-items-center gap-4 rounded-lg border border-border p-6 md:bg-card"
+			class="border-border md:bg-card flex flex-col place-items-center gap-4 rounded-lg border p-6"
 		>
 			<div class="flex flex-col">
 				<h1 class="text-center text-3xl font-bold">Device Login</h1>
-				<span class="text-center text-muted-foreground">
+				<span class="text-muted-foreground text-center">
 					Enter the code in your email to authenticate your device.
 				</span>
 			</div>
@@ -99,7 +99,7 @@
 					</button>
 				</span>
 				{#if error}
-					<span class="text-sm text-destructive">{error}</span>
+					<span class="text-destructive text-sm">{error}</span>
 				{/if}
 			</div>
 		</form>

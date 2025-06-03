@@ -67,7 +67,7 @@
 			{#each data.transferRequestInbox as transferRequest (transferRequest.scope_transfer_request.id)}
 				{@const newOwner = transferToWho(transferRequest)}
 				<List.Item
-					class="flex flex-col place-items-center gap-2 hover:bg-card sm:flex-row sm:justify-between"
+					class="hover:bg-card flex flex-col place-items-center gap-2 sm:flex-row sm:justify-between"
 				>
 					<span>
 						Transfer

@@ -30,21 +30,21 @@
 				{#if registry.access === 'private'}
 					<Tooltip.Root>
 						<Tooltip.Trigger>
-							<Lock class="size-3.5 text-muted-foreground" />
+							<Lock class="text-muted-foreground size-3.5" />
 						</Tooltip.Trigger>
 						<Tooltip.Content>Private</Tooltip.Content>
 					</Tooltip.Root>
 				{:else if registry.access === 'marketplace'}
 					<Tooltip.Root>
 						<Tooltip.Trigger>
-							<Store class="size-3.5 text-muted-foreground" />
+							<Store class="text-muted-foreground size-3.5" />
 						</Tooltip.Trigger>
 						<Tooltip.Content>Marketplace</Tooltip.Content>
 					</Tooltip.Root>
 					{#if !registry.listOnMarketplace}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
-								<EyeOff class="size-3.5 text-destructive" />
+								<EyeOff class="text-destructive size-3.5" />
 							</Tooltip.Trigger>
 							<Tooltip.Content>Not Listed</Tooltip.Content>
 						</Tooltip.Root>
@@ -72,7 +72,7 @@
 			{#if registry.releasedBy}
 				<a
 					href="/users/{registry.releasedBy.username}"
-					class="flex place-items-center gap-2 text-muted-foreground transition-all hover:text-foreground"
+					class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 transition-all"
 				>
 					<Avatar.Root class="size-5">
 						<Avatar.Image src={registry.releasedBy.image} />
@@ -82,12 +82,12 @@
 				</a>
 			{/if}
 
-			<span class="font-mono text-sm text-muted-foreground">
+			<span class="text-muted-foreground font-mono text-sm">
 				{registry.latestVersion?.version}
 			</span>
 		</div>
 	</div>
-	<span class="hidden place-items-center gap-2 font-mono text-sm text-muted-foreground sm:flex">
+	<span class="text-muted-foreground hidden place-items-center gap-2 font-mono text-sm sm:flex">
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{registry.monthlyFetches}

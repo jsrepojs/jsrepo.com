@@ -9,7 +9,9 @@
 	{@render children?.()}
 </div>
 
-<style lang="pcss">
+<style>
+	@reference '../../../../app.css';
+
 	.steps {
 		counter-reset: step;
 		@apply relative;
@@ -17,7 +19,7 @@
 
 	.steps::before {
 		content: '';
-		@apply absolute left-[18px] h-full w-px bg-border;
+		@apply bg-border absolute left-[18px] h-full w-px;
 	}
 
 	:global(.steps .step) {
@@ -27,11 +29,11 @@
 
 	:global(.steps .step > h3::before) {
 		content: counter(step);
-		@apply absolute left-0 top-0 flex size-9 place-items-center justify-center rounded-full bg-card text-center font-mono text-base text-card-foreground;
+		@apply bg-card text-card-foreground absolute top-0 left-0 flex size-9 place-items-center justify-center rounded-full text-center font-mono text-base;
 	}
 
 	:global(.steps .step > h3) {
-		@apply mb-3 mt-1 text-2xl font-bold;
+		@apply mt-1 mb-3 text-2xl font-bold;
 	}
 
 	:global(.steps .step > div) {

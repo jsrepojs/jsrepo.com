@@ -88,7 +88,7 @@
 					Invited
 					{#if data.invitations.length > 0}
 						<div
-							class="flex size-[18px] shrink-0 place-items-center justify-center rounded-full bg-primary text-center font-mono text-xs text-primary-foreground"
+							class="bg-primary text-primary-foreground flex size-[18px] shrink-0 place-items-center justify-center rounded-full text-center font-mono text-xs"
 						>
 							<span>{data.invitations.length}</span>
 						</div>
@@ -116,7 +116,7 @@
 						</Avatar.Root>
 						<div class="flex flex-col">
 							<span class="font-medium">{member.user.name}</span>
-							<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
+							<span class="text-muted-foreground flex place-items-center gap-1.5 text-sm">
 								{#if member.role === 'owner'}
 									<Crown class="inline size-4" />
 								{/if}
@@ -140,7 +140,7 @@
 										disabled={member.role === 'owner' &&
 											data.org.members.filter((m) => m.id !== member.id && m.role === 'owner')
 												.length === 0}
-										class="text-destructive data-[highlighted]:text-destructive"
+										class="text-destructive data-highlighted:text-destructive"
 									>
 										<X />
 										Remove from org
@@ -169,7 +169,7 @@
 							</Avatar.Root>
 							<div class="flex flex-col">
 								<span class="font-medium">{invitation.invitedUser.name}</span>
-								<span class="flex place-items-center gap-1.5 text-sm text-muted-foreground">
+								<span class="text-muted-foreground flex place-items-center gap-1.5 text-sm">
 									{role}
 								</span>
 							</div>

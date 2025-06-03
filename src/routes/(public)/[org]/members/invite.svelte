@@ -91,13 +91,13 @@
 						oninput={validateUsernameQuery.runDB}
 						placeholder="Username"
 						aria-invalid={validateUsernameQuery.data === false}
-						class="aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+						class="aria-invalid:border-destructive aria-invalid:ring-destructive"
 					/>
 					{#if validateUsernameQuery.data !== undefined}
 						{#if validateUsernameQuery.data}
-							<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+							<Check class="absolute top-1/2 right-2 size-3 -translate-y-1/2 text-green-500" />
 						{:else}
-							<X class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-destructive" />
+							<X class="text-destructive absolute top-1/2 right-2 size-3 -translate-y-1/2" />
 						{/if}
 					{/if}
 				</div>
@@ -116,8 +116,8 @@
 				</Select.Root>
 			</div>
 		</div>
-		<Dialog.Footer class="flex !flex-row !place-items-center !justify-between">
-			<small class="text-wrap text-start text-destructive">
+		<Dialog.Footer class="flex flex-row! place-items-center! justify-between!">
+			<small class="text-destructive text-start text-wrap">
 				{#if inviteQuery.error}
 					{inviteQuery.error}
 				{:else if validateUsernameQuery.error}

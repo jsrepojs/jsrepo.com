@@ -20,7 +20,7 @@
 							<List.Link href="/{registryName}">
 								{registryName}
 							</List.Link>
-							<span class="text-sm text-muted-foreground">
+							<span class="text-muted-foreground text-sm">
 								Perpetual {license.referenceId.startsWith('org_')
 									? `Organization License for ${license.org?.name}`
 									: 'Individual License'}
