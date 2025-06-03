@@ -8,7 +8,7 @@
 <div
 	{...rest}
 	class={cn(
-		'flex h-96 flex-col place-items-center justify-center gap-2 text-center text-lg text-muted-foreground',
+		'text-muted-foreground flex h-96 flex-col place-items-center justify-center gap-2 text-center text-lg',
 		className
 	)}
 >

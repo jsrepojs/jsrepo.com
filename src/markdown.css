@@ -34,11 +34,11 @@
 	}
 
 	ul {
-		@apply ml-4 mt-4 list-disc [&>li]:mt-2;
+		@apply mt-4 ml-4 list-disc [&>li]:mt-2;
 	}
 
 	ol {
-		@apply ml-4 mt-4 list-decimal [&>li]:mt-2;
+		@apply mt-4 ml-4 list-decimal [&>li]:mt-2;
 	}
 
 	hr {
@@ -46,7 +46,7 @@
 	}
 
 	blockquote {
-		@apply mt-4 border-l-2 border-l-primary bg-muted/50 px-4 py-2 text-muted-foreground;
+		@apply border-l-primary bg-muted/50 text-muted-foreground mt-4 border-l-2 px-4 py-2;
 	}
 
 	[data-pm-command] {
@@ -58,11 +58,11 @@
 	}
 
 	code:not([data-language]) {
-		@apply relative text-nowrap rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono;
+		@apply bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-nowrap;
 	}
 
 	pre {
-		@apply max-h-[650px] overflow-auto rounded-lg border bg-background py-4;
+		@apply bg-background max-h-[650px] overflow-auto rounded-lg border py-4;
 	}
 
 	:not(h1, h2, h3, h4, h5, h6) code:not([data-language]) {
@@ -74,7 +74,7 @@
 	}
 
 	tr {
-		@apply m-0 border-t p-0 even:bg-muted/50;
+		@apply even:bg-muted/50 m-0 border-t p-0;
 	}
 
 	th {
@@ -121,7 +121,7 @@
 }
 
 [data-rehype-pretty-code-figure] [data-line-numbers] > [data-line]::before {
-	@apply inline-block text-right text-muted-foreground;
+	@apply text-muted-foreground inline-block text-right;
 
 	counter-increment: line;
 	content: counter(line);
@@ -138,7 +138,7 @@
 }
 
 [data-rehype-pretty-code-figure] .chars--highlighted {
-	@apply rounded-md bg-accent p-1;
+	@apply bg-accent rounded-md p-1;
 }
 
 code[data-theme*='github-light-default'],

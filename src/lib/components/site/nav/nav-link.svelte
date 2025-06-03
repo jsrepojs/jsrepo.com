@@ -23,7 +23,7 @@
 		target={external ? '_blank' : undefined}
 		use:active={{ activeForSubdirectories: false }}
 		class={cn(
-			'flex place-items-center gap-1 p-0.5 transition-all hover:text-foreground data-[active=true]:text-foreground',
+			'hover:text-foreground data-[active=true]:text-foreground flex place-items-center gap-1 p-0.5 transition-all',
 			className
 		)}
 	>
@@ -33,7 +33,7 @@
 		{/if}
 	</a>
 	{#if tag}
-		<Badge class="rounded-xl bg-primary px-1 py-0 text-primary-foreground hover:bg-primary">
+		<Badge class="bg-primary text-primary-foreground hover:bg-primary rounded-xl px-1 py-0">
 			{tag}
 		</Badge>
 	{/if}

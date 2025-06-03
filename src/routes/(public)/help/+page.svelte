@@ -136,7 +136,7 @@
 				>Get Support</Form.Button
 			>
 			{#if error}
-				<span class="text-sm text-destructive">{error}</span>
+				<span class="text-destructive text-sm">{error}</span>
 			{/if}
 		</form>
 	</div>

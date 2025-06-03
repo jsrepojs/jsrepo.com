@@ -15,7 +15,7 @@
 	<svg
 		viewBox="0 0 24 24"
 		fill="none"
-		class="absolute left-0 top-0"
+		class="absolute top-0 left-0"
 		width="100%"
 		height="100%"
 		style="position: absolute; top: 0; left: 0;"
@@ -29,7 +29,7 @@
 	<svg
 		viewBox="0 0 24 24"
 		fill="none"
-		class="absolute left-0 top-0"
+		class="absolute top-0 left-0"
 		width="100%"
 		height="100%"
 		style="position: absolute; top: 0; left: 0; clip-path: inset(0 {100 - percent}% 0 0);"

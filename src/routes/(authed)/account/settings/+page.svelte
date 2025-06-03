@@ -57,7 +57,7 @@
 <div class="flex flex-col gap-4">
 	<a
 		href="/account"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
+		class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 py-2 transition-all"
 	>
 		<ChevronLeft />
 		Back to Account
@@ -73,7 +73,7 @@
 			<div class="flex flex-col gap-2">
 				<div class="flex place-items-center justify-between">
 					<Nav.Title>Scope Usage</Nav.Title>
-					<span class="text-sm text-muted-foreground">
+					<span class="text-muted-foreground text-sm">
 						{scopesPromise.current === null ? '...' : scopesPromise.current?.userScopes.length} /
 						{data.user.scopeLimit}
 					</span>
@@ -83,7 +83,7 @@
 					max={data.user.scopeLimit}
 					value={scopesPromise.current?.userScopes.length ?? 0}
 				/>
-				<span class="text-xs text-muted-foreground">
+				<span class="text-muted-foreground text-xs">
 					If you need more scopes reach out to support@jsrepo.com.
 				</span>
 			</div>

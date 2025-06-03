@@ -41,7 +41,7 @@
 				id="rating-{rating}"
 				value={rating.toString()}
 				onmouseover={() => setRating(rating)}
-				class="absolute inset-0 rounded-lg outline-none ring-ring ring-offset-2 ring-offset-background focus-visible:ring-2"
+				class="ring-ring ring-offset-background absolute inset-0 rounded-lg ring-offset-2 outline-none focus-visible:ring-2"
 			/>
 			<Label.Root for="rating-{rating}">
 				<Star

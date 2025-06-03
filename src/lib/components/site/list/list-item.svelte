@@ -8,7 +8,7 @@
 <li
 	{...rest}
 	class={cn(
-		'relative flex place-items-center justify-between rounded-lg border bg-card p-4 transition-all hover:bg-accent',
+		'bg-card hover:bg-accent relative flex place-items-center justify-between rounded-lg border p-4 transition-all',
 		className
 	)}
 >

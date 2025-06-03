@@ -38,7 +38,7 @@
 <form method="POST" use:enhance class="flex flex-col gap-2">
 	<a
 		href="/account/scopes"
-		class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
+		class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 py-2 transition-all"
 	>
 		<ChevronLeft />
 		Back to Scopes
@@ -49,7 +49,7 @@
 			{#snippet children({ props })}
 				<Form.Label>Name</Form.Label>
 				<div class="relative">
-					<span class="absolute left-2 top-1/2 -translate-y-1/2 text-base md:left-2.5 md:text-sm">
+					<span class="absolute top-1/2 left-2 -translate-y-1/2 text-base md:left-2.5 md:text-sm">
 						@
 					</span>
 					<Input
@@ -61,7 +61,7 @@
 						maxlength={20}
 						bind:value={$formData.name}
 						{placeholder}
-						class="pl-5 aria-invalid:border-destructive aria-invalid:ring-destructive"
+						class="aria-invalid:border-destructive aria-invalid:ring-destructive pl-5"
 					/>
 				</div>
 			{/snippet}
@@ -88,6 +88,6 @@
 	</Form.Field>
 	<Form.Button loading={$submitting} disabled={!canSubmit}>Create</Form.Button>
 	{#if error}
-		<span class="text-sm text-destructive">{error}</span>
+		<span class="text-destructive text-sm">{error}</span>
 	{/if}
 </form>

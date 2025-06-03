@@ -65,7 +65,7 @@
 	<div class="flex flex-col gap-2">
 		<a
 			href="/account"
-			class="flex place-items-center gap-2 py-2 text-muted-foreground transition-all hover:text-foreground"
+			class="text-muted-foreground hover:text-foreground flex place-items-center gap-2 py-2 transition-all"
 		>
 			<ChevronLeft />
 			Back to Account
@@ -87,14 +87,14 @@
 						<List.Item class="flex place-items-center justify-between">
 							<span class="text-lg font-medium">{apiKey.name}</span>
 							<div class="flex place-items-center gap-2">
-								<span class="text-sm text-muted-foreground">
+								<span class="text-muted-foreground text-sm">
 									Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
 								</span>
 								<Dialog.Trigger
 									onclick={() => (keyToDelete = apiKey)}
 									class={cn(
 										buttonVariants({ variant: 'outline', size: 'icon' }),
-										'size-5 text-destructive hover:text-destructive'
+										'text-destructive hover:text-destructive size-5'
 									)}
 								>
 									<X />
@@ -110,14 +110,14 @@
 						<List.Item class="flex place-items-center justify-between">
 							<span class="text-lg font-medium">{apiKey.deviceHardwareId}</span>
 							<div class="flex place-items-center gap-2">
-								<span class="text-sm text-muted-foreground">
+								<span class="text-muted-foreground text-sm">
 									Expires {apiKey.expiresAt ? toRelative(apiKey.expiresAt) : 'never'}
 								</span>
 								<Dialog.Trigger
 									onclick={() => (keyToDelete = apiKey)}
 									class={cn(
 										buttonVariants({ variant: 'outline', size: 'icon' }),
-										'size-5 text-destructive hover:text-destructive'
+										'text-destructive hover:text-destructive size-5'
 									)}
 								>
 									<X />

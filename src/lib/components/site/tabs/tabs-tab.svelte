@@ -18,7 +18,7 @@
 	{...rest}
 	use:active={{ activeForSubdirectories, isHash, isSearch }}
 	class={cn(
-		'flex w-fit flex-row gap-2 truncate rounded-t-lg border-x border-t border-accent border-transparent px-3 py-2 text-base/(--line-height) text-muted-foreground transition-all hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground',
+		'border-accent text-muted-foreground hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground flex w-fit flex-row gap-2 truncate rounded-t-lg border-x border-t border-transparent px-3 py-2 text-base/(--line-height) transition-all',
 		className
 	)}
 	style="--line-height: 24px;"
@@ -27,7 +27,7 @@
 	{#if tag !== undefined}
 		<div class="flex h-(--line-height) place-items-center justify-center">
 			<div
-				class="flex size-5 place-items-center justify-center rounded-full bg-primary font-mono text-xs text-primary-foreground"
+				class="bg-primary text-primary-foreground flex size-5 place-items-center justify-center rounded-full font-mono text-xs"
 			>
 				{tag}
 			</div>

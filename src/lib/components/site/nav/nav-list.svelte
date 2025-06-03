@@ -5,6 +5,6 @@
 	let { class: className, children, ...rest }: HTMLAttributes<HTMLUListElement> = $props();
 </script>
 
-<ul {...rest} class={cn('flex flex-col font-light text-muted-foreground', className)}>
+<ul {...rest} class={cn('text-muted-foreground flex flex-col font-light', className)}>
 	{@render children?.()}
 </ul>

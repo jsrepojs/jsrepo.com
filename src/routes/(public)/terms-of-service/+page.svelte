@@ -11,7 +11,7 @@
 	<div class="flex w-full max-w-4xl flex-col gap-8">
 		<div class="pt-20">
 			<h1 class="text-center text-5xl font-bold">Terms of Service for jsrepo.com</h1>
-			<p class="text-center text-lg text-muted-foreground">
+			<p class="text-muted-foreground text-center text-lg">
 				Below are the terms and conditions you accept by using jsrepo.com.
 			</p>
 		</div>

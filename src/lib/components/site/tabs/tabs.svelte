@@ -5,6 +5,6 @@
 	let { class: className, children, ...rest }: HTMLAttributes<HTMLDivElement> = $props();
 </script>
 
-<div {...rest} class={cn('flex w-full flex-row border-b border-border', className)}>
+<div {...rest} class={cn('border-border flex w-full flex-row border-b', className)}>
 	{@render children?.()}
 </div>

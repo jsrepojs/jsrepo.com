@@ -32,7 +32,7 @@
 <footer class="border-t py-12">
 	<div class="container">
 		<div class="flex flex-wrap justify-between gap-6">
-			<span class="order-last block text-center text-sm text-muted-foreground md:order-first">
+			<span class="text-muted-foreground order-last block text-center text-sm md:order-first">
 				© 2025 jsrepo, All rights reserved
 			</span>
 			<div class="order-first flex flex-wrap justify-center gap-6 text-sm md:order-last">
@@ -41,7 +41,7 @@
 					<a
 						href={link.href}
 						target={isExternal ? '_blank' : undefined}
-						class="flex place-items-center gap-0.5 text-muted-foreground duration-150 hover:text-foreground"
+						class="text-muted-foreground hover:text-foreground flex place-items-center gap-0.5 duration-150"
 					>
 						<span>{link.title}</span>
 						{#if isExternal}

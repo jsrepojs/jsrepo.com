@@ -53,13 +53,13 @@
 						<a
 							href="/{data.org.name}/members"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Members
 							<div class="flex h-(--line-height) place-items-center justify-center">
 								<div
-									class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
+									class="bg-primary text-primary-foreground flex size-6 place-items-center justify-center rounded-full font-mono text-sm"
 								>
 									{data.org.members.length.toString()}
 								</div>
@@ -68,7 +68,7 @@
 						<a
 							href="/{data.org.name}/settings"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Settings

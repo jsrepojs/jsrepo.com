@@ -13,7 +13,7 @@
 </script>
 
 {#await ratingsPromise}
-	<div class={cn('flex h-fit w-full flex-col rounded-lg bg-card p-4', className)}>
+	<div class={cn('bg-card flex h-fit w-full flex-col rounded-lg p-4', className)}>
 		<div class="flex place-items-center gap-2 py-2">
 			<span class="text-5xl">
 				<Skeleton class="h-12 w-16" />
@@ -30,14 +30,14 @@
 		</div>
 	</div>
 {:then ratings}
-	<div class={cn('flex h-fit w-full flex-col rounded-lg bg-card p-4', className)}>
+	<div class={cn('bg-card flex h-fit w-full flex-col rounded-lg p-4', className)}>
 		<div class="flex place-items-center gap-2 py-2">
 			<span class="text-5xl">
 				{Number.isNaN(ratings.overall) ? '0.0' : ratings.overall.toFixed(1)}
 			</span>
 			<div class="flex flex-col">
 				<ReviewStars rating={ratings.overall} />
-				<span class="text-sm text-muted-foreground">
+				<span class="text-muted-foreground text-sm">
 					{ratings.totalRatings} Rating{ratings.totalRatings === 1 ? '' : 's'}
 				</span>
 			</div>
@@ -48,10 +48,10 @@
 				{@const reviews = ratings.ratings[rating - 1]}
 				{@const percentOfReviews = (reviews / ratings.totalRatings) * 100}
 				<div class="flex place-items-center">
-					<span class="w-4 text-sm text-muted-foreground"> {rating} </span>
-					<div class="relative h-2 w-full overflow-hidden rounded-2xl bg-background">
+					<span class="text-muted-foreground w-4 text-sm"> {rating} </span>
+					<div class="bg-background relative h-2 w-full overflow-hidden rounded-2xl">
 						<div
-							class="h-2 bg-primary"
+							class="bg-primary h-2"
 							style="width: {reviews === 0 ? 0 : percentOfReviews}%;"
 						></div>
 					</div>

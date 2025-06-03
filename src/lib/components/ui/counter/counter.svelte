@@ -36,7 +36,7 @@
 			{value}
 		</span>
 		{#if label}
-			<span class="text-sm text-muted-foreground">
+			<span class="text-muted-foreground text-sm">
 				{label}
 			</span>
 		{/if}

@@ -118,11 +118,11 @@
 			{/if}
 		</div>
 		<div class="relative flex flex-wrap place-items-center gap-2">
-			<span class="font-mono text-sm text-muted-foreground">
+			<span class="text-muted-foreground font-mono text-sm">
 				{data.version.version}
 			</span>
 			<FileIcon extension={data.registry.metaPrimaryLanguage} />
-			<span class="text-sm text-muted-foreground">
+			<span class="text-muted-foreground text-sm">
 				Published {toRelative(data.version.createdAt)}
 			</span>
 			{#if data.registry.rating}
@@ -172,13 +172,13 @@
 					<a
 						href="?tab=dependencies"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent sm:hidden"
+						class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Dependencies
 						<div class="flex h-(--line-height) place-items-center justify-center">
 							<div
-								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
+								class="bg-primary text-primary-foreground flex size-6 place-items-center justify-center rounded-full font-mono text-sm"
 							>
 								{registryInfo.dependencies.length}
 							</div>
@@ -187,13 +187,13 @@
 					<a
 						href="?tab=versions"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent sm:hidden"
+						class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) sm:hidden"
 						style="--line-height: 24px;"
 					>
 						Versions
 						<div class="flex h-(--line-height) place-items-center justify-center">
 							<div
-								class="flex size-6 place-items-center justify-center rounded-full bg-primary font-mono text-sm text-primary-foreground"
+								class="bg-primary text-primary-foreground flex size-6 place-items-center justify-center rounded-full font-mono text-sm"
 							>
 								{data.versions.length}
 							</div>
@@ -203,7 +203,7 @@
 						<a
 							href="?tab=pricing"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Pricing
@@ -212,7 +212,7 @@
 					<a
 						href="?tab=reviews"
 						onclick={() => (tabListPopoverOpen = false)}
-						class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
+						class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 						style="--line-height: 24px;"
 					>
 						Reviews
@@ -221,7 +221,7 @@
 						<a
 							href="?tab=settings"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height) hover:bg-accent"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Settings
@@ -259,7 +259,7 @@
 						<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />
 						<div class="grid grid-cols-[1fr_30px_1fr] place-items-center gap-2">
 							<Separator />
-							<span class="text-sm text-muted-foreground">or</span>
+							<span class="text-muted-foreground text-sm">or</span>
 							<Separator />
 						</div>
 						<Button
@@ -268,7 +268,7 @@
 							download="{data.scopeName}_{data.registryName}_blocks.zip"
 							href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
 						>
-							<FileArchive class="size-5 text-muted-foreground" />
+							<FileArchive class="text-muted-foreground size-5" />
 							Download
 						</Button>
 					</div>
@@ -347,7 +347,7 @@
 						{#each category.blocks.filter((b) => b.list) as block (block.name)}
 							{@const primaryLanguage = determinePrimaryLanguage(block)}
 							<Collapsible.Root>
-								<List.Item class="p-0 hover:bg-card">
+								<List.Item class="hover:bg-card p-0">
 									<div class="flex w-full place-items-center justify-between p-4">
 										<div class="flex place-items-center gap-2">
 											<span class="font-medium">
@@ -375,13 +375,13 @@
 												download="{category.name}_{block.name}.zip"
 												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
 											>
-												<Download class="size-5 text-muted-foreground" />
+												<Download class="text-muted-foreground size-5" />
 											</Button>
 											<Collapsible.Trigger>
 												{#snippet child({ props })}
 													<Button {...props} variant="ghost" size="icon">
 														<ChevronRight
-															class={cn('size-5 text-muted-foreground', {
+															class={cn('text-muted-foreground size-5', {
 																'rotate-90': props['aria-expanded'] === 'true'
 															})}
 														/>
@@ -392,9 +392,9 @@
 									</div>
 								</List.Item>
 								<Collapsible.Content>
-									<div class="mt-2 flex flex-col gap-2 rounded-md border border-border bg-card p-4">
+									<div class="border-border bg-card mt-2 flex flex-col gap-2 rounded-md border p-4">
 										<div>
-											<span class="font-medium text-muted-foreground">Files</span>
+											<span class="text-muted-foreground font-medium">Files</span>
 											<ul>
 												{#each block.files as file (file)}
 													{@const ext = parseFileExtension(file)}
@@ -402,7 +402,7 @@
 														<div class="flex size-4 place-items-center justify-center">
 															<FileIcon extension={ext}>
 																{#snippet fallback()}
-																	<File class="size-4 text-muted-foreground" />
+																	<File class="text-muted-foreground size-4" />
 																{/snippet}
 															</FileIcon>
 														</div>
@@ -412,7 +412,7 @@
 											</ul>
 										</div>
 										<div>
-											<span class="font-medium text-muted-foreground">Remote Dependencies</span>
+											<span class="text-muted-foreground font-medium">Remote Dependencies</span>
 											<ul>
 												{#each [...block.dependencies, ...block.devDependencies] as dep (dep)}
 													<li>{dep}</li>
@@ -420,7 +420,7 @@
 											</ul>
 										</div>
 										<div>
-											<span class="font-medium text-muted-foreground">Local Dependencies</span>
+											<span class="text-muted-foreground font-medium">Local Dependencies</span>
 											<ul>
 												{#each block.localDependencies as dep (dep)}
 													<li>{dep}</li>

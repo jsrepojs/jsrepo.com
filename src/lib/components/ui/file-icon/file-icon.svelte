@@ -26,7 +26,7 @@
 {:else if extension === 'html'}
 	<Icons.HTML class="size-3 shrink-0" />
 {:else if extension === 'json' || extension === 'jsonc'}
-	<Braces class="size-4 shrink-0 text-primary" />
+	<Braces class="text-primary size-4 shrink-0" />
 {:else if extension === 'yml' || extension === 'yaml'}
 	<Icons.Yaml class="size-4 shrink-0" />
 {:else if extension === 'css'}
