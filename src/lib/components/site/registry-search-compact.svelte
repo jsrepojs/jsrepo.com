@@ -203,7 +203,7 @@
 	</div>
 	<button
 		type="submit"
-		class="h-full rounded-r-lg border border-primary bg-primary px-4 text-primary-foreground"
+		class="h-full cursor-pointer rounded-r-lg border border-primary bg-primary px-4 text-primary-foreground"
 	>
 		<Search class="size-4" />
 	</button>

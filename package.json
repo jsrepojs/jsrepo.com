@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
-	"packageManager": "pnpm@10.10.0",
+	"packageManager": "pnpm@10.11.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -31,6 +31,7 @@
 		"@sveltejs/adapter-vercel": "^5.7.2",
 		"@sveltejs/kit": "^2.21.1",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@tailwindcss/vite": "^4.1.8",
 		"@types/archiver": "^6.0.3",
 		"@types/html-to-text": "^9.0.4",
 		"@types/luxon": "^3.6.2",
@@ -41,7 +42,6 @@
 		"@upstash/redis": "^1.34.9",
 		"@vercel/functions": "^2.1.0",
 		"archiver": "^7.0.1",
-		"autoprefixer": "^10.4.20",
 		"badge-maker": "^4.1.0",
 		"bcryptjs": "^3.0.2",
 		"better-auth": "1.2.8",
@@ -66,7 +66,7 @@
 		"posthog-node": "^4.18.0",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.4.0",
-		"prettier-plugin-tailwindcss": "^0.6.10",
+		"prettier-plugin-tailwindcss": "^0.6.12",
 		"random-word-slugs": "^0.1.7",
 		"rehype-autolink-headings": "^7.1.0",
 		"rehype-external-links": "^3.0.0",
@@ -89,11 +89,11 @@
 		"svelte-toolbelt": "^0.9.1",
 		"sveltekit-search-params": "^3.0.0",
 		"sveltekit-superforms": "^2.25.0",
-		"tailwind-merge": "^2.6.0",
-		"tailwind-variants": "^0.3.1",
-		"tailwindcss": "^3.4.17",
-		"tailwindcss-animate": "^1.0.7",
+		"tailwind-merge": "^3.3.0",
+		"tailwind-variants": "^1.0.0",
+		"tailwindcss": "^4.1.8",
 		"tar-stream": "^3.1.7",
+		"tw-animate-css": "^1.3.3",
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.33.0",
 		"unified": "^11.0.5",
@@ -109,7 +109,7 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
-			"core-js",
+			"@tailwindcss/oxide",
 			"esbuild"
 		]
 	}

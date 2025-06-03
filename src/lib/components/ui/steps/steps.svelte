@@ -9,7 +9,9 @@
 	{@render children?.()}
 </div>
 
-<style lang="pcss">
+<style>
+	@reference '../../../../app.css';
+
 	.steps {
 		counter-reset: step;
 		@apply relative;

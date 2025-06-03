@@ -121,7 +121,9 @@
 	{/if}
 </div>
 
-<style lang="postcss">
+<style>
+	@reference '../../../../app.css';
+
 	/* Shiki see: https://shiki.matsu.io/guide/dual-themes#class-based-dark-mode */
 	:global(html.dark .shiki, html.dark .shiki span) {
 		color: var(--shiki-dark) !important;

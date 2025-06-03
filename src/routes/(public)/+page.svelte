@@ -34,7 +34,7 @@
 <div class="flex flex-col place-items-center pb-4">
 	<div class="mt-[25svh] flex w-full max-w-4xl flex-col place-items-center gap-8">
 		<div class="flex flex-col gap-4">
-			<h1 class="text-center text-5xl font-bold md:text-6xl">
+			<h1 class="text-center text-5xl font-bold md:text-6xl text-shadow-lg">
 				The future of
 				<br />
 				Component Registries
