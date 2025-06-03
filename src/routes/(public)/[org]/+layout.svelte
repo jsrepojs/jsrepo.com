@@ -53,11 +53,11 @@
 						<a
 							href="/{data.org.name}/members"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="hover:bg-accent text-base/(--line-height) flex place-items-center gap-2 rounded-md px-3 py-2"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Members
-							<div class="h-(--line-height) flex place-items-center justify-center">
+							<div class="flex h-(--line-height) place-items-center justify-center">
 								<div
 									class="bg-primary text-primary-foreground flex size-6 place-items-center justify-center rounded-full font-mono text-sm"
 								>
@@ -68,7 +68,7 @@
 						<a
 							href="/{data.org.name}/settings"
 							onclick={() => (tabListPopoverOpen = false)}
-							class="hover:bg-accent text-base/(--line-height) flex place-items-center gap-2 rounded-md px-3 py-2"
+							class="hover:bg-accent flex place-items-center gap-2 rounded-md px-3 py-2 text-base/(--line-height)"
 							style="--line-height: 24px;"
 						>
 							Settings

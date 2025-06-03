@@ -5,6 +5,6 @@
 	let { class: className, children }: HTMLAttributes<HTMLSpanElement> = $props();
 </script>
 
-<span class={cn('text-muted-foreground font-mono text-xs uppercase tracking-wider', className)}>
+<span class={cn('text-muted-foreground font-mono text-xs tracking-wider uppercase', className)}>
 	{@render children?.()}
 </span>

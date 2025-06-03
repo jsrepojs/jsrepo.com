@@ -147,9 +147,9 @@
 							/>
 							{#if searchUserOrOrgQuery.data !== undefined}
 								{#if searchUserOrOrgQuery.data}
-									<Check class="absolute right-2 top-1/2 size-3 -translate-y-1/2 text-green-500" />
+									<Check class="absolute top-1/2 right-2 size-3 -translate-y-1/2 text-green-500" />
 								{:else}
-									<X class="text-destructive absolute right-2 top-1/2 size-3 -translate-y-1/2" />
+									<X class="text-destructive absolute top-1/2 right-2 size-3 -translate-y-1/2" />
 								{/if}
 							{/if}
 						</div>

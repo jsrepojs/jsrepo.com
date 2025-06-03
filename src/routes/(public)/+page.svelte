@@ -34,7 +34,7 @@
 <div class="flex flex-col place-items-center pb-4">
 	<div class="mt-[25svh] flex w-full max-w-4xl flex-col place-items-center gap-8">
 		<div class="flex flex-col gap-4">
-			<h1 class="text-shadow-lg text-center text-5xl font-bold md:text-6xl">
+			<h1 class="text-center text-5xl font-bold text-shadow-lg md:text-6xl">
 				The future of
 				<br />
 				Component Registries
@@ -53,7 +53,7 @@
 			</Button>
 		</div>
 	</div>
-	<div class="mb-20 mt-[25svh]">
+	<div class="mt-[25svh] mb-20">
 		<div class="flex max-w-4xl flex-col gap-2">
 			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				<div
@@ -157,7 +157,7 @@
 						</Button>
 					</div>
 				</div>
-				<div class="absolute left-3/4 top-6 hidden sm:block">
+				<div class="absolute top-6 left-3/4 hidden sm:block">
 					<div class="border-border bg-background w-72 rounded-xl border p-2">
 						<div class="bg-card relative flex w-80 flex-col justify-between gap-10 rounded-lg p-6">
 							<div class="flex flex-col gap-2">
@@ -196,10 +196,10 @@
 {#snippet feature_list({ features }: { features: string[] })}
 	<ul class="text-muted-foreground mb-auto flex flex-col gap-2 text-sm">
 		{#each features as feature (feature)}
-			<li class="text-sm/(--line-height) flex place-items-start gap-2" style="--line-height: 20px;">
+			<li class="flex place-items-start gap-2 text-sm/(--line-height)" style="--line-height: 20px;">
 				<span
 					data-visible={feature.length > 0}
-					class="h-(--line-height) flex place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+					class="flex h-(--line-height) place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
 				>
 					<Check class="size-4 text-green-400" />
 				</span>

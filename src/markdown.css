@@ -34,11 +34,11 @@
 	}
 
 	ul {
-		@apply ml-4 mt-4 list-disc [&>li]:mt-2;
+		@apply mt-4 ml-4 list-disc [&>li]:mt-2;
 	}
 
 	ol {
-		@apply ml-4 mt-4 list-decimal [&>li]:mt-2;
+		@apply mt-4 ml-4 list-decimal [&>li]:mt-2;
 	}
 
 	hr {
@@ -58,7 +58,7 @@
 	}
 
 	code:not([data-language]) {
-		@apply bg-muted relative text-nowrap rounded px-[0.3rem] py-[0.2rem] font-mono;
+		@apply bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-nowrap;
 	}
 
 	pre {

@@ -74,7 +74,7 @@
 				</a>
 				<p class="text-muted-foreground text-lg">{description}</p>
 			</div>
-			<div class="flex place-items-center justify-center pr-4 pt-4">
+			<div class="flex place-items-center justify-center pt-4 pr-4">
 				<Icon class="size-6" />
 			</div>
 		</div>

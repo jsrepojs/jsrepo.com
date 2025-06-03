@@ -174,7 +174,7 @@
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl"> $ </span>
 											<Input
-												class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive text-5xl! ring-0! h-12 rounded-none border-x-0 border-b border-t-0 bg-transparent px-0"
+												class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive h-12 rounded-none border-x-0 border-t-0 border-b bg-transparent px-0 text-5xl! ring-0!"
 												placeholder="10"
 												type="number"
 												min={MIN_PRICE}
@@ -198,7 +198,7 @@
 						</div>
 						<div
 							data-visible={individualPrice !== null}
-							class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-9"
+							class="group text-opacity-0 flex h-0 place-items-center px-6 transition-all data-[visible=true]:h-9"
 						>
 							<span
 								class="text-muted-foreground text-sm opacity-0 group-data-[visible=true]:opacity-100 group-data-[visible=true]:transition-all group-data-[visible=true]:delay-150"
@@ -223,7 +223,7 @@
 										<div class="flex place-items-start gap-1">
 											<span class="text-5xl"> $ </span>
 											<Input
-												class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive text-5xl! ring-0! h-12 rounded-none border-x-0 border-b border-t-0 bg-transparent px-0"
+												class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive h-12 rounded-none border-x-0 border-t-0 border-b bg-transparent px-0 text-5xl! ring-0!"
 												placeholder="30"
 												type="number"
 												min={MIN_PRICE}
@@ -251,7 +251,7 @@
 						</div>
 						<div
 							data-visible={orgPrice !== null}
-							class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-9"
+							class="group text-opacity-0 flex h-0 place-items-center px-6 transition-all data-[visible=true]:h-9"
 						>
 							<span
 								class="text-muted-foreground text-sm opacity-0 group-data-[visible=true]:opacity-100 group-data-[visible=true]:transition-all group-data-[visible=true]:delay-150"
@@ -361,7 +361,7 @@
 								<Button
 									onclick={() => startEditPrice(price)}
 									variant="outline"
-									class="absolute -right-2 -top-2 rounded-full"
+									class="absolute -top-2 -right-2 rounded-full"
 									size="icon"
 								>
 									<Pencil />
@@ -467,7 +467,7 @@
 								<Button
 									onclick={() => startEditPrice(price)}
 									variant="outline"
-									class="absolute -right-2 -top-2 rounded-full"
+									class="absolute -top-2 -right-2 rounded-full"
 									size="icon"
 								>
 									<Pencil />
@@ -484,10 +484,10 @@
 {#snippet feature_list({ features }: { features: string[] })}
 	<ul class="text-muted-foreground mb-auto flex flex-col gap-2 text-sm">
 		{#each features as feature (feature)}
-			<li class="text-sm/(--line-height) flex place-items-start gap-2" style="--line-height: 20px;">
+			<li class="flex place-items-start gap-2 text-sm/(--line-height)" style="--line-height: 20px;">
 				<span
 					data-visible={feature.length > 0}
-					class="h-(--line-height) flex place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
+					class="flex h-(--line-height) place-items-center justify-center opacity-0 data-[visible=true]:opacity-100"
 				>
 					<Check class="size-4 text-green-400" />
 				</span>
@@ -516,7 +516,7 @@
 								<div class="flex place-items-start gap-1">
 									<span class="text-5xl"> $ </span>
 									<Input
-										class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive text-5xl! ring-0! h-12 rounded-none border-x-0 border-b border-t-0 bg-transparent px-0"
+										class="border-b-border focus-visible:border-b-primary aria-invalid:border-b-destructive aria-invalid:text-destructive h-12 rounded-none border-x-0 border-t-0 border-b bg-transparent px-0 text-5xl! ring-0!"
 										placeholder="10"
 										type="number"
 										min={MIN_PRICE}
@@ -586,7 +586,7 @@
 				</div>
 				<div
 					data-visible={editingPriceCost !== null}
-					class="group flex h-0 place-items-center px-6 text-opacity-0 transition-all data-[visible=true]:h-14"
+					class="group text-opacity-0 flex h-0 place-items-center px-6 transition-all data-[visible=true]:h-14"
 				>
 					<span
 						class="text-muted-foreground flex w-full flex-col text-sm opacity-0 group-data-[visible=true]:opacity-100 group-data-[visible=true]:transition-all group-data-[visible=true]:delay-150"
