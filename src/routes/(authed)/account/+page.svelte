@@ -64,7 +64,7 @@
 	Icon: typeof ArrowRight;
 })}
 	<div
-		class="group border-border bg-card hover:bg-accent relative flex flex-col justify-between gap-4 rounded-lg border p-6 transition-all"
+		class="border-border bg-card hover:bg-accent group relative flex flex-col justify-between gap-4 rounded-lg border p-6 transition-all"
 	>
 		<div class="flex place-items-start justify-between">
 			<div class="flex flex-col place-items-start justify-center">
@@ -74,7 +74,7 @@
 				</a>
 				<p class="text-muted-foreground text-lg">{description}</p>
 			</div>
-			<div class="flex place-items-center justify-center pt-4 pr-4">
+			<div class="flex place-items-center justify-center pr-4 pt-4">
 				<Icon class="size-6" />
 			</div>
 		</div>

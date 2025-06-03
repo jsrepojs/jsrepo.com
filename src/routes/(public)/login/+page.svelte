@@ -6,7 +6,7 @@
 
 <MetaTags title="Log in - jsrepo" />
 
-<div class="flex h-[calc(100svh-var(--header-height)] flex-col place-items-center justify-center">
+<div class="h-[calc(100svh-var(--header-height)] flex flex-col place-items-center justify-center">
 	<div class="mt-[25svh] flex w-full max-w-sm flex-col place-items-center gap-4">
 		<Icons.JsrepoWordmark class="h-20" />
 		<span class="text-muted-foreground text-center text-lg">

@@ -96,7 +96,7 @@
 						<div class="flex place-items-center gap-2">
 							<a
 								href="/users/{review.user.username}"
-								class="font-medium text-nowrap underline-offset-2 hover:underline"
+								class="text-nowrap font-medium underline-offset-2 hover:underline"
 							>
 								{review.user.username}
 							</a>

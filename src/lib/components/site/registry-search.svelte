@@ -166,7 +166,7 @@
 			class="placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent py-3 outline-none disabled:cursor-not-allowed disabled:opacity-50"
 			placeholder="Search registries..."
 		/>
-		<div class="absolute top-0 right-0 flex h-12 place-items-center gap-2">
+		<div class="absolute right-0 top-0 flex h-12 place-items-center gap-2">
 			{#if query.loading}
 				<div class="flex size-full w-12 place-items-center justify-center">
 					<LoaderCircle class="text-muted-foreground size-4 shrink-0 animate-spin" />
@@ -177,7 +177,7 @@
 			{/if}
 		</div>
 		{#if canShowList}
-			<div class="border-border bg-popover absolute top-13 left-0 z-10 w-full rounded-lg border">
+			<div class="border-border bg-popover top-13 absolute left-0 z-10 w-full rounded-lg border">
 				<!-- Group -->
 				<div class="text-foreground overflow-hidden p-1">
 					{#each filteredCompletions as registry, i (registry)}
@@ -186,7 +186,7 @@
 						<!-- svelte-ignore a11y_role_supports_aria_props_implicit -->
 						<button
 							type="submit"
-							class="aria-selected:bg-accent aria-selected:text-accent-foreground relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+							class="aria-selected:bg-accent aria-selected:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 relative flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
 							aria-selected={selectedIndex === i}
 							onmouseover={() => (selectedIndex = i)}
 							tabindex={-1}

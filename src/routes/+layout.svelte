@@ -49,7 +49,7 @@
 		style="display: contents;"
 	>
 		<Header />
-		<main class="relative container min-h-[calc(100svh-var(--header-height))]">
+		<main class="container relative min-h-[calc(100svh-var(--header-height))]">
 			{@render children()}
 		</main>
 		<Footer />

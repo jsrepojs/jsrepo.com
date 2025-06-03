@@ -18,14 +18,14 @@
 	{...rest}
 	use:active={{ activeForSubdirectories, isHash, isSearch }}
 	class={cn(
-		'border-accent text-muted-foreground hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground flex w-fit flex-row gap-2 truncate rounded-t-lg border-x border-t border-transparent px-3 py-2 text-base/(--line-height) transition-all',
+		'border-accent text-muted-foreground hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground text-base/(--line-height) flex w-fit flex-row gap-2 truncate rounded-t-lg border-x border-t border-transparent px-3 py-2 transition-all',
 		className
 	)}
 	style="--line-height: 24px;"
 >
 	{@render children?.()}
 	{#if tag !== undefined}
-		<div class="flex h-(--line-height) place-items-center justify-center">
+		<div class="h-(--line-height) flex place-items-center justify-center">
 			<div
 				class="bg-primary text-primary-foreground flex size-5 place-items-center justify-center rounded-full font-mono text-xs"
 			>

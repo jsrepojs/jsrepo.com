@@ -49,7 +49,7 @@
 			{#snippet children({ props })}
 				<Form.Label>Name</Form.Label>
 				<div class="relative">
-					<span class="absolute top-1/2 left-2 -translate-y-1/2 text-base md:left-2.5 md:text-sm">
+					<span class="absolute left-2 top-1/2 -translate-y-1/2 text-base md:left-2.5 md:text-sm">
 						@
 					</span>
 					<Input

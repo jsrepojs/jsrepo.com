@@ -112,7 +112,7 @@
 	{#if !hideCopy}
 		<div
 			class={cn(
-				'absolute top-2 right-2 flex place-items-center justify-center',
+				'absolute right-2 top-2 flex place-items-center justify-center',
 				copyButtonContainerClass
 			)}
 		>
@@ -144,7 +144,7 @@
 	}
 
 	:global(pre.shiki code) {
-		@apply grid min-w-full rounded-none border-0 bg-transparent p-0 break-words;
+		@apply grid min-w-full break-words rounded-none border-0 bg-transparent p-0;
 		counter-reset: line;
 		box-decoration-break: clone;
 	}

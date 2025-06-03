@@ -32,7 +32,7 @@
 
 <Dialog.Content
 	class={cn(
-		'bg-background fixed top-(--header-height) left-0 z-50 h-[calc(100svh-var(--header-height))] w-full'
+		'bg-background top-(--header-height) fixed left-0 z-50 h-[calc(100svh-var(--header-height))] w-full'
 	)}
 >
 	<div class="h-[calc(100svh-var(--header-height)-69px)] overflow-y-auto px-8 pb-4">

@@ -12,7 +12,7 @@
 
 <div
 	class={cn(
-		'bg-destructive text-destructive-foreground fixed top-(--header-height) left-0 z-10 w-full py-2',
+		'bg-destructive text-destructive-foreground top-(--header-height) fixed left-0 z-10 w-full py-2',
 		className
 	)}
 >

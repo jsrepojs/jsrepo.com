@@ -28,7 +28,7 @@
 			<BlurFade delay={500 / 1000}>
 				<a
 					href="https://jsrepo.dev/docs"
-					class="flex place-items-center gap-1 transition-all hover:text-foreground"
+					class="hover:text-foreground flex place-items-center gap-1 transition-all"
 				>
 					Docs <ArrowUpRight class="size-4" />
 				</a>
@@ -36,7 +36,7 @@
 			<BlurFade delay={600 / 1000}>
 				<a
 					href="/help?reason={'bug' as SupportReason}&subject={page.status} on {page.url.pathname}"
-					class="transition-all hover:text-foreground"
+					class="hover:text-foreground transition-all"
 				>
 					Help
 				</a>
