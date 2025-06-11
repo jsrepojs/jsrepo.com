@@ -18,7 +18,8 @@ import {
 	countDistinct,
 	not,
 	gt,
-	arrayContains
+	arrayContains,
+	between
 } from 'drizzle-orm';
 import { generateId, type User } from 'better-auth';
 import assert from 'assert';
@@ -42,6 +43,14 @@ import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
 import { createGzip } from 'zlib';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+	CalendarDate,
+	startOfWeek,
+	endOfWeek,
+	today,
+	getLocalTimeZone,
+	parseDate
+} from '@internationalized/date';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -2367,4 +2376,78 @@ export async function leaveReview(record: InferInsertModel<typeof tables.registr
 	});
 
 	return true;
+}
+
+export type WeeklyDownloads = {
+	sow: number;
+	eow: number;
+	count: number;
+};
+
+export async function getWeeklyDownloadsForLastYear({
+	scope,
+	registry
+}: {
+	scope: string;
+	registry: string;
+}): Promise<WeeklyDownloads[]> {
+	const date = today(getLocalTimeZone());
+	// start of the first week of 1 year ago
+	const fromDate = startOfWeek(date.add({ years: -1 }), 'en-US');
+	const from = fromDate.toDate(getLocalTimeZone());
+	// end of this week
+	const to = endOfWeek(date, 'en-US').toDate(getLocalTimeZone());
+
+	const results = await db
+		.select({
+			...getTableColumns(tables.dailyRegistryFetch)
+		})
+		.from(tables.dailyRegistryFetch)
+		.innerJoin(tables.registry, eq(tables.registry.id, tables.dailyRegistryFetch.registryId))
+		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
+		.where(
+			and(
+				eq(lower(tables.scope.name), scope.toLowerCase()),
+				eq(lower(tables.registry.name), registry.toLowerCase()),
+				between(
+					tables.dailyRegistryFetch.day,
+					from.toISOString().slice(0, 10),
+					to.toISOString().slice(0, 10)
+				),
+				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json')
+			)
+		);
+
+	function createKey(sow: CalendarDate, eow: CalendarDate) {
+		return `${sow.toDate(getLocalTimeZone()).valueOf()}:${eow.toDate(getLocalTimeZone()).valueOf()}`;
+	}
+
+	const weeks = new Map<string, WeeklyDownloads>();
+
+	for (let i = 0; i < 52; i++) {
+		const sow = startOfWeek(fromDate.add({ weeks: i }), 'en-US');
+		const eow = endOfWeek(fromDate.add({ weeks: i }), 'en-US');
+		const key = createKey(sow, eow);
+		weeks.set(key, {
+			sow: sow.toDate(getLocalTimeZone()).valueOf(),
+			eow: eow.toDate(getLocalTimeZone()).valueOf(),
+			count: 0
+		});
+	}
+
+	for (const day of results) {
+		const date = parseDate(day.day);
+		const sow = startOfWeek(date, 'en-US');
+		const eow = endOfWeek(date, 'en-US');
+
+		const key = createKey(sow, eow);
+
+		weeks.set(key, {
+			sow: sow.toDate(getLocalTimeZone()).valueOf(),
+			eow: eow.toDate(getLocalTimeZone()).valueOf(),
+			count: (weeks.get(key)?.count ?? 0) + day.count
+		});
+	}
+
+	return Array.from(weeks.values()).sort((a, b) => a.sow - b.sow);
 }
