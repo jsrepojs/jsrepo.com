@@ -37,6 +37,10 @@
 	import Reviews from './reviews.svelte';
 	import ReviewStars from './review-stars.svelte';
 	import { MetaTags } from '../meta-tags';
+	import * as Chart from '$lib/components/ui/chart';
+	import { Area, AreaChart, Highlight, Layer, type ChartContextValue } from 'layerchart';
+	import { scaleUtc } from 'd3-scale';
+	import { UsePromise } from '$lib/hooks/use-promise.svelte';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -73,6 +77,22 @@
 	const hasLicense = $derived(
 		data.licenses.find((l) => l.registryId === data.registry.id) !== undefined
 	);
+
+	let chartContext = $state<ChartContextValue>();
+
+	function displayWeekRangeFromDate(date: Date) {
+		const startOfWeek = new Date(date);
+		startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+		const endOfWeek = new Date(startOfWeek);
+		endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+		const format = (d: Date) =>
+			`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+		return `${format(startOfWeek)} to ${format(endOfWeek)}`;
+	}
+
+	const weeklyDownloadsPromise = new UsePromise(data.weeklyDownloads, []);
 </script>
 
 <MetaTags
@@ -325,6 +345,56 @@
 						<div class="flex flex-col">
 							<Nav.Title>Config Files</Nav.Title>
 							<span>{(data.manifest.configFiles ?? []).length}</span>
+						</div>
+					</div>
+					<Separator />
+					<div class="flex flex-col">
+						<Nav.Title>
+							{chartContext?.tooltip?.data?.date
+								? displayWeekRangeFromDate(chartContext.tooltip.data.date)
+								: 'Weekly Downloads'}
+						</Nav.Title>
+						<div class="border-primary/50 grid grid-cols-[1fr_1fr] border-b-2">
+							<div class="col-start-1 flex place-items-end">
+								<span class="text-lg font-medium">
+									{chartContext?.tooltip?.data?.downloads ??
+										weeklyDownloadsPromise.current?.[weeklyDownloadsPromise.current?.length - 1]
+											?.count ??
+										0}
+								</span>
+							</div>
+							<div class="col-start-2 w-full">
+								<Chart.Container
+									class="[&_.lc-highlight-line]:!stroke-primary h-10 w-full [&_.lc-highlight-line]:stroke-2"
+									config={{ downloads: { label: 'Downloads', color: 'var(--chart-1)' } }}
+								>
+									<AreaChart
+										data={weeklyDownloadsPromise.current?.map((w) => ({
+											date: new Date(w.sow),
+											downloads: w.count
+										}))}
+										x="date"
+										renderContext="svg"
+										xScale={scaleUtc()}
+										yDomain={[0, null]}
+										series={[
+											{
+												key: 'downloads',
+												label: 'Weekly Downloads',
+												color: 'var(--chart-1)'
+											}
+										]}
+										tooltip={{ mode: 'bisect-x' }}
+										axis={false}
+										bind:context={chartContext}
+									>
+										<Layer type="svg">
+											<Area line={{ class: 'stroke-2 stroke-primary' }} class="fill-primary/30" />
+											<Highlight lines axis="x" />
+										</Layer>
+									</AreaChart>
+								</Chart.Container>
+							</div>
 						</div>
 					</div>
 					{#if data.registry.metaAuthors}

@@ -3,8 +3,10 @@ import {
 	getFiles,
 	getRegistry,
 	getVersions,
+	getWeeklyDownloadsForLastYear,
 	leaveReview,
-	type RegistryDetails
+	type RegistryDetails,
+	type WeeklyDownloads
 } from '$lib/backend/db/functions';
 import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
@@ -30,6 +32,7 @@ export type Info = {
 	manifest: Manifest;
 	versions: tables.Version[];
 	registry: RegistryDetails;
+	weeklyDownloads: Promise<WeeklyDownloads[]>;
 };
 
 export async function getInfo({
@@ -39,6 +42,11 @@ export async function getInfo({
 	userId
 }: Options): Promise<Info | null> {
 	const registryPromise = getRegistry({ scopeName, registryName, userId });
+
+	const weeklyDownloads = getWeeklyDownloadsForLastYear({
+		scope: scopeName,
+		registry: registryName
+	});
 
 	const promises = Promise.all([
 		getVersions(scopeName, registryName),
@@ -75,7 +83,8 @@ export async function getInfo({
 		readme,
 		manifest: v.parse(manifestSchema, JSON.parse(manifestContent)),
 		registry,
-		versions
+		versions,
+		weeklyDownloads
 	};
 }
 
