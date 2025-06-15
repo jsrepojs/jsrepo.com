@@ -52,5 +52,5 @@ export function determinePrimaryLanguage(...blocks: Block[]) {
 		.fromMap(langMap, (key, value) => ({ key, value }))
 		.toSorted((a, b) => b.value - a.value);
 
-	return arr[0].key;
+	return arr[0]?.key ?? 'unknown';
 }
