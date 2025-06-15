@@ -14,7 +14,8 @@ export async function handleError({ error, status, event }) {
 		if (dev) {
 			console.error(error);
 		} else {
-			posthog.captureException(error, undefined, { url: event.url.toString() });
+			const session = await event.locals.auth();
+			posthog.captureException(error, session?.user.id, { url: event.url.toString() });
 			await posthog.shutdown();
 		}
 	}
