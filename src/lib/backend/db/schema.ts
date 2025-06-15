@@ -374,7 +374,7 @@ export const scope = pgTable(
 	'scope',
 	{
 		id: serial('id').primaryKey(),
-		name: varchar('name', { length: 20 }).notNull().unique(),
+		name: varchar('name', { length: 50 }).notNull().unique(),
 		orgId: text('org_id').references(() => org.id, { onDelete: 'cascade' }),
 		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -431,12 +431,12 @@ export const registry = pgTable(
 	'registry',
 	{
 		id: serial('id').primaryKey(),
-		scopeName: varchar('scope_name', { length: 20 })
+		scopeName: varchar('scope_name', { length: 50 })
 			.notNull()
 			.references(() => scope.name, {
 				onDelete: 'cascade'
 			}),
-		name: varchar('name', { length: 20 }).notNull(),
+		name: varchar('name', { length: 50 }).notNull(),
 		access: registry_access().notNull(),
 		scopeId: integer('scope_id')
 			.notNull()

@@ -58,7 +58,7 @@
 						oninput={() => {
 							$formData.name = $formData.name.replace(/[^-a-z0-9]/gi, '');
 						}}
-						maxlength={20}
+						maxlength={50}
 						bind:value={$formData.name}
 						{placeholder}
 						class="aria-invalid:border-destructive aria-invalid:ring-destructive pl-5"
