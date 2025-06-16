@@ -17,9 +17,7 @@ export async function load({ params, locals }) {
 		userId: session?.user.id ?? null
 	});
 
-	if (info === null) {
-		error(404);
-	}
+	if (info === null) error(404);
 
 	const reviewForm = await superValidate(valibot(reviewSchema));
 
