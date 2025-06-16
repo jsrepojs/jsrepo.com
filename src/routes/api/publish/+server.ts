@@ -120,11 +120,17 @@ export async function POST({ request }) {
 	}
 
 	if (scopeName.length > 50) {
-		error(400, `scope name must be less than 50 characters ${scopeName} is currently ${scopeName.length} characters long`);
+		error(
+			400,
+			`scope name must be less than 50 characters ${scopeName} is currently ${scopeName.length} characters long`
+		);
 	}
 
 	if (registryName.length > 50) {
-		error(400, `registry name must be less than 50 characters ${registryName} is currently ${registryName.length} characters long`);
+		error(
+			400,
+			`registry name must be less than 50 characters ${registryName} is currently ${registryName.length} characters long`
+		);
 	}
 
 	const hasReadme = files.find((f) => f.name === 'README.md') !== undefined;
