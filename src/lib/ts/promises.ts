@@ -40,5 +40,7 @@ export async function allTimed<T extends readonly unknown[] | []>(
 	promises: T,
 	key: string
 ): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }> {
-	return Promise.all(promises.map((p, i) => timed(p, `[${key}] [${i}]`)));
+	return (await Promise.all(promises.map((p, i) => timed(p, `[${key}] [${i}]`)))) as {
+		-readonly [P in keyof T]: Awaited<T[P]>;
+	};
 }
