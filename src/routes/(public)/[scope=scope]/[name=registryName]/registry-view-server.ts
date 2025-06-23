@@ -19,6 +19,7 @@ import { valibot } from 'sveltekit-superforms/adapters';
 import { reviewSchema } from '$lib/components/site/registry-view/types';
 import type { Action } from './$types';
 import assert from 'assert';
+import * as promise from '$lib/ts/promises';
 
 export type Options = {
 	scopeName: string;
@@ -41,24 +42,30 @@ export async function getInfo({
 	version,
 	userId
 }: Options): Promise<Info | null> {
-	const registryPromise = getRegistry({ scopeName, registryName, userId });
+	const registryPromise = promise.timed(
+		getRegistry({ scopeName, registryName, userId }),
+		'getRegistry - registryPromise'
+	);
 
 	const weeklyDownloads = getWeeklyDownloadsForLastYear({
 		scope: scopeName,
 		registry: registryName
 	});
 
-	const promises = Promise.all([
-		getVersions(scopeName, registryName),
-		getFiles({
-			userId,
-			scopeName,
-			registryName,
-			version,
-			readonlyAccess: true,
-			fileNames: ['README.md', 'jsrepo-manifest.json']
-		})
-	]);
+	const promises = promise.allTimed(
+		[
+			getVersions(scopeName, registryName),
+			getFiles({
+				userId,
+				scopeName,
+				registryName,
+				version,
+				readonlyAccess: true,
+				fileNames: ['README.md', 'jsrepo-manifest.json']
+			})
+		],
+		`@${scopeName}/${registryName} - getInfo - promises`
+	);
 
 	const registry = await registryPromise;
 

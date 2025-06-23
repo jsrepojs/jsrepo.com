@@ -11,6 +11,7 @@ import {
 	getRegistryRatings
 } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
+import * as promise from '$lib/ts/promises';
 
 export async function load({ params, locals }) {
 	const session = await locals.auth();
@@ -30,22 +31,25 @@ export async function load({ params, locals }) {
 		purchases,
 		reviews,
 		canReview
-	] = await Promise.all([
-		getVersion({
-			scopeName,
-			registryName,
-			version: 'latest',
-			userId: session?.user.id ?? null
-		}),
-		hasScopeAccess(session?.user.id ?? null, scopeName),
-		listMyOrganizations(session?.user.id ?? ''),
-		getRegistryPrices({ scopeName, name: registryName }),
-		getMyLicenses(session?.user.id ?? ''),
-		getUser({ id: session?.user.id ?? '' }),
-		getRegistryPurchasesCount({ scope: scopeName, name: registryName }),
-		getReviews({ scope: scopeName, registry: registryName, limit: 5, offset: 0 }),
-		canLeaveReview({ userId: session?.user.id, scope: scopeName, registry: registryName })
-	]);
+	] = await promise.allTimed(
+		[
+			getVersion({
+				scopeName,
+				registryName,
+				version: 'latest',
+				userId: session?.user.id ?? null
+			}),
+			hasScopeAccess(session?.user.id ?? null, scopeName),
+			listMyOrganizations(session?.user.id ?? ''),
+			getRegistryPrices({ scopeName, name: registryName }),
+			getMyLicenses(session?.user.id ?? ''),
+			getUser({ id: session?.user.id ?? '' }),
+			getRegistryPurchasesCount({ scope: scopeName, name: registryName }),
+			getReviews({ scope: scopeName, registry: registryName, limit: 5, offset: 0 }),
+			canLeaveReview({ userId: session?.user.id, scope: scopeName, registry: registryName })
+		],
+		'[name=registryName]/+layout.server.ts'
+	);
 
 	if (version === null) error(404);
 
