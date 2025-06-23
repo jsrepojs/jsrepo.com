@@ -23,7 +23,7 @@
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-col">
 			<div class="flex place-items-center gap-2">
-				<a href="/{name}" onclick={() => console.log('what man')} class="text-lg font-medium underline-offset-2 hover:underline">
+				<a href="/{name}" class="text-lg font-medium underline-offset-2 hover:underline">
 					{name}
 				</a>
 				<FileIcon extension={registry.metaPrimaryLanguage} />
