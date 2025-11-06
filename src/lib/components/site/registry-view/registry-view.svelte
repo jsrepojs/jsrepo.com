@@ -41,6 +41,7 @@
 	import { Area, AreaChart, Highlight, Layer, type ChartContextValue } from 'layerchart';
 	import { scaleUtc } from 'd3-scale';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte';
+	import { SvelteDate, SvelteSet } from 'svelte/reactivity';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -55,7 +56,7 @@
 	};
 
 	function getRegistryInfo(manifest: Manifest): RegistryInfo {
-		const dependencies = new Set<string>();
+		const dependencies = new SvelteSet<string>();
 
 		for (const category of manifest.categories) {
 			for (const block of category.blocks) {
@@ -81,9 +82,9 @@
 	let chartContext = $state<ChartContextValue>();
 
 	function displayWeekRangeFromDate(date: Date) {
-		const startOfWeek = new Date(date);
+		const startOfWeek = new SvelteDate(date);
 		startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-		const endOfWeek = new Date(startOfWeek);
+		const endOfWeek = new SvelteDate(startOfWeek);
 		endOfWeek.setDate(endOfWeek.getDate() + 6);
 
 		const format = (d: Date) =>
@@ -365,7 +366,7 @@
 							</div>
 							<div class="col-start-2 w-full">
 								<Chart.Container
-									class="[&_.lc-highlight-line]:!stroke-primary h-10 w-full [&_.lc-highlight-line]:stroke-2"
+									class="[&_.lc-highlight-line]:stroke-primary! h-10 w-full [&_.lc-highlight-line]:stroke-2"
 									config={{ downloads: { label: 'Downloads', color: 'var(--chart-1)' } }}
 								>
 									<AreaChart

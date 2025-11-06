@@ -1835,7 +1835,7 @@ export async function createAnonSessionCode(user: User, anonSessionId: string) {
 
 		if (codes.length === 0) {
 			tx.rollback();
-			return;
+			return false;
 		}
 
 		const result = await resend.emails.send({
@@ -1847,7 +1847,7 @@ export async function createAnonSessionCode(user: User, anonSessionId: string) {
 
 		if (result.error !== null) {
 			tx.rollback();
-			return;
+			return false;
 		}
 
 		return true;
