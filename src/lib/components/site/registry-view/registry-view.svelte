@@ -178,7 +178,7 @@
 			{#if registryInfo.version === 'v2'}
 				<Tabs.Tab href="?tab=blocks" isSearch tag={registryInfo.blocks.toString()}>Blocks</Tabs.Tab>
 			{:else}
-				<Tabs.Tab href="?tab=items" isSearch tag={registryInfo.items.toString()}>Items</Tabs.Tab>
+				<Tabs.Tab href="?tab=blocks" isSearch tag={registryInfo.items.toString()}>Items</Tabs.Tab>
 			{/if}
 			<Tabs.Tab
 				href="?tab=dependencies"
@@ -599,7 +599,7 @@
 																{/snippet}
 															</FileIcon>
 														</div>
-														{file}
+														{file.path}
 													</li>
 												{/each}
 											</ul>

@@ -90,7 +90,7 @@ export async function POST({ request }) {
 		(err) => error(500, `error extracting files ${err}`)
 	);
 
-	const manifestFile = files.find((f) => f.name === 'registry-manifest.json');
+	const manifestFile = files.find((f) => f.name === 'registry.json');
 
 	if (!manifestFile) {
 		error(400, 'could not find your registry.json');
@@ -221,7 +221,7 @@ export async function POST({ request }) {
 			}
 		}
 
-		return json({ status: 'dry-run' });
+		return json({ status: 'dry-run', version: manifest.version, tag: releaseTag ?? undefined });
 	}
 
 	const primaryLanguage = determinePrimaryLanguage(...manifest.items.flatMap((i) => i.files.map((f) => f.path)));

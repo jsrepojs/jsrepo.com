@@ -29,7 +29,6 @@ export const registryManifestItemSchema = v.object({
 	type: v.string(),
 	description: v.optional(v.string()),
 	files: v.array(registryManifestFileSchema),
-	basePath: v.string(),
 	registryDependencies: v.optional(v.array(v.string())),
 	remoteDependencies: v.optional(v.array(remoteDependencySchema)),
 	add: v.union([v.literal('on-init'), v.literal('when-needed'), v.literal('when-added')]),
@@ -50,9 +49,9 @@ export const manifestV3Schema = v.object({
 	meta: v.optional(v.record(v.string(), v.string())),
 	plugins: v.optional(
 		v.object({
-			languages: v.array(registryPluginSchema),
-			providers: v.array(registryPluginSchema),
-			transforms: v.array(registryPluginSchema)
+			languages: v.optional(v.array(registryPluginSchema)),
+			providers: v.optional(v.array(registryPluginSchema)),
+			transforms: v.optional(v.array(registryPluginSchema))
 		})
 	),
 	items: v.array(registryManifestItemSchema),
