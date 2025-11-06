@@ -1,7 +1,8 @@
 import * as v from 'valibot';
 import { Err, Ok, type Result } from '../result';
-import type { RegistryVersion } from '$lib/backend/db/schema';
 import { manifestSchema, type Manifest } from './manifest';
+
+export type RegistryVersion = 'v2' | 'v3';
 
 export const registryPluginSchema = v.object({
 	package: v.string(),
@@ -120,7 +121,9 @@ export function validateAndScore(manifest: ManifestV3, hasReadme: boolean): Resu
 	return Ok(score);
 }
 
-export type RegistryManifest = { manifestVersion: 'v3' } & ManifestV3 | { manifestVersion: 'v2' } & Manifest;
+export type RegistryManifest =
+	| ({ manifestVersion: 'v3' } & ManifestV3)
+	| ({ manifestVersion: 'v2' } & Manifest);
 
 export function parseManifest({
 	content,

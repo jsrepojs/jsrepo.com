@@ -33,7 +33,7 @@ export type RegistryInfoResponseV2 = {
 	tags: Record<string, string>;
 	versions: string[];
 	time: Record<string, Date>;
-}
+};
 
 export type RegistryInfoResponseV3 = {
 	manifestVersion: 'v3';
@@ -75,7 +75,7 @@ export async function GET({ locals, params }) {
 			scopeName: scope,
 			registryName,
 			version: 'latest',
-			userId: session?.user.id,
+			userId: session?.user.id
 		})
 	]);
 
@@ -87,26 +87,29 @@ export async function GET({ locals, params }) {
 
 	if (manifestResult === null) error(404);
 
-	const manifest = parseManifest({ content: manifestResult.content, version: manifestResult.version });
+	const manifest = parseManifest({
+		content: manifestResult.content,
+		version: manifestResult.version
+	});
 
 	if (manifest.manifestVersion === 'v3') {
 		const primaryLanguage = determinePrimaryLanguage(
 			...manifest.items.flatMap((i) => i.files.map((f) => f.path))
 		);
-	
+
 		const tags: RegistryInfoResponseV3['tags'] = {};
 		const time: RegistryInfoResponseV3['time'] = {};
-	
+
 		if (versions) {
 			for (const version of versions) {
 				time[version.version] = version.createdAt;
-	
+
 				if (version.tag === null) continue;
-	
+
 				tags[version.tag] = version.version;
 			}
 		}
-	
+
 		return json({
 			manifestVersion: 'v3',
 			name: `@${scope}/${registryName}`,
@@ -130,26 +133,26 @@ export async function GET({ locals, params }) {
 			primaryLanguage,
 			versions: versions?.map((v) => v.version) ?? [],
 			access: registry.access,
-			items: manifest.items,
+			items: manifest.items
 		} satisfies RegistryInfoResponseV3);
 	} else if (manifest.manifestVersion === 'v2') {
 		const primaryLanguage = determinePrimaryLanguage(
 			...manifest.categories.flatMap((c) => c.blocks.flatMap((b) => b.files))
 		);
-	
+
 		const tags: RegistryInfoResponseV2['tags'] = {};
 		const time: RegistryInfoResponseV2['time'] = {};
-	
+
 		if (versions) {
 			for (const version of versions) {
 				time[version.version] = version.createdAt;
-	
+
 				if (version.tag === null) continue;
-	
+
 				tags[version.tag] = version.version;
 			}
 		}
-	
+
 		return json({
 			manifestVersion: 'v2',
 			name: `@${scope}/${registryName}`,

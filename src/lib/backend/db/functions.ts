@@ -580,14 +580,13 @@ export async function getFiles({
 	version,
 	fileNames = [],
 	readonlyAccess = false
-}: GetFilesOptions): Promise<{ name: string; version?: tables.RegistryVersion; content: string }[]> {
+}: GetFilesOptions): Promise<{ name: string; version?: 'v2' | 'v3'; content: string }[]> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
-			version: tables.registry.version,
 			tarball: tables.version.tarball
 		})
 		.from(tables.scope)
@@ -640,7 +639,10 @@ export async function getFiles({
 
 	fileNames = fileNames.filter((f) => f !== 'registry:manifest');
 
-	fileNames = [...fileNames, ...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])];
+	fileNames = [
+		...fileNames,
+		...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])
+	];
 
 	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
 
@@ -674,7 +676,7 @@ export async function getManifestFile({
 	version: string;
 	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
-}): Promise<{ name: string; version: tables.RegistryVersion; content: string } | null> {
+}): Promise<{ name: string; version: 'v2' | 'v3'; content: string } | null> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
@@ -729,7 +731,10 @@ export async function getManifestFile({
 
 	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
 
-	const manifestFile=  await extractFirstOf(s3Response?.Body as Stream, ['registry.json', 'jsrepo-manifest.json']);
+	const manifestFile = await extractFirstOf(s3Response?.Body as Stream, [
+		'registry.json',
+		'jsrepo-manifest.json'
+	]);
 
 	if (manifestFile === null) return null;
 

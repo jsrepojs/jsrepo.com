@@ -19,23 +19,22 @@ export async function load({ params, locals }) {
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
 
-	const [version, hasSettingsAccess, userOrgs, prices, licenses, user] =
-		await promise.allTimed(
-			[
-				getVersion({
-					scopeName,
-					registryName,
-					version: 'latest',
-					userId: session?.user.id ?? null
-				}),
-				hasScopeAccess(session?.user.id ?? null, scopeName),
-				listMyOrganizations(session?.user.id ?? ''),
-				getRegistryPrices({ scopeName, name: registryName }),
-				getMyLicenses(session?.user.id ?? ''),
-				getUser({ id: session?.user.id ?? '' })
-			],
-			'[name=registryName]/+layout.server.ts'
-		);
+	const [version, hasSettingsAccess, userOrgs, prices, licenses, user] = await promise.allTimed(
+		[
+			getVersion({
+				scopeName,
+				registryName,
+				version: 'latest',
+				userId: session?.user.id ?? null
+			}),
+			hasScopeAccess(session?.user.id ?? null, scopeName),
+			listMyOrganizations(session?.user.id ?? ''),
+			getRegistryPrices({ scopeName, name: registryName }),
+			getMyLicenses(session?.user.id ?? ''),
+			getUser({ id: session?.user.id ?? '' })
+		],
+		'[name=registryName]/+layout.server.ts'
+	);
 
 	if (version === null) error(404);
 

@@ -12,7 +12,11 @@ import {
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
-import { manifestV3Schema, validateAndScore, type ManifestV3 } from '$lib/ts/registry/manifest-v3.js';
+import {
+	manifestV3Schema,
+	validateAndScore,
+	type ManifestV3
+} from '$lib/ts/registry/manifest-v3.js';
 import { NAME_REGEX } from '$lib/ts/registry/name.js';
 import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
@@ -224,7 +228,9 @@ export async function POST({ request }) {
 		return json({ status: 'dry-run', version: manifest.version, tag: releaseTag ?? undefined });
 	}
 
-	const primaryLanguage = determinePrimaryLanguage(...manifest.items.flatMap((i) => i.files.map((f) => f.path)));
+	const primaryLanguage = determinePrimaryLanguage(
+		...manifest.items.flatMap((i) => i.files.map((f) => f.path))
+	);
 
 	const result = await db.transaction(async (tx) => {
 		let oldTaggedVersion: Version | null = null;
@@ -237,7 +243,6 @@ export async function POST({ request }) {
 				name: registryName,
 				scopeName: scopeName,
 				scopeId: scope.id,
-				version: 'v3',
 				// automatically link the users seller account to a new registry
 				stripeConnectAccountId: user.stripeSellerAccountId,
 				access,

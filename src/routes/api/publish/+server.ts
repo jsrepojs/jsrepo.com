@@ -239,7 +239,6 @@ export async function POST({ request }) {
 				name: registryName,
 				scopeName: scopeName,
 				scopeId: scope.id,
-				version: 'v2',
 				// automatically link the users seller account to a new registry
 				stripeConnectAccountId: user.stripeSellerAccountId,
 				access,

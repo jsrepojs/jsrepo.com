@@ -24,8 +24,7 @@ export async function GET({ locals, params, setHeaders }) {
 	if (manifest.manifestVersion === 'v2') {
 		error(400, 'Incompatible manifest version!');
 	} else {
-		const item = manifest.items
-			.find((i) => i.name === itemName);
+		const item = manifest.items.find((i) => i.name === itemName);
 
 		if (item === undefined) error(404);
 
