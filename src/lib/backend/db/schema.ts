@@ -425,6 +425,12 @@ export const registry_access = pgEnum('registry_access', ['public', 'private', '
 
 export type RegistryAccess = (typeof registry_access.enumValues)[number];
 
+export const registryVersion = pgEnum('registry_version', ['v2', 'v3']);
+
+export type RegistryVersion = (typeof registryVersion.enumValues)[number];
+
+export const registryVersions = registryVersion.enumValues;
+
 export const registryAccessLevels = registry_access.enumValues;
 
 export const registry = pgTable(
@@ -437,6 +443,7 @@ export const registry = pgTable(
 				onDelete: 'cascade'
 			}),
 		name: varchar('name', { length: 50 }).notNull(),
+		version: registryVersion('version').notNull(),
 		access: registry_access().notNull(),
 		scopeId: integer('scope_id')
 			.notNull()

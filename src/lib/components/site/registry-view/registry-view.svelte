@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import * as List from '$lib/components/site/list';
 	import semver from 'semver';
-	import type { Manifest } from '$lib/ts/registry/manifest';
 	import {
 		ChevronRight,
 		FlaskRound,
@@ -42,6 +41,7 @@
 	import { scaleUtc } from 'd3-scale';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte';
 	import { SvelteDate, SvelteSet } from 'svelte/reactivity';
+	import type { RegistryManifest, RemoteDependency } from '$lib/ts/registry/manifest-v3';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -49,28 +49,46 @@
 
 	let tabListPopoverOpen = $state(false);
 
-	type RegistryInfo = {
+	export type RegistryInfo = RegistryInfoV2 | RegistryInfoV3;
+
+	type RegistryInfoV2 = {
+		version: 'v2';
 		categories: number;
 		blocks: number;
 		dependencies: string[];
 	};
 
-	function getRegistryInfo(manifest: Manifest): RegistryInfo {
-		const dependencies = new SvelteSet<string>();
+	type RegistryInfoV3 = {
+		version: 'v3';
+		items: number;
+		dependencies: RemoteDependency[];
+	};
 
-		for (const category of manifest.categories) {
-			for (const block of category.blocks) {
-				for (const dep of [...block.dependencies, ...block.devDependencies]) {
-					dependencies.add(dep);
+	function getRegistryInfo(manifest: RegistryManifest): RegistryInfoV2 | RegistryInfoV3 {
+		if (manifest.manifestVersion === 'v2') {
+			const dependencies = new SvelteSet<string>();
+
+			for (const category of manifest.categories) {
+				for (const block of category.blocks) {
+					for (const dep of [...block.dependencies, ...block.devDependencies]) {
+						dependencies.add(dep);
+					}
 				}
 			}
-		}
 
-		return {
-			categories: manifest.categories.length,
-			blocks: manifest.categories.flatMap((c) => c.blocks).length,
-			dependencies: Array.from(dependencies)
-		};
+			return {
+				version: 'v2',
+				categories: manifest.categories.length,
+				blocks: manifest.categories.flatMap((c) => c.blocks).length,
+				dependencies: Array.from(dependencies)
+			};
+		} else {
+			return {
+				version: 'v3',
+				items: manifest.items.length,
+				dependencies: manifest.items.flatMap((i) => i.remoteDependencies ?? [])
+			};
+		}
 	}
 
 	const registryInfo = $derived(getRegistryInfo(data.manifest));
@@ -157,7 +175,11 @@
 	<Tabs.Root class="flex place-items-end justify-between">
 		<div class="flex place-items-end">
 			<Tabs.Tab href="?tab=/" isSearch>README</Tabs.Tab>
-			<Tabs.Tab href="?tab=blocks" isSearch tag={registryInfo.blocks.toString()}>Blocks</Tabs.Tab>
+			{#if registryInfo.version === 'v2'}
+				<Tabs.Tab href="?tab=blocks" isSearch tag={registryInfo.blocks.toString()}>Blocks</Tabs.Tab>
+			{:else}
+				<Tabs.Tab href="?tab=items" isSearch tag={registryInfo.items.toString()}>Items</Tabs.Tab>
+			{/if}
 			<Tabs.Tab
 				href="?tab=dependencies"
 				isSearch
@@ -328,25 +350,33 @@
 						<Separator />
 					{/if}
 					<div class="grid w-fit grid-cols-2 gap-4">
-						<div class="flex flex-col">
-							<Nav.Title>Categories</Nav.Title>
-							<span>{registryInfo.categories}</span>
-						</div>
-
-						<div class="flex flex-col">
-							<Nav.Title>Blocks</Nav.Title>
-							<span>{registryInfo.blocks}</span>
-						</div>
+						{#if registryInfo.version === 'v2'}
+							<div class="flex flex-col">
+								<Nav.Title>Categories</Nav.Title>
+								<span>{registryInfo.categories}</span>
+							</div>
+							<div class="flex flex-col">
+								<Nav.Title>Blocks</Nav.Title>
+								<span>{registryInfo.blocks}</span>
+							</div>
+						{:else}
+							<div class="flex flex-col">
+								<Nav.Title>Items</Nav.Title>
+								<span>{registryInfo.items}</span>
+							</div>
+						{/if}
 
 						<div class="flex flex-col">
 							<Nav.Title>Dependencies</Nav.Title>
 							<span>{registryInfo.dependencies.length}</span>
 						</div>
 
-						<div class="flex flex-col">
-							<Nav.Title>Config Files</Nav.Title>
-							<span>{(data.manifest.configFiles ?? []).length}</span>
-						</div>
+						{#if data.manifest.manifestVersion === 'v2'}
+							<div class="flex flex-col">
+								<Nav.Title>Config Files</Nav.Title>
+								<span>{(data.manifest.configFiles ?? []).length}</span>
+							</div>
+						{/if}
 					</div>
 					<Separator />
 					<div class="flex flex-col">
@@ -414,18 +444,110 @@
 		{:else if tab === 'blocks'}
 			<List.Root class="flex flex-col gap-2 py-2">
 				<List.List>
-					{#each data.manifest.categories as category (category)}
-						{#each category.blocks.filter((b) => b.list) as block (block.name)}
-							{@const primaryLanguage = determinePrimaryLanguage(block)}
+					{#if data.manifest.manifestVersion === 'v2'}
+						{#each data.manifest.categories as category (category)}
+							{#each category.blocks.filter((b) => b.list) as block (block.name)}
+								{@const primaryLanguage = determinePrimaryLanguage(...block.files)}
+								<Collapsible.Root>
+									<List.Item class="hover:bg-card p-0">
+										<div class="flex w-full place-items-center justify-between p-4">
+											<div class="flex place-items-center gap-2">
+												<span class="font-medium">
+													{block.category}/{block.name}
+												</span>
+												<FileIcon extension={primaryLanguage} />
+												{#if block.tests}
+													<Tooltip.Provider delayDuration={50}>
+														<Tooltip.Root>
+															<Tooltip.Trigger>
+																<FlaskRound class="size-4 text-blue-400" />
+															</Tooltip.Trigger>
+															<Tooltip.Content>
+																<p>Includes tests</p>
+															</Tooltip.Content>
+														</Tooltip.Root>
+													</Tooltip.Provider>
+												{/if}
+											</div>
+											<div class="flex place-items-center gap-2">
+												<Button
+													variant="ghost"
+													size="icon"
+													disabled={data.registry.access === 'marketplace' && !hasLicense}
+													download="{category.name}_{block.name}.zip"
+													href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
+												>
+													<Download class="text-muted-foreground size-5" />
+												</Button>
+												<Collapsible.Trigger>
+													{#snippet child({ props })}
+														<Button {...props} variant="ghost" size="icon">
+															<ChevronRight
+																class={cn('text-muted-foreground size-5', {
+																	'rotate-90': props['aria-expanded'] === 'true'
+																})}
+															/>
+														</Button>
+													{/snippet}
+												</Collapsible.Trigger>
+											</div>
+										</div>
+									</List.Item>
+									<Collapsible.Content>
+										<div
+											class="border-border bg-card mt-2 flex flex-col gap-2 rounded-md border p-4"
+										>
+											<div>
+												<span class="text-muted-foreground font-medium">Files</span>
+												<ul>
+													{#each block.files as file (file)}
+														{@const ext = parseFileExtension(file)}
+														<li class="flex place-items-center gap-1">
+															<div class="flex size-4 place-items-center justify-center">
+																<FileIcon extension={ext}>
+																	{#snippet fallback()}
+																		<File class="text-muted-foreground size-4" />
+																	{/snippet}
+																</FileIcon>
+															</div>
+															{file}
+														</li>
+													{/each}
+												</ul>
+											</div>
+											<div>
+												<span class="text-muted-foreground font-medium">Remote Dependencies</span>
+												<ul>
+													{#each [...block.dependencies, ...block.devDependencies] as dep (dep)}
+														<li>{dep}</li>
+													{/each}
+												</ul>
+											</div>
+											<div>
+												<span class="text-muted-foreground font-medium">Local Dependencies</span>
+												<ul>
+													{#each block.localDependencies as dep (dep)}
+														<li>{dep}</li>
+													{/each}
+												</ul>
+											</div>
+										</div>
+									</Collapsible.Content>
+								</Collapsible.Root>
+							{/each}
+						{/each}
+					{:else}
+						{#each data.manifest.items.filter((i) => i.add === 'when-added') as item (item.name)}
+							{@const primaryLanguage = determinePrimaryLanguage(...item.files.map((f) => f.path))}
 							<Collapsible.Root>
 								<List.Item class="hover:bg-card p-0">
 									<div class="flex w-full place-items-center justify-between p-4">
 										<div class="flex place-items-center gap-2">
 											<span class="font-medium">
-												{block.category}/{block.name}
+												{item.name}
 											</span>
 											<FileIcon extension={primaryLanguage} />
-											{#if block.tests}
+											{#if item.files.some((f) => f.type === 'registry:test')}
 												<Tooltip.Provider delayDuration={50}>
 													<Tooltip.Root>
 														<Tooltip.Trigger>
@@ -443,8 +565,8 @@
 												variant="ghost"
 												size="icon"
 												disabled={data.registry.access === 'marketplace' && !hasLicense}
-												download="{category.name}_{block.name}.zip"
-												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
+												download="{item.name}.zip"
+												href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/items/{item.name}/download"
 											>
 												<Download class="text-muted-foreground size-5" />
 											</Button>
@@ -467,8 +589,8 @@
 										<div>
 											<span class="text-muted-foreground font-medium">Files</span>
 											<ul>
-												{#each block.files as file (file)}
-													{@const ext = parseFileExtension(file)}
+												{#each item.files as file (file)}
+													{@const ext = parseFileExtension(file.path)}
 													<li class="flex place-items-center gap-1">
 														<div class="flex size-4 place-items-center justify-center">
 															<FileIcon extension={ext}>
@@ -485,15 +607,15 @@
 										<div>
 											<span class="text-muted-foreground font-medium">Remote Dependencies</span>
 											<ul>
-												{#each [...block.dependencies, ...block.devDependencies] as dep (dep)}
-													<li>{dep}</li>
+												{#each item.remoteDependencies ?? [] as dep (dep.name)}
+													<li>{dep.name}{dep.version ? `@${dep.version}` : ''}</li>
 												{/each}
 											</ul>
 										</div>
 										<div>
 											<span class="text-muted-foreground font-medium">Local Dependencies</span>
 											<ul>
-												{#each block.localDependencies as dep (dep)}
+												{#each item.registryDependencies ?? [] as dep (dep)}
 													<li>{dep}</li>
 												{/each}
 											</ul>
@@ -502,7 +624,7 @@
 								</Collapsible.Content>
 							</Collapsible.Root>
 						{/each}
-					{/each}
+					{/if}
 				</List.List>
 			</List.Root>
 		{:else if tab === 'dependencies'}
@@ -512,14 +634,30 @@
 				{:else}
 					<List.Root>
 						<List.List>
-							{#each registryInfo.dependencies as dependency (dependency)}
-								{@const pkg = parsePackageName(dependency).unwrap()}
-								<List.Item class="flex place-items-center justify-between">
-									<List.Link href="https://npmjs.com/package/{pkg.name}" target="_blank">
-										{dependency}
-									</List.Link>
-								</List.Item>
-							{/each}
+							{#if registryInfo.version === 'v2'}
+								{#each registryInfo.dependencies as dependency (dependency)}
+									{@const pkg = parsePackageName(dependency).unwrap()}
+									<List.Item class="flex place-items-center justify-between">
+										<List.Link href="https://npmjs.com/package/{pkg.name}" target="_blank">
+											{dependency}
+										</List.Link>
+									</List.Item>
+								{/each}
+							{:else}
+								{#each registryInfo.dependencies as dependency (dependency)}
+									<List.Item class="flex place-items-center justify-between">
+										{#if dependency.ecosystem === 'js'}
+											<List.Link href="https://npmjs.com/package/{dependency.name}" target="_blank">
+												{dependency.name}{dependency.version ? `@${dependency.version}` : ''}
+											</List.Link>
+										{:else}
+											<span>
+												{dependency.name}{dependency.version ? `@${dependency.version}` : ''}
+											</span>
+										{/if}
+									</List.Item>
+								{/each}
+							{/if}
 						</List.List>
 					</List.Root>
 				{/if}

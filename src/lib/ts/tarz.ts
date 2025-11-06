@@ -111,6 +111,35 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 	});
 }
 
+export async function extractFirstOf(stream: Stream, fileNames: string[]): Promise<File | null> {
+	return new Promise<File | null>((res, rej) => {
+		const tex = tar.extract();
+
+		tex.on('entry', (header, stream, next) => {
+			// we don't need this file
+			if (!fileNames.includes(header.name)) {
+				stream.resume();
+				stream.on('end', next);
+				return;
+			}
+
+			const chunks: Buffer[] = [];
+			stream.on('data', (chunk) => chunks.push(chunk));
+			stream.on('end', () => {
+				res({ name: header.name, content: Buffer.concat(chunks).toString() });
+			});
+		});
+
+		tex.on('finish', () => res(null));
+
+		tex.on('error', rej);
+
+		stream.on('error', rej);
+
+		stream.pipe(createGunzip()).pipe(tex);
+	});
+}
+
 export async function consume(stream: PassThrough): Promise<Buffer<ArrayBuffer>> {
 	return new Promise((res, rej) => {
 		const chunks: Buffer[] = [];

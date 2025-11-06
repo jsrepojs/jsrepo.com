@@ -37,7 +37,7 @@ import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
-import { consume, extractSpecific } from '$lib/ts/tarz';
+import { consume, extractFirstOf, extractSpecific } from '$lib/ts/tarz';
 import Stream, { PassThrough } from 'stream';
 import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
@@ -51,6 +51,7 @@ import {
 	getLocalTimeZone,
 	parseDate
 } from '@internationalized/date';
+import type { LooseAutocomplete } from '$lib/ts/types';
 
 export type tx = PgTransaction<
 	PostgresJsQueryResultHKT,
@@ -194,7 +195,11 @@ export async function getRegistry({
 			tables.dailyRegistryFetch,
 			and(
 				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				// fetched a manifest file
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				),
 				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
 			)
 		)
@@ -563,7 +568,7 @@ type GetFilesOptions = {
 	registryName: string;
 	version: string;
 	/** Files to fetch. Leave this out if you want all files associated with this registry version */
-	fileNames?: string[];
+	fileNames?: LooseAutocomplete<'registry:manifest'>[];
 	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
 };
@@ -575,13 +580,14 @@ export async function getFiles({
 	version,
 	fileNames = [],
 	readonlyAccess = false
-}: GetFilesOptions): Promise<{ name: string; content: string }[]> {
+}: GetFilesOptions): Promise<{ name: string; version?: tables.RegistryVersion; content: string }[]> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
+			version: tables.registry.version,
 			tarball: tables.version.tarball
 		})
 		.from(tables.scope)
@@ -630,6 +636,12 @@ export async function getFiles({
 
 	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
 
+	const expectsManifestFile = fileNames.includes('registry:manifest');
+
+	fileNames = fileNames.filter((f) => f !== 'registry:manifest');
+
+	fileNames = [...fileNames, ...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])];
+
 	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
 
 	return files.flatMap((file) => {
@@ -637,8 +649,95 @@ export async function getFiles({
 
 		if (!og) return [];
 
+		if (file.name === 'registry.json' || file.name === 'jsrepo-manifest.json') {
+			return {
+				name: og,
+				version: file.name === 'registry.json' ? 'v3' : 'v2',
+				content: file.content
+			};
+		}
+
 		return [{ name: og, content: file.content }];
 	});
+}
+
+export async function getManifestFile({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	readonlyAccess = false
+}: {
+	userId?: string | null;
+	scopeName: string;
+	registryName: string;
+	version: string;
+	/** Set this to true if you are not returning file contents */
+	readonlyAccess?: boolean;
+}): Promise<{ name: string; version: tables.RegistryVersion; content: string } | null> {
+	const isTag = !semver.valid(version);
+
+	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
+
+	const result = await db
+		.select({
+			tarball: tables.version.tarball
+		})
+		.from(tables.scope)
+		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
+		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
+		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
+		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
+		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
+		.leftJoin(
+			userOrgMember,
+
+			and(
+				// user is the org member
+				eq(userOrgMember.userId, tables.user.id)
+			)
+		)
+		.leftJoin(
+			tables.marketplacePurchase,
+			and(
+				eq(tables.marketplacePurchase.registryId, tables.registry.id),
+
+				or(
+					// purchase for org
+					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
+
+					// purchase for user
+					eq(tables.marketplacePurchase.referenceId, tables.user.id)
+				)
+			)
+		)
+		.where(
+			and(
+				eq(lower(tables.scope.name), scopeName.toLowerCase()),
+				eq(lower(tables.registry.name), registryName.toLowerCase()),
+				eq(isTag ? tables.version.tag : tables.version.version, version),
+
+				checkAccessQuery({ userOrgMember, readonlyAccess })
+			)
+		);
+
+	if (result.length === 0) return null;
+
+	const tarballKey = result[0].tarball;
+
+	const s3Response = await storage.getObject(tarballKey);
+
+	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
+
+	const manifestFile=  await extractFirstOf(s3Response?.Body as Stream, ['registry.json', 'jsrepo-manifest.json']);
+
+	if (manifestFile === null) return null;
+
+	return {
+		name: manifestFile.name,
+		version: manifestFile.name === 'registry.json' ? 'v3' : 'v2',
+		content: manifestFile.content
+	};
 }
 
 export async function listApiKeys(userId: string) {
@@ -1530,7 +1629,11 @@ export async function searchRegistries({
 			tables.dailyRegistryFetch,
 			and(
 				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				// fetched a manifest file
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				),
 				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
 			)
 		)
@@ -1664,7 +1767,7 @@ export async function postFileFetch({
 	fileName
 }: TrackFetchOptions) {
 	if (!(await posthog.isFeatureEnabled('trackAllFileFetches', distinctId))) {
-		if (fileName !== 'jsrepo-manifest.json') return;
+		if (fileName !== 'jsrepo-manifest.json' && fileName !== 'registry.json') return;
 	}
 
 	if (!(await posthog.isFeatureEnabled('trackFetches', distinctId))) return;
@@ -1745,7 +1848,11 @@ export async function getPublicDownloads({
 			tables.dailyRegistryFetch,
 			and(
 				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+				// fetched a manifest file
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				),
 				gte(tables.dailyRegistryFetch.day, from.toISOString().slice(0, 10))
 			)
 		)

@@ -2,12 +2,11 @@ import { getFiles, getManifestFile } from '$lib/backend/db/functions.js';
 import { parseManifest } from '$lib/ts/registry/manifest-v3';
 import { error } from '@sveltejs/kit';
 import archiver from 'archiver';
-import path from 'path';
 
 export async function GET({ locals, params, setHeaders }) {
 	const session = await locals.auth();
 
-	const { scope, name, version, category, block: blockName } = params;
+	const { scope, name, version, itemName } = params;
 
 	const scopeName = scope.slice(1);
 
@@ -22,14 +21,13 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const manifest = parseManifest({ content: manifestFile.content, version: manifestFile.version });
 
-	if (manifest.manifestVersion === 'v3') {
+	if (manifest.manifestVersion === 'v2') {
 		error(400, 'Incompatible manifest version!');
 	} else {
-		const block = manifest.categories
-			.find((c) => c.name === category)
-			?.blocks.find((b) => b.name === blockName);
+		const item = manifest.items
+			.find((i) => i.name === itemName);
 
-		if (block === undefined) error(404);
+		if (item === undefined) error(404);
 
 		// figure out which files we need from the manifest
 
@@ -38,7 +36,7 @@ export async function GET({ locals, params, setHeaders }) {
 			scopeName,
 			registryName: name,
 			version,
-			fileNames: block.files.map((f) => path.join(block.directory, f))
+			fileNames: [`${item.name}.json`]
 		});
 
 		if (files === null) error(404);

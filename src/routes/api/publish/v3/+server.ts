@@ -12,7 +12,7 @@ import {
 } from '$lib/backend/db/functions.js';
 import { db } from '$lib/backend/db/index.js';
 import { posthog } from '$lib/ts/posthog.js';
-import { manifestSchema, validateAndScore, type Manifest } from '$lib/ts/registry/manifest.js';
+import { manifestV3Schema, validateAndScore, type ManifestV3 } from '$lib/ts/registry/manifest-v3.js';
 import { NAME_REGEX } from '$lib/ts/registry/name.js';
 import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
@@ -90,16 +90,16 @@ export async function POST({ request }) {
 		(err) => error(500, `error extracting files ${err}`)
 	);
 
-	const manifestFile = files.find((f) => f.name === 'jsrepo-manifest.json');
+	const manifestFile = files.find((f) => f.name === 'registry-manifest.json');
 
 	if (!manifestFile) {
-		error(400, 'could not find your jsrepo-manifest.json');
+		error(400, 'could not find your registry.json');
 	}
 
-	let manifest: Manifest;
+	let manifest: ManifestV3;
 
 	try {
-		manifest = v.parse(manifestSchema, JSON.parse(manifestFile.content));
+		manifest = v.parse(manifestV3Schema, JSON.parse(manifestFile.content));
 	} catch (err) {
 		error(400, `error parsing manifest ${err}`);
 	}
@@ -224,9 +224,7 @@ export async function POST({ request }) {
 		return json({ status: 'dry-run' });
 	}
 
-	const primaryLanguage = determinePrimaryLanguage(
-		...manifest.categories.flatMap((c) => c.blocks.flatMap((b) => b.files))
-	);
+	const primaryLanguage = determinePrimaryLanguage(...manifest.items.flatMap((i) => i.files.map((f) => f.path)));
 
 	const result = await db.transaction(async (tx) => {
 		let oldTaggedVersion: Version | null = null;
@@ -239,16 +237,16 @@ export async function POST({ request }) {
 				name: registryName,
 				scopeName: scopeName,
 				scopeId: scope.id,
-				version: 'v2',
+				version: 'v3',
 				// automatically link the users seller account to a new registry
 				stripeConnectAccountId: user.stripeSellerAccountId,
 				access,
-				metaAuthors: manifest.meta?.authors ?? null,
-				metaBugs: manifest.meta?.bugs ?? null,
-				metaDescription: manifest.meta?.description ?? null,
-				metaHomepage: manifest.meta?.homepage ?? null,
-				metaRepository: manifest.meta?.repository ?? null,
-				metaTags: manifest.meta?.tags ?? null,
+				metaAuthors: manifest.authors ?? null,
+				metaBugs: manifest.bugs ?? null,
+				metaDescription: manifest.description ?? null,
+				metaHomepage: manifest.homepage ?? null,
+				metaRepository: manifest.repository ?? null,
+				metaTags: manifest.tags ?? null,
 				metaPrimaryLanguage: primaryLanguage
 			});
 
@@ -289,12 +287,12 @@ export async function POST({ request }) {
 			const result = await tx
 				.update(tables.registry)
 				.set({
-					metaAuthors: manifest.meta?.authors ?? null,
-					metaBugs: manifest.meta?.bugs ?? null,
-					metaDescription: manifest.meta?.description ?? null,
-					metaHomepage: manifest.meta?.homepage ?? null,
-					metaRepository: manifest.meta?.repository ?? null,
-					metaTags: manifest.meta?.tags ? Array.from(new Set(manifest.meta?.tags)) : null,
+					metaAuthors: manifest.authors ?? null,
+					metaBugs: manifest.bugs ?? null,
+					metaDescription: manifest.description ?? null,
+					metaHomepage: manifest.homepage ?? null,
+					metaRepository: manifest.repository ?? null,
+					metaTags: manifest.tags ? Array.from(new Set(manifest.tags)) : null,
 					metaPrimaryLanguage: primaryLanguage
 				})
 				.where(eq(tables.registry.id, registryId))
