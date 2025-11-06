@@ -61,6 +61,7 @@ export async function POST({ locals, request, params }) {
 
 		if (res.length !== 2) {
 			tx.rollback();
+			return false;
 		}
 
 		return true;

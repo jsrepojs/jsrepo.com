@@ -69,7 +69,7 @@ export async function PATCH({ locals, request, params }) {
 		error(401, 'you do not have permission to manage the pricing for this registry');
 
 	const result = await db.transaction(async (tx) => {
-		const res = await db
+		const res = await tx
 			.update(tables.registryPrice)
 			.set({
 				cost,
@@ -81,6 +81,7 @@ export async function PATCH({ locals, request, params }) {
 
 		if (res.length === 0) {
 			tx.rollback();
+			return false;
 		}
 
 		return true;

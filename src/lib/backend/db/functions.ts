@@ -1125,6 +1125,7 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 
 	if (res.length === 0) {
 		tx.rollback();
+		return;
 	}
 
 	let scopeRes: tables.Scope[];
@@ -1137,6 +1138,7 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 	} else {
 		if (request.newOrgId === undefined) {
 			tx.rollback();
+			return;
 		}
 
 		scopeRes = await tx
@@ -1148,6 +1150,7 @@ export async function acceptScopeTransferRequest(tx: tx, request: TransferOwners
 
 	if (scopeRes.length === 0) {
 		tx.rollback();
+		return;
 	}
 
 	const connectedRegistries = await tx
@@ -1192,33 +1195,36 @@ export async function createOrg(
 	record: Omit<InferInsertModel<typeof tables.org>, 'id'>
 ): Promise<tables.Org | null> {
 	const result = await db.transaction(async (tx) => {
-		const names = await db
+		const names = await tx
 			.insert(tables.owner_identifier)
 			.values({ name: record.name })
 			.returning();
 
 		if (names.length === 0) {
 			tx.rollback();
+			return;
 		}
 
-		const orgs = await db
+		const orgs = await tx
 			.insert(tables.org)
 			.values({ ...record, id: `org_${generateId()}` })
 			.returning();
 
 		if (orgs.length === 0) {
 			tx.rollback();
+			return;
 		}
 
 		const org = orgs[0];
 
-		const members = await db
+		const members = await tx
 			.insert(tables.orgMember)
 			.values({ orgId: org.id, userId, role: 'owner' })
 			.returning();
 
 		if (members.length === 0) {
 			tx.rollback();
+			return;
 		}
 
 		return org;
@@ -1829,6 +1835,7 @@ export async function createAnonSessionCode(user: User, anonSessionId: string) {
 
 		if (codes.length === 0) {
 			tx.rollback();
+			return;
 		}
 
 		const result = await resend.emails.send({
@@ -1840,6 +1847,7 @@ export async function createAnonSessionCode(user: User, anonSessionId: string) {
 
 		if (result.error !== null) {
 			tx.rollback();
+			return;
 		}
 
 		return true;
@@ -1920,6 +1928,7 @@ export async function useAnonSessionCode(
 			tempKey = key;
 		} catch {
 			tx.rollback();
+			return null;
 		}
 
 		const apiKeys = await tx
@@ -1937,6 +1946,7 @@ export async function useAnonSessionCode(
 
 		if (apiKeys.length === 0) {
 			tx.rollback();
+			return null;
 		}
 
 		return apiKeys[0];
@@ -1997,6 +2007,7 @@ export async function updateUsername(
 
 			if (result.length === 0) {
 				tx.rollback();
+				return false;
 			}
 		}
 
@@ -2004,6 +2015,7 @@ export async function updateUsername(
 
 		if (names.length === 0) {
 			tx.rollback();
+			return false;
 		}
 
 		const user = await tx
@@ -2014,6 +2026,7 @@ export async function updateUsername(
 
 		if (user.length === 0) {
 			tx.rollback();
+			return false;
 		}
 
 		return true;
@@ -2360,6 +2373,7 @@ export async function leaveReview(record: InferInsertModel<typeof tables.registr
 
 		if (result.length === 0) {
 			tx.rollback();
+			return;
 		}
 
 		const reviews = await tx

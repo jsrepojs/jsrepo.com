@@ -82,6 +82,7 @@ async function registryScopeNameMigration() {
 
 			if (res.length === 0) {
 				tx.rollback();
+				return;
 			}
 
 			log.info(`✅ Migrated ${color.cyan(`@${registry.registry.name}/${registry.scope.name}`)}`);
