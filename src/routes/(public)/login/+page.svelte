@@ -1,17 +1,10 @@
 <script lang="ts">
 	import * as Auth from '$lib/auth/components';
-	import * as Icons from '$lib/components/icons';
 	import { MetaTags } from '$lib/components/site/meta-tags';
 </script>
 
 <MetaTags title="Log in - jsrepo" />
 
-<div class="flex h-[calc(100svh-var(--header-height)] flex-col place-items-center justify-center">
-	<div class="mt-[25svh] flex w-full max-w-sm flex-col place-items-center gap-4">
-		<Icons.JsrepoWordmark class="h-20" />
-		<span class="text-muted-foreground text-center text-lg">
-			Log in to start distributing your code.
-		</span>
-		<Auth.GitHubButton />
-	</div>
+<div class="flex h-[calc(100svh-var(--header-height))] flex-col place-items-center justify-center">
+	<Auth.GitHubButton />
 </div>

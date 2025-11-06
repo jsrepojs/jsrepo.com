@@ -4,6 +4,6 @@
 	import { signIn } from './utils';
 </script>
 
-<Button onclick={() => signIn('github')}>
+<Button onclick={() => signIn('github')} class="w-fit">
 	<Icons.GitHub /> Continue with GitHub
 </Button>

@@ -14,6 +14,8 @@
 	import ReviewsCard from './reviews-card.svelte';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import * as List from '$lib/components/site/list';
+	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { UsePromisedData } from '$lib/hooks/use-promised-data.svelte';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -22,7 +24,6 @@
 		onResult: async ({ result }) => {
 			if (result.type === 'success') {
 				await invalidateAll();
-				moreExist = data.reviews.length > 4;
 				reviewOpen = false;
 			}
 		}
@@ -36,26 +37,24 @@
 		}
 	});
 
+	const promisedReviews = new UsePromisedData(data.reviews);
+
 	let reviewOpen = $state(false);
 
-	let reviews = $derived(data.reviews.slice(0, 4));
-	let moreExist = $state(data.reviews.length > 4);
-
 	const loadMoreQuery = new UseQuery(async () => {
+		const reviews = await promisedReviews.value;
 		const response = await fetch(
 			`/api/scopes/${page.params.scope}/${page.params.name}/reviews?limit=${5}&offset=${reviews.length}`
 		);
 
 		if (response.ok) {
-			const res = (await response.json()) as typeof data.reviews;
+			const res = (await response.json()) as Awaited<typeof data.reviews>;
 
 			for (let i = 0; i < res.length; i++) {
 				res[i].createdAt = new Date(res[i].createdAt);
 			}
 
-			reviews = [...reviews, ...res];
-
-			moreExist = res.length === 5;
+			promisedReviews.setValue([...reviews, ...res]);
 		}
 	});
 </script>
@@ -68,12 +67,14 @@
 			</div>
 			<div class="flex flex-wrap place-items-center gap-2 md:justify-end">
 				{#if data.session}
-					{#if data.canLeaveReview}
-						<Button variant="outline" onclick={() => (reviewOpen = true)}>
-							<MessageSquareMore />
-							Leave a Review
-						</Button>
-					{/if}
+					{#await data.canLeaveReview then canLeaveReview}
+						{#if canLeaveReview}
+							<Button variant="outline" onclick={() => (reviewOpen = true)}>
+								<MessageSquareMore />
+								Leave a Review
+							</Button>
+						{/if}
+					{/await}
 				{:else}
 					<Button variant="outline" href="/login?redirect_to={page.url.pathname}{page.url.search}">
 						<MessageSquareMore />
@@ -90,36 +91,41 @@
 		</div>
 		<ReviewsCard class="lg:hidden" ratings={data.ratings} />
 		<div class="flex flex-col gap-2">
-			{#if reviews.length > 0}
-				{#each reviews as review (review.id)}
-					<div class="flex flex-col gap-2 py-4">
-						<div class="flex place-items-center gap-2">
-							<a
-								href="/users/{review.user.username}"
-								class="font-medium text-nowrap underline-offset-2 hover:underline"
-							>
-								{review.user.username}
-							</a>
-							<span class="text-muted-foreground hidden sm:inline">
-								{toRelative(review.createdAt)}
-							</span>
-							<StarRating readonly value={review.rating} />
+			{#await promisedReviews.value}
+				<Skeleton class="h-[88px] w-full"></Skeleton>
+			{:then reviewsResult}
+				{@const moreExist = reviewsResult.length % 5 === 0}
+				{#if reviewsResult.length > 0}
+					{#each reviewsResult as review (review.id)}
+						<div class="flex flex-col gap-2 py-4">
+							<div class="flex place-items-center gap-2">
+								<a
+									href="/users/{review.user.username}"
+									class="font-medium text-nowrap underline-offset-2 hover:underline"
+								>
+									{review.user.username}
+								</a>
+								<span class="text-muted-foreground hidden sm:inline">
+									{toRelative(review.createdAt)}
+								</span>
+								<StarRating readonly value={review.rating} />
+							</div>
+							<p>
+								{review.comment}
+							</p>
 						</div>
-						<p>
-							{review.comment}
-						</p>
-					</div>
-				{/each}
-				{#if moreExist}
-					<div>
-						<Button variant="outline" loading={loadMoreQuery.loading} onclick={loadMoreQuery.run}>
-							Load More
-						</Button>
-					</div>
+					{/each}
+					{#if moreExist}
+						<div>
+							<Button variant="outline" loading={loadMoreQuery.loading} onclick={loadMoreQuery.run}>
+								Load More
+							</Button>
+						</div>
+					{/if}
+				{:else}
+					<List.Empty>There aren't any reviews yet.</List.Empty>
 				{/if}
-			{:else}
-				<List.Empty>There aren't any reviews yet.</List.Empty>
-			{/if}
+			{/await}
 		</div>
 	</div>
 	<ReviewsCard class="hidden max-w-80 lg:flex" ratings={data.ratings} />

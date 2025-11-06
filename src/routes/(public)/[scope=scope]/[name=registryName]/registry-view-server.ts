@@ -8,9 +8,7 @@ import {
 	type RegistryDetails,
 	type WeeklyDownloads
 } from '$lib/backend/db/functions';
-import { manifestSchema, type Manifest } from '$lib/ts/registry/manifest';
 import * as tables from '$lib/backend/db/schema';
-import * as v from 'valibot';
 import DOMPurify from 'isomorphic-dompurify';
 import { rehype } from '$lib/ts/markdown';
 import { fail } from '@sveltejs/kit';
@@ -20,6 +18,7 @@ import { reviewSchema } from '$lib/components/site/registry-view/types';
 import type { Action } from './$types';
 import assert from 'assert';
 import * as promise from '$lib/ts/promises';
+import { parseManifest, type RegistryManifest } from '$lib/ts/registry/manifest-v3';
 
 export type Options = {
 	scopeName: string;
@@ -30,7 +29,7 @@ export type Options = {
 
 export type Info = {
 	readme: string | null;
-	manifest: Manifest;
+	manifest: RegistryManifest;
 	versions: tables.Version[];
 	registry: RegistryDetails;
 	weeklyDownloads: Promise<WeeklyDownloads[]>;
@@ -61,7 +60,7 @@ export async function getInfo({
 				registryName,
 				version,
 				readonlyAccess: true,
-				fileNames: ['README.md', 'jsrepo-manifest.json']
+				fileNames: ['README.md', 'registry:manifest']
 			})
 		],
 		`@${scopeName}/${registryName} - getInfo - promises`
@@ -75,9 +74,9 @@ export async function getInfo({
 	const [versions, files] = await promises;
 
 	let readme = files.find((f) => f.name === 'README.md')?.content ?? null;
-	const manifestContent = files.find((f) => f.name === 'jsrepo-manifest.json')?.content;
+	const manifest = files.find((f) => f.version !== undefined);
 
-	if (manifestContent === undefined) return null;
+	if (manifest === undefined) return null;
 	if (!versions || versions.length === 0) return null;
 
 	if (readme !== null) {
@@ -88,7 +87,7 @@ export async function getInfo({
 
 	return {
 		readme,
-		manifest: v.parse(manifestSchema, JSON.parse(manifestContent)),
+		manifest: parseManifest({ content: manifest.content, version: manifest.version! }),
 		registry,
 		versions,
 		weeklyDownloads

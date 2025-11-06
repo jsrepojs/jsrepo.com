@@ -12,7 +12,7 @@
 <div class="flex flex-col gap-2 py-6">
 	<Breadcrumb.Root>
 		<Breadcrumb.List>
-			<Breadcrumb.Item>Scopes</Breadcrumb.Item>
+			<Breadcrumb.Link href="/account/scopes">Scopes</Breadcrumb.Link>
 			<Breadcrumb.Separator />
 			<Breadcrumb.Page>@{data.scope.name}</Breadcrumb.Page>
 		</Breadcrumb.List>

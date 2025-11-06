@@ -15,7 +15,7 @@
 	<div class="flex flex-col gap-2">
 		<Breadcrumb.Root>
 			<Breadcrumb.List>
-				<Breadcrumb.Item>Organizations</Breadcrumb.Item>
+				<Breadcrumb.Link href="/account/organizations">Organizations</Breadcrumb.Link>
 				<Breadcrumb.Separator />
 				<Breadcrumb.Page>{data.org.name}</Breadcrumb.Page>
 			</Breadcrumb.List>
