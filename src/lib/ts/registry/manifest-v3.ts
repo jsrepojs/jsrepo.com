@@ -31,7 +31,7 @@ export const registryManifestItemSchema = v.object({
 	description: v.optional(v.string()),
 	files: v.array(registryManifestFileSchema),
 	registryDependencies: v.optional(v.array(v.string())),
-	remoteDependencies: v.optional(v.array(remoteDependencySchema)),
+	dependencies: v.optional(v.array(remoteDependencySchema)),
 	add: v.union([v.literal('on-init'), v.literal('when-needed'), v.literal('when-added')]),
 	envVars: v.optional(v.record(v.string(), v.string()))
 });
