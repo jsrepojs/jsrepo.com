@@ -298,13 +298,15 @@ type GetVersionOptions = {
 	userId: string | null | undefined;
 };
 
+export type GetVersionResult = (tables.Version & { scope: tables.Scope; registry: tables.Registry; releasedBy: tables.User })
+
 export async function getVersion({
 	scopeName,
 	registryName,
 	version,
 	userId
 }: GetVersionOptions): Promise<
-	| (tables.Version & { scope: tables.Scope; registry: tables.Registry; releasedBy: tables.User })
+	| GetVersionResult
 	| null
 > {
 	const isTag = !semver.valid(version);
@@ -1046,7 +1048,7 @@ export async function getScopeWithOwner(name: string): Promise<
 	};
 }
 
-/** You have scope access if 1 you are the owner or 2 you are a member of a team which is maintaining an active subscription.
+/** You have scope access if 1 you are the owner or 2 you are a member of a team.
  *
  * @param name
  */
