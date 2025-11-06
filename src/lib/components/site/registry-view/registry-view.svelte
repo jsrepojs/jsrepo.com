@@ -305,15 +305,27 @@
 							<span class="text-muted-foreground text-sm">or</span>
 							<Separator />
 						</div>
-						<Button
-							variant="outline"
-							disabled={data.registry.access === 'marketplace' && !hasLicense}
-							download="{data.scopeName}_{data.registryName}_blocks.zip"
-							href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
-						>
-							<FileArchive class="text-muted-foreground size-5" />
-							Download
-						</Button>
+						{#if registryInfo.version === 'v2'}
+							<Button
+								variant="outline"
+								disabled={data.registry.access === 'marketplace' && !hasLicense}
+								download="@{data.scopeName}/{data.registryName}.zip"
+								href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
+							>
+								<FileArchive class="text-muted-foreground size-5" />
+								Download
+							</Button>
+						{:else}
+							<Button
+								variant="outline"
+								disabled={data.registry.access === 'marketplace' && !hasLicense}
+								download="@{data.scopeName}/{data.registryName}.zip"
+								href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/download"
+							>
+								<FileArchive class="text-muted-foreground size-5" />
+								Download
+							</Button>
+						{/if}
 					</div>
 					{#if data.registry.metaTags}
 						<div class="flex flex-wrap gap-2">

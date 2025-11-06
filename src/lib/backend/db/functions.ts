@@ -647,17 +647,17 @@ export async function getFiles({
 	return files.flatMap((file) => {
 		const og = fileNames.find((f) => f === file.name);
 
-		if (!og) return [];
+		if (!og && fileNames.length > 0) return [];
 
 		if (file.name === 'registry.json' || file.name === 'jsrepo-manifest.json') {
 			return {
-				name: og,
+				name: file.name,
 				version: file.name === 'registry.json' ? 'v3' : 'v2',
 				content: file.content
 			};
 		}
 
-		return [{ name: og, content: file.content }];
+		return [{ name: file.name, content: file.content }];
 	});
 }
 
