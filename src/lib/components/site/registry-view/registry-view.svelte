@@ -197,16 +197,16 @@
 				Versions
 			</Tabs.Tab>
 			{#if data.registry.access === 'marketplace'}
-				<Tabs.Tab href="?tab=pricing" isSearch class="hidden md:flex">Pricing</Tabs.Tab>
+				<Tabs.Tab href="?tab=pricing" isSearch class="hidden lg:flex">Pricing</Tabs.Tab>
 			{/if}
-			<Tabs.Tab href="?tab=reviews" isSearch class="hidden md:flex">Reviews</Tabs.Tab>
+			<Tabs.Tab href="?tab=reviews" isSearch class="hidden lg:flex">Reviews</Tabs.Tab>
 			{#if data.hasSettingsAccess}
-				<Tabs.Tab href="?tab=settings" isSearch class="hidden md:flex">Settings</Tabs.Tab>
+				<Tabs.Tab href="?tab=settings" isSearch class="hidden lg:flex">Settings</Tabs.Tab>
 			{/if}
 		</div>
 		<Popover.Root bind:open={tabListPopoverOpen}>
 			<Popover.Trigger
-				class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1 md:hidden')}
+				class={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'mb-1 lg:hidden')}
 			>
 				<Ellipsis />
 			</Popover.Trigger>
@@ -276,7 +276,7 @@
 	</Tabs.Root>
 	<div class="w-full">
 		{#if tab === '/'}
-			<div class="grid gap-4 py-2 md:grid-cols-[1fr_20rem]">
+			<div class="grid gap-4 py-2 lg:grid-cols-[1fr_24rem]">
 				<div class="relative col-start-1 flex max-w-full flex-col gap-6 overflow-hidden">
 					{#if data.readme === null}
 						<List.Empty>This registry doesn't have a README.</List.Empty>
@@ -294,9 +294,9 @@
 						Report Registry
 					</Button>
 				</div>
-				<Separator class="md:hidden" />
+				<Separator class="lg:hidden" />
 				<div
-					class="relative flex w-full flex-col gap-4 overflow-hidden md:col-start-2 md:w-[20rem]"
+					class="relative flex w-full flex-col gap-4 overflow-hidden lg:col-start-2 lg:w-[24rem]"
 				>
 					<div class="flex flex-col gap-2">
 						<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />

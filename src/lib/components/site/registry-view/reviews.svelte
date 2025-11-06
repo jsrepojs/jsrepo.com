@@ -92,11 +92,11 @@
 		<ReviewsCard class="lg:hidden" ratings={data.ratings} />
 		<div class="flex flex-col gap-2">
 			{#await promisedReviews.value}
-				<Skeleton class="h-20 w-full"></Skeleton>
+				<Skeleton class="h-[88px] w-full"></Skeleton>
 			{:then reviewsResult}
 				{@const moreExist = reviewsResult.length % 5 === 0}
 				{#if reviewsResult.length > 0}
-					{#each reviewsResult.slice(0, -1) as review (review.id)}
+					{#each reviewsResult as review (review.id)}
 						<div class="flex flex-col gap-2 py-4">
 							<div class="flex place-items-center gap-2">
 								<a

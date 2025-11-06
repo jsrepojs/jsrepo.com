@@ -8,10 +8,10 @@ export class UsePromisedData<T> {
 		});
 	}
 
-	get value(): Promise<T> {
+	value = $derived.by(() => {
 		if (this.resolvedValue) return Promise.resolve(this.resolvedValue);
 		return this.promise;
-	}
+	});
 
 	setValue(value: T) {
 		this.resolvedValue = value;

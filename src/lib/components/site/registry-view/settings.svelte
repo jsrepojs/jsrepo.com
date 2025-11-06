@@ -14,6 +14,7 @@
 	import type { UnlinkAccountFromRegistryRequest } from '../../../../routes/api/stripe/connect/registries/unlink/+server';
 	import { Switch } from '$lib/components/ui/switch';
 	import type { ListOnMarketplaceRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/list/+server';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -158,13 +159,17 @@
 					<FieldSet.Title>List on Marketplace</FieldSet.Title>
 					<p class="text-muted-foreground"></p>
 				</div>
-				<Switch
-					bind:checked={listOnMarketplace}
-					disabled={(listOnMarketplace && data.purchases > 0) ||
-						data.prices.length === 0 ||
-						listOnMarketplaceQuery.loading}
-					onCheckedChange={listOnMarketplaceQuery.run}
-				/>
+				{#await data.purchases}
+					<Skeleton class="h-5 w-9 rounded-full" />
+				{:then purchases}
+					<Switch
+						bind:checked={listOnMarketplace}
+						disabled={(listOnMarketplace && purchases > 0) ||
+							data.prices.length === 0 ||
+							listOnMarketplaceQuery.loading}
+						onCheckedChange={listOnMarketplaceQuery.run}
+					/>
+				{/await}
 			</FieldSet.Content>
 			<FieldSet.Footer class="hidden md:flex">
 				<span class="text-muted-foreground hidden text-sm md:inline">
@@ -182,7 +187,11 @@
 				</Select.Trigger>
 				<Select.Content align="start">
 					<Select.Item value="public">Public</Select.Item>
-					<Select.Item value="private" disabled={data.purchases > 0}>Private</Select.Item>
+					{#await data.purchases}
+						<Select.Item value="private" disabled>Private</Select.Item>
+					{:then purchases}
+						<Select.Item value="private" disabled={purchases > 0}>Private</Select.Item>
+					{/await}
 					<Select.Item value="marketplace">Marketplace</Select.Item>
 				</Select.Content>
 			</Select.Root>

@@ -19,7 +19,7 @@ export async function load({ params, locals }) {
 	const scopeName = params.scope.slice(1);
 	const registryName = params.name;
 
-	const [version, hasSettingsAccess, userOrgs, prices, licenses, user, purchases] =
+	const [version, hasSettingsAccess, userOrgs, prices, licenses, user] =
 		await promise.allTimed(
 			[
 				getVersion({
@@ -32,8 +32,7 @@ export async function load({ params, locals }) {
 				listMyOrganizations(session?.user.id ?? ''),
 				getRegistryPrices({ scopeName, name: registryName }),
 				getMyLicenses(session?.user.id ?? ''),
-				getUser({ id: session?.user.id ?? '' }),
-				getRegistryPurchasesCount({ scope: scopeName, name: registryName })
+				getUser({ id: session?.user.id ?? '' })
 			],
 			'[name=registryName]/+layout.server.ts'
 		);
@@ -47,6 +46,7 @@ export async function load({ params, locals }) {
 		scope: scopeName,
 		registry: registryName
 	});
+	const purchases = getRegistryPurchasesCount({ scope: scopeName, name: registryName });
 
 	return {
 		scopeName,
