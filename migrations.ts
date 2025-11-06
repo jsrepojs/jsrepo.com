@@ -2,7 +2,6 @@ import { eq, isNull } from 'drizzle-orm';
 import * as tables from './src/lib/backend/db/schema.js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import 'dotenv/config';
 import color from 'chalk';
 // import { S3Client } from '@aws-sdk/client-s3';
 
