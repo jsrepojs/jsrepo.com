@@ -86,7 +86,10 @@
 			return {
 				version: 'v3',
 				items: manifest.items.length,
-				dependencies: manifest.items.flatMap((i) => [...i.dependencies ?? [], ...i.devDependencies ?? []])
+				dependencies: manifest.items.flatMap((i) => [
+					...(i.dependencies ?? []),
+					...(i.devDependencies ?? [])
+				])
 			};
 		}
 	}
@@ -619,7 +622,7 @@
 										<div>
 											<span class="text-muted-foreground font-medium">Remote Dependencies</span>
 											<ul>
-												{#each [...item.dependencies ?? [], ...item.devDependencies ?? []] as dep (dep.name)}
+												{#each [...(item.dependencies ?? []), ...(item.devDependencies ?? [])] as dep (dep.name)}
 													<li>{dep.name}{dep.version ? `@${dep.version}` : ''}</li>
 												{/each}
 											</ul>
