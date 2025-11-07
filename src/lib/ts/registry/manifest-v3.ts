@@ -14,7 +14,6 @@ export const remoteDependencySchema = v.object({
 	ecosystem: v.string(),
 	name: v.string(),
 	version: v.optional(v.string()),
-	dev: v.optional(v.boolean(), false)
 });
 
 export type RemoteDependency = v.InferOutput<typeof remoteDependencySchema>;
@@ -32,6 +31,7 @@ export const registryManifestItemSchema = v.object({
 	files: v.array(registryManifestFileSchema),
 	registryDependencies: v.optional(v.array(v.string())),
 	dependencies: v.optional(v.array(remoteDependencySchema)),
+	devDependencies: v.optional(v.array(remoteDependencySchema)),
 	add: v.union([v.literal('on-init'), v.literal('when-needed'), v.literal('when-added')]),
 	envVars: v.optional(v.record(v.string(), v.string()))
 });
