@@ -75,14 +75,14 @@ export async function GET({ params, request, getClientAddress }) {
 		if (fileName === 'jsrepo-manifest.json') {
 			error(
 				400,
-				'This registry has been upgraded to v3. You can migrate your project by running `npx @jsrepo/migrate v3`'
+				'This registry has been upgraded to v3 and therefore incompatible with jsrepo v2. You can migrate your project by running `npx @jsrepo/migrate v3`'
 			);
 		}
 
 		if (fileName === 'registry.json') {
 			error(
 				400,
-				"This registry was built with jsrepo v2. You can still add it's items with the v2 CLI by running `npx jsrepo@2 add`"
+				"This registry was built with jsrepo v2 and therefore incompatible with jsrepo v3. You can still add it's items with the v2 CLI by running `npx jsrepo@2 add`"
 			);
 		}
 
