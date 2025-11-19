@@ -2540,7 +2540,10 @@ export async function getWeeklyDownloadsForLastYear({
 					from.toISOString().slice(0, 10),
 					to.toISOString().slice(0, 10)
 				),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json')
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				)
 			)
 		);
 
