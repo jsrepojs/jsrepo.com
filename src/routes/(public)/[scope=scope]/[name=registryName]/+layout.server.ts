@@ -1,14 +1,10 @@
 import {
-	canLeaveReview,
 	getMyLicenses,
 	getRegistryPrices,
-	getRegistryPurchasesCount,
 	getUser,
 	getVersion,
 	hasScopeAccess,
 	listMyOrganizations,
-	getReviews,
-	getRegistryRatings
 } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
 import * as promise from '$lib/ts/promises';
@@ -38,15 +34,6 @@ export async function load({ params, locals }) {
 
 	if (version === null) error(404);
 
-	const ratings = getRegistryRatings({ scope: scopeName, registry: registryName });
-	const reviews = getReviews({ scope: scopeName, registry: registryName, limit: 5, offset: 0 });
-	const canReview = canLeaveReview({
-		userId: session?.user.id,
-		scope: scopeName,
-		registry: registryName
-	});
-	const purchases = getRegistryPurchasesCount({ scope: scopeName, name: registryName });
-
 	return {
 		scopeName,
 		registryName,
@@ -56,9 +43,5 @@ export async function load({ params, locals }) {
 		prices,
 		licenses,
 		user,
-		purchases,
-		reviews,
-		canLeaveReview: canReview,
-		ratings
 	};
 }

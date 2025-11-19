@@ -15,6 +15,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import type { ListOnMarketplaceRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/list/+server';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { getRegistryPurchasesCount } from './settings.remote.js';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -159,7 +160,7 @@
 					<FieldSet.Title>List on Marketplace</FieldSet.Title>
 					<p class="text-muted-foreground"></p>
 				</div>
-				{#await data.purchases}
+				{#await getRegistryPurchasesCount({ scope: data.scopeName, registry: data.registryName })}
 					<Skeleton class="h-5 w-9 rounded-full" />
 				{:then purchases}
 					<Switch
