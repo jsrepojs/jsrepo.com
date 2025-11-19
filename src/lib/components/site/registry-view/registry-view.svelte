@@ -1,18 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import * as List from '$lib/components/site/list';
-	import {
-		ChevronRight,
-		FlaskRound,
-		File,
-		Ellipsis,
-		Flag,
-		Download,
-		FileArchive,
-		Check
-	} from '@lucide/svelte';
+	import { Ellipsis, Flag, FileArchive, Check } from '@lucide/svelte';
 	import { cn } from '$lib/utils/utils';
-	import * as Collapsible from '$lib/components/ui/collapsible';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import { Snippet } from '$lib/components/ui/snippet';
 	import * as Tabs from '$lib/components/site/tabs';
@@ -25,7 +15,6 @@
 	import * as Nav from '$lib/components/site/nav';
 	import { toRelative } from '$lib/ts/dates';
 	import type { SupportReason } from '$lib/ts/help';
-	import { determinePrimaryLanguage, parseFileExtension } from '$lib/ts/registry';
 	import Pricing from './pricing.svelte';
 	import type { RegistryViewPageData } from './types';
 	import Settings from './settings.svelte';
@@ -38,7 +27,7 @@
 	import { Area, AreaChart, Highlight, Layer, type ChartContextValue } from 'layerchart';
 	import { scaleUtc } from 'd3-scale';
 	import { UsePromise } from '$lib/hooks/use-promise.svelte';
-	import { SvelteDate, SvelteURLSearchParams } from 'svelte/reactivity';
+	import { SvelteDate } from 'svelte/reactivity';
 	import Versions from './versions.svelte';
 	import { getRegistryInfo } from './registry-view.svelte.js';
 	import Dependencies from './dependencies.svelte';

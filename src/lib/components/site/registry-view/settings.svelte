@@ -19,6 +19,11 @@
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
+	const purchasesCount = getRegistryPurchasesCount({
+		scope: data.scopeName,
+		registry: data.registryName
+	});
+
 	let access = $derived(data.registry.access);
 
 	let listOnMarketplace = $derived(data.registry.listOnMarketplace ?? false);
@@ -160,17 +165,17 @@
 					<FieldSet.Title>List on Marketplace</FieldSet.Title>
 					<p class="text-muted-foreground"></p>
 				</div>
-				{#await getRegistryPurchasesCount({ scope: data.scopeName, registry: data.registryName })}
+				{#if purchasesCount.loading}
 					<Skeleton class="h-5 w-9 rounded-full" />
-				{:then purchases}
+				{:else if purchasesCount.current}
 					<Switch
 						bind:checked={listOnMarketplace}
-						disabled={(listOnMarketplace && purchases > 0) ||
+						disabled={(listOnMarketplace && purchasesCount.current > 0) ||
 							data.prices.length === 0 ||
 							listOnMarketplaceQuery.loading}
 						onCheckedChange={listOnMarketplaceQuery.run}
 					/>
-				{/await}
+				{/if}
 			</FieldSet.Content>
 			<FieldSet.Footer class="hidden md:flex">
 				<span class="text-muted-foreground hidden text-sm md:inline">
@@ -188,11 +193,9 @@
 				</Select.Trigger>
 				<Select.Content align="start">
 					<Select.Item value="public">Public</Select.Item>
-					{#await data.purchases}
-						<Select.Item value="private" disabled>Private</Select.Item>
-					{:then purchases}
-						<Select.Item value="private" disabled={purchases > 0}>Private</Select.Item>
-					{/await}
+					<Select.Item value="private" disabled={(purchasesCount?.current ?? 0) > 0}>
+						Private
+					</Select.Item>
 					<Select.Item value="marketplace">Marketplace</Select.Item>
 				</Select.Content>
 			</Select.Root>
