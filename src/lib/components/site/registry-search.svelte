@@ -200,7 +200,7 @@
 									{registry.metaDescription}
 								</span>
 							</div>
-							<span class="text-muted-foreground font-mono text-sm flex items-center gap-2">
+							<span class="text-muted-foreground flex items-center gap-2 font-mono text-sm">
 								{registry.monthlyFetches}
 								<Download class="inline size-4" />
 							</span>

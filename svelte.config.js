@@ -7,7 +7,7 @@ const config = {
 
 	kit: {
 		experimental: {
-			remoteFunctions: true,
+			remoteFunctions: true
 		},
 		adapter: adapter({}),
 		paths: {
@@ -16,7 +16,7 @@ const config = {
 	},
 	compilerOptions: {
 		experimental: {
-			async: true,
+			async: true
 		}
 	}
 };

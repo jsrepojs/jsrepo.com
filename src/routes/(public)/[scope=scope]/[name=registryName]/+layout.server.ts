@@ -4,7 +4,7 @@ import {
 	getUser,
 	getVersion,
 	hasScopeAccess,
-	listMyOrganizations,
+	listMyOrganizations
 } from '$lib/backend/db/functions.js';
 import { error } from '@sveltejs/kit';
 import * as promise from '$lib/ts/promises';
@@ -42,6 +42,6 @@ export async function load({ params, locals }) {
 		userOrgs,
 		prices,
 		licenses,
-		user,
+		user
 	};
 }

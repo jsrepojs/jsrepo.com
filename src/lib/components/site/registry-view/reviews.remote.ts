@@ -17,7 +17,7 @@ export type ReviewsViewData = {
 const _getRegistryRatings = query(
 	v.object({
 		scope: v.string(),
-		registry: v.string(),
+		registry: v.string()
 	}),
 	async ({ scope, registry }) => {
 		return await getRegistryRatings({ scope: scope.slice(1), registry });
@@ -31,7 +31,7 @@ const _getReviews = query(
 		scope: v.string(),
 		registry: v.string(),
 		limit: v.optional(v.number()),
-		offset: v.optional(v.number()),
+		offset: v.optional(v.number())
 	}),
 	async ({ scope, registry, limit = 5, offset = 0 }) => {
 		return await getReviews({ scope: scope.slice(1), registry, limit, offset });
@@ -43,7 +43,7 @@ export { _getReviews as getReviews };
 export const getCanLeaveReviews = query(
 	v.object({
 		scope: v.string(),
-		registry: v.string(),
+		registry: v.string()
 	}),
 	async ({ scope, registry }) => {
 		const { locals } = getRequestEvent();

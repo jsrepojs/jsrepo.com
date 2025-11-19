@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Version } from '$lib/backend/db/schema';
 	import semver from 'semver';
-    import * as List from '$lib/components/site/list';
+	import * as List from '$lib/components/site/list';
 
 	type Props = {
 		data: {
-            scopeName: string;
-            registryName: string;
+			scopeName: string;
+			registryName: string;
 			versions: Version[];
 		};
 	};
@@ -20,7 +20,7 @@
 		sortedVersions
 			.filter((v) => v.tag !== null)
 			.toSorted((a, b) => {
-                // sort latest tag to the top
+				// sort latest tag to the top
 				if (a.tag === 'latest' && b.tag !== 'latest') return -1;
 				if (b.tag === 'latest' && a.tag !== 'latest') return 1;
 				return 0;

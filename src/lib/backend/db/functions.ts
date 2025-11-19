@@ -211,10 +211,7 @@ export async function getRegistry({
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(
-			monthlyFetchesSubquery,
-			eq(monthlyFetchesSubquery.registryId, tables.registry.id)
-		)
+		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
 			userOrgMember,
@@ -276,11 +273,12 @@ export async function getRegistry({
 
 	if (registries.length === 0) return null;
 
-	return { 
-		...registries[0], 
-		monthlyFetches: typeof registries[0].monthlyFetches === 'number' 
-			? registries[0].monthlyFetches 
-			: parseInt(String(registries[0].monthlyFetches ?? '0')) 
+	return {
+		...registries[0],
+		monthlyFetches:
+			typeof registries[0].monthlyFetches === 'number'
+				? registries[0].monthlyFetches
+				: parseInt(String(registries[0].monthlyFetches ?? '0'))
 	};
 }
 
@@ -1668,10 +1666,7 @@ export async function searchRegistries({
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(
-			monthlyFetchesSubquery,
-			eq(monthlyFetchesSubquery.registryId, tables.registry.id)
-		)
+		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
 			userOrgMember,
@@ -1770,7 +1765,10 @@ export async function searchRegistries({
 		total,
 		data: data.map((r) => ({
 			...r,
-			monthlyFetches: typeof r.monthlyFetches === 'number' ? r.monthlyFetches : parseInt(String(r.monthlyFetches ?? '0'))
+			monthlyFetches:
+				typeof r.monthlyFetches === 'number'
+					? r.monthlyFetches
+					: parseInt(String(r.monthlyFetches ?? '0'))
 		}))
 	};
 }

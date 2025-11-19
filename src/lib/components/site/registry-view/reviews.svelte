@@ -43,12 +43,12 @@
 		scope: page.params.scope ?? '',
 		registry: page.params.name ?? ''
 	});
-    
-    let reviews = $derived(reviewsQuery.current);
+
+	let reviews = $derived(reviewsQuery.current);
 
 	const loadMoreQuery = new UseQuery(async () => {
-        if (!reviews) return;
-        
+		if (!reviews) return;
+
 		const response = await fetch(
 			`/api/scopes/${page.params.scope}/${page.params.name}/reviews?limit=${5}&offset=${reviews.length}`
 		);
