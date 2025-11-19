@@ -186,7 +186,7 @@
 						<!-- svelte-ignore a11y_role_supports_aria_props_implicit -->
 						<button
 							type="submit"
-							class="aria-selected:bg-accent aria-selected:text-accent-foreground relative flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-start text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+							class="aria-selected:bg-accent aria-selected:text-accent-foreground relative flex w-full cursor-pointer items-center justify-between gap-4 rounded-sm px-2 py-1.5 text-start text-sm outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
 							aria-selected={selectedIndex === i}
 							onmouseover={() => (selectedIndex = i)}
 							tabindex={-1}
@@ -200,7 +200,7 @@
 									{registry.metaDescription}
 								</span>
 							</div>
-							<span class="text-muted-foreground font-mono text-sm">
+							<span class="text-muted-foreground font-mono text-sm flex items-center gap-2">
 								{registry.monthlyFetches}
 								<Download class="inline size-4" />
 							</span>
