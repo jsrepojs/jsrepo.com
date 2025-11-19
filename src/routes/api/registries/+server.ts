@@ -5,7 +5,7 @@ import * as tables from '$lib/backend/db/schema.js';
 
 const orderByOptions: Record<string, SQL | null> = {
 	default: null,
-	most_popular: sql`cast(sum(${tables.dailyRegistryFetch.count}) as int) desc nulls last`,
+	most_popular: sql`cast("monthly_fetches"."monthlyFetches" as int) desc nulls last`,
 	newest: desc(tables.registry.createdAt),
 	oldest: asc(tables.registry.createdAt),
 	recently_published: desc(tables.version.createdAt)
