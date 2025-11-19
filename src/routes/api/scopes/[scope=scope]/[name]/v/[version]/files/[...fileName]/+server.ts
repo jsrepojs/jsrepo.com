@@ -52,20 +52,12 @@ export async function GET({ params, request, getClientAddress }) {
 	]);
 
 	if (accessResult === null) {
-		error(404);
+		error(404, 'Registry not found or you do not have access');
 	}
 
-	if (s3Response === null || !s3Response.Body) error(404, 'File not found');
-
-	waitUntil(
-		postFileFetch({
-			distinctId: getClientAddress(),
-			scopeName,
-			registryName: name,
-			registryVersion: version,
-			fileName
-		})
-	);
+	if (s3Response === null || !s3Response.Body) {
+		error(404, 'Registry not found or you do not have access');
+	}
 
 	const headers = new Headers();
 
@@ -78,6 +70,34 @@ export async function GET({ params, request, getClientAddress }) {
 	}
 
 	const [file] = await extractSpecific(s3Response.Body as Stream, fileName);
+
+	if (file === undefined) {
+		if (fileName === 'jsrepo-manifest.json') {
+			error(
+				400,
+				'This registry has been upgraded to v3 and therefore incompatible with jsrepo v2. You can migrate your project by running `npx @jsrepo/migrate v3`'
+			);
+		}
+
+		if (fileName === 'registry.json') {
+			error(
+				400,
+				"This registry was built with jsrepo v2 and therefore incompatible with jsrepo v3. You can still add it's items with the v2 CLI by running `npx jsrepo@2 add`"
+			);
+		}
+
+		error(404, 'File not found');
+	}
+
+	waitUntil(
+		postFileFetch({
+			distinctId: getClientAddress(),
+			scopeName,
+			registryName: name,
+			registryVersion: version,
+			fileName
+		})
+	);
 
 	return text(file.content, { headers });
 }

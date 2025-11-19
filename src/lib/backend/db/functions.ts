@@ -172,13 +172,33 @@ export async function getRegistry({
 	const linkedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
+	// Aggregate dailyRegistryFetch in a subquery to avoid double-counting when other joins create multiple rows
+	const monthlyFetchesSubquery = db
+		.select({
+			registryId: tables.dailyRegistryFetch.registryId,
+			monthlyFetches: sum(tables.dailyRegistryFetch.count).as('monthlyFetches')
+		})
+		.from(tables.dailyRegistryFetch)
+		.where(
+			and(
+				// fetched a manifest file
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				),
+				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
+			)
+		)
+		.groupBy(tables.dailyRegistryFetch.registryId)
+		.as('monthly_fetches');
+
 	const registries = await db
 		.select({
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
 			org: tables.org,
 			latestVersion: tables.version,
-			monthlyFetches: sum(tables.dailyRegistryFetch.count),
+			monthlyFetches: sql<number>`COALESCE(${monthlyFetchesSubquery.monthlyFetches}, 0)`,
 			releasedBy: releasedBy,
 			connectedStripeAccount: linkedStripeAccount
 		})
@@ -191,18 +211,7 @@ export async function getRegistry({
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(
-			tables.dailyRegistryFetch,
-			and(
-				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				// fetched a manifest file
-				or(
-					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
-					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
-				),
-				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
-			)
-		)
+		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
 			userOrgMember,
@@ -258,12 +267,19 @@ export async function getRegistry({
 			tables.version.createdAt,
 			tables.version.releasedById,
 			releasedBy.id,
-			linkedStripeAccount.id
+			linkedStripeAccount.id,
+			monthlyFetchesSubquery.monthlyFetches
 		);
 
 	if (registries.length === 0) return null;
 
-	return { ...registries[0], monthlyFetches: parseInt(registries[0].monthlyFetches ?? '0') };
+	return {
+		...registries[0],
+		monthlyFetches:
+			typeof registries[0].monthlyFetches === 'number'
+				? registries[0].monthlyFetches
+				: parseInt(String(registries[0].monthlyFetches ?? '0'))
+	};
 }
 
 export async function getVersions(
@@ -1603,13 +1619,33 @@ export async function searchRegistries({
 		})
 	);
 
+	// Aggregate dailyRegistryFetch in a subquery to avoid double-counting when other joins create multiple rows
+	const monthlyFetchesSubquery = db
+		.select({
+			registryId: tables.dailyRegistryFetch.registryId,
+			monthlyFetches: sum(tables.dailyRegistryFetch.count).as('monthlyFetches')
+		})
+		.from(tables.dailyRegistryFetch)
+		.where(
+			and(
+				// fetched a manifest file
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				),
+				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
+			)
+		)
+		.groupBy(tables.dailyRegistryFetch.registryId)
+		.as('monthly_fetches');
+
 	let dataQuery = db
 		.select({
 			...getTableColumns(tables.registry),
 			scope: tables.scope,
 			org: tables.org,
 			latestVersion: tables.version,
-			monthlyFetches: sum(tables.dailyRegistryFetch.count),
+			monthlyFetches: sql<number>`COALESCE(${monthlyFetchesSubquery.monthlyFetches}, 0)`,
 			rank: sql`ts_rank(${matchQuery})`,
 			releasedBy: releasedBy,
 			connectedStripeAccount: connectedStripeAccount
@@ -1630,18 +1666,7 @@ export async function searchRegistries({
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(
-			tables.dailyRegistryFetch,
-			and(
-				eq(tables.dailyRegistryFetch.registryId, tables.registry.id),
-				// fetched a manifest file
-				or(
-					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
-					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
-				),
-				gte(tables.dailyRegistryFetch.day, thirtyDaysAgo)
-			)
-		)
+		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
 		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
 		.leftJoin(
 			userOrgMember,
@@ -1682,7 +1707,8 @@ export async function searchRegistries({
 			tables.version.createdAt,
 			tables.version.releasedById,
 			releasedBy.id,
-			connectedStripeAccount.id
+			connectedStripeAccount.id,
+			monthlyFetchesSubquery.monthlyFetches
 		);
 
 	if (orderBy) {
@@ -1739,7 +1765,10 @@ export async function searchRegistries({
 		total,
 		data: data.map((r) => ({
 			...r,
-			monthlyFetches: parseInt(r.monthlyFetches ?? '0')
+			monthlyFetches:
+				typeof r.monthlyFetches === 'number'
+					? r.monthlyFetches
+					: parseInt(String(r.monthlyFetches ?? '0'))
 		}))
 	};
 }
@@ -2540,7 +2569,10 @@ export async function getWeeklyDownloadsForLastYear({
 					from.toISOString().slice(0, 10),
 					to.toISOString().slice(0, 10)
 				),
-				eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json')
+				or(
+					eq(tables.dailyRegistryFetch.fileName, 'jsrepo-manifest.json'),
+					eq(tables.dailyRegistryFetch.fileName, 'registry.json')
+				)
 			)
 		);
 

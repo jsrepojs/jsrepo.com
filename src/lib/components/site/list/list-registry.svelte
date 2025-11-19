@@ -19,7 +19,7 @@
 	const name = $derived(`@${registry.scope.name}/${registry.name}`);
 </script>
 
-<ListItem class="hover:bg-card">
+<ListItem class="hover:bg-card gap-2">
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-col">
 			<div class="flex place-items-center gap-2">
@@ -89,7 +89,7 @@
 	</div>
 	<span class="text-muted-foreground hidden place-items-center gap-2 font-mono text-sm sm:flex">
 		<Tooltip.Root>
-			<Tooltip.Trigger>
+			<Tooltip.Trigger class="flex items-center gap-2">
 				{registry.monthlyFetches}
 				<Download class="inline size-4" />
 			</Tooltip.Trigger>
