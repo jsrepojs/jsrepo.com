@@ -245,7 +245,15 @@
 					class="relative flex w-full flex-col gap-4 overflow-hidden lg:col-start-2 lg:w-[24rem]"
 				>
 					<div class="flex flex-col gap-2">
-						<Snippet text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}" />
+						{#if registryInfo.version === 'v2'}
+							<Snippet
+								text="jsrepo@2 init @{data.scopeName}/{data.registryName}@{data.versionParam}"
+							/>
+						{:else}
+							<Snippet
+								text="jsrepo init @{data.scopeName}/{data.registryName}@{data.versionParam}"
+							/>
+						{/if}
 						<div class="grid grid-cols-[1fr_30px_1fr] place-items-center gap-2">
 							<Separator />
 							<span class="text-muted-foreground text-sm">or</span>
