@@ -167,7 +167,7 @@
 				</div>
 				{#if purchasesCount.loading}
 					<Skeleton class="h-5 w-9 rounded-full" />
-				{:else if purchasesCount.current}
+				{:else if purchasesCount.current !== undefined}
 					<Switch
 						bind:checked={listOnMarketplace}
 						disabled={(listOnMarketplace && purchasesCount.current > 0) ||
