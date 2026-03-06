@@ -1,4 +1,4 @@
-import { dev } from '$app/environment';
+import { building, dev } from '$app/environment';
 import { auth } from '$lib/auth';
 import { posthog } from '$lib/ts/posthog';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
@@ -6,7 +6,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 export async function handle({ event, resolve }) {
 	event.locals.auth = () => auth.api.getSession({ headers: event.request.headers });
 
-	return svelteKitHandler({ event, resolve, auth });
+	return svelteKitHandler({ event, resolve, auth, building });
 }
 
 export async function handleError({ error, status, event }) {

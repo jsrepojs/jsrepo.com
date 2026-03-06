@@ -24,10 +24,11 @@ export function getRegistryInfo(manifest: RegistryManifest): RegistryInfo {
 		return {
 			version: 'v3',
 			items: manifest.items.length,
-			dependencies: manifest.items.flatMap((i) => [
-				...(i.dependencies ?? []),
-				...(i.devDependencies ?? [])
-			])
+			dependencies: Array.from(
+				new SvelteSet(
+					manifest.items.flatMap((i) => [...(i.dependencies ?? []), ...(i.devDependencies ?? [])])
+				)
+			)
 		};
 	}
 }
