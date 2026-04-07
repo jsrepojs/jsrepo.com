@@ -15,7 +15,6 @@ import { stripeClient } from './ts/stripe';
 import { createMarketPurchase, deleteMarketPurchase } from './backend/db/functions';
 import assert from 'assert';
 import { posthog } from './ts/posthog';
-import { waitUntil } from '@vercel/functions';
 
 export type Providers = 'github';
 
@@ -100,8 +99,6 @@ export const auth = betterAuth({
 							customer
 						}
 					});
-
-					waitUntil(posthog.shutdown());
 				}
 			},
 			onCustomerCreate: async ({ user }) => {
@@ -115,8 +112,6 @@ export const auth = betterAuth({
 						email: user.email
 					}
 				});
-
-				waitUntil(posthog.shutdown());
 			}
 		})
 	],

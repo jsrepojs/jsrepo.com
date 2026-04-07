@@ -20,7 +20,6 @@ import {
 	scopeTransferRequestedEmailToOldOwner
 } from '$lib/ts/resend.js';
 import { error, json } from '@sveltejs/kit';
-import { waitUntil } from '@vercel/functions';
 import assert from 'assert';
 import type { CreateEmailOptions } from 'resend';
 
@@ -237,8 +236,6 @@ export async function POST({ request, params, locals }) {
 			scope: scopeName
 		}
 	});
-
-	waitUntil(posthog.shutdown());
 
 	if (result === 'transferred') {
 		return json({ type: result } satisfies TransferRequestResponse);

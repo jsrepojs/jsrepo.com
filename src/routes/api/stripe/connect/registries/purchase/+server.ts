@@ -4,7 +4,6 @@ import { posthog } from '$lib/ts/posthog';
 import { calculateDiscountedPrice, calculatePlatformFee } from '$lib/ts/stripe/connect';
 import { stripeClient } from '$lib/ts/stripe/index.js';
 import { error, json } from '@sveltejs/kit';
-import { waitUntil } from '@vercel/functions';
 import assert from 'assert';
 import * as v from 'valibot';
 
@@ -107,8 +106,6 @@ export async function POST({ locals, url, request }) {
 			purchaserEmail: user.email
 		}
 	});
-
-	waitUntil(posthog.shutdown());
 
 	return json(checkoutSession);
 }

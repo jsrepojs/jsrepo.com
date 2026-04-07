@@ -16,7 +16,6 @@ import assert from 'assert';
 import { redirectToLogin } from '$lib/auth/redirect';
 import { immediate } from '$lib/ts/promises';
 import { posthog } from '$lib/ts/posthog';
-import { waitUntil } from '@vercel/functions';
 
 export async function load({ locals, url }) {
 	const session = await locals.auth();
@@ -118,8 +117,6 @@ export const actions = {
 				orgId: org === null ? undefined : org.id
 			}
 		});
-
-		waitUntil(posthog.shutdown());
 
 		redirect(303, `/@${form.data.name}`);
 	}
