@@ -28,7 +28,6 @@ import type { Version } from '$lib/backend/db/schema.js';
 import { marketplaceNextStepsEmail, newVersionPublishedEmail, resend } from '$lib/ts/resend.js';
 import * as tables from '$lib/backend/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { waitUntil } from '@vercel/functions';
 import { determinePrimaryLanguage } from '$lib/ts/registry/index.js';
 import { displaySize, MEGABYTE } from '$lib/ts/sizes.js';
 import type { CreateEmailOptions } from 'resend';
@@ -205,8 +204,6 @@ export async function POST({ request }) {
 			}
 		});
 
-		waitUntil(posthog.shutdown());
-
 		error(
 			400,
 			`Your registry exceeds ${displaySize(MAX_UNPACKED_SIZE)} in size! If this limitation is a problem for your application please reach out at https://jsrepo.com/help`
@@ -359,8 +356,6 @@ export async function POST({ request }) {
 			access
 		}
 	});
-
-	waitUntil(posthog.shutdown());
 
 	const emails: CreateEmailOptions[] = [];
 
