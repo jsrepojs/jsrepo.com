@@ -140,6 +140,75 @@ export async function extractFirstOf(stream: Stream, fileNames: string[]): Promi
 	});
 }
 
+/** One pass: first matching registry manifest (registry.json or jsrepo-manifest.json) plus requested paths. */
+export async function extractManifestAndSpecific(
+	stream: Stream,
+	specificNames: string[]
+): Promise<{ manifest: File | null; files: File[] }> {
+	return new Promise((res, rej) => {
+		const tex = tar.extract();
+
+		let manifest: File | null = null;
+		const files: File[] = [];
+		const needSpecific = new Set(specificNames);
+
+		const tryEarlyExit = (entryStream: Readable) => {
+			if (manifest === null) return false;
+			if (specificNames.length > 0 && needSpecific.size > 0) return false;
+
+			res({ manifest, files });
+			entryStream.destroy();
+			tex.destroy();
+			return true;
+		};
+
+		tex.on('entry', (header, entryStream, next) => {
+			if (header.type !== 'file') {
+				entryStream.resume();
+				entryStream.on('end', next);
+				return;
+			}
+
+			const name = header.name;
+
+			if (
+				manifest === null &&
+				(name === 'registry.json' || name === 'jsrepo-manifest.json')
+			) {
+				const chunks: Buffer[] = [];
+				entryStream.on('data', (chunk) => chunks.push(chunk));
+				entryStream.on('end', () => {
+					manifest = { name, content: Buffer.concat(chunks).toString() };
+					if (!tryEarlyExit(entryStream)) next();
+				});
+				return;
+			}
+
+			if (needSpecific.has(name)) {
+				const chunks: Buffer[] = [];
+				entryStream.on('data', (chunk) => chunks.push(chunk));
+				entryStream.on('end', () => {
+					files.push({ name, content: Buffer.concat(chunks).toString() });
+					needSpecific.delete(name);
+					if (!tryEarlyExit(entryStream)) next();
+				});
+				return;
+			}
+
+			entryStream.resume();
+			entryStream.on('end', next);
+		});
+
+		tex.on('finish', () => res({ manifest, files }));
+
+		tex.on('error', rej);
+
+		stream.on('error', rej);
+
+		stream.pipe(createGunzip()).pipe(tex);
+	});
+}
+
 export async function consume(stream: PassThrough): Promise<Buffer<ArrayBuffer>> {
 	return new Promise((res, rej) => {
 		const chunks: Buffer[] = [];

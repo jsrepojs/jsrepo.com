@@ -18,7 +18,7 @@ export async function GET({ locals, params, setHeaders }) {
 
 	if (files === null) error(404);
 
-	const archive = archiver('zip', { zlib: { level: 9 } });
+	const archive = archiver('zip', { zlib: { level: 6 } });
 
 	const chunks: Buffer[] = [];
 	archive.on('data', (chunk) => chunks.push(chunk));

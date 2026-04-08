@@ -1,4 +1,4 @@
-import { getFiles, getManifestFile } from '$lib/backend/db/functions.js';
+import { getManifestAndSpecificFilesFromVersion } from '$lib/backend/db/functions.js';
 import { parseManifest } from '$lib/ts/registry/manifest-v3';
 import { error } from '@sveltejs/kit';
 import archiver from 'archiver';
@@ -10,14 +10,19 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const scopeName = scope.slice(1);
 
-	const manifestFile = await getManifestFile({
+	const itemJsonName = `${itemName}.json`;
+
+	const bundle = await getManifestAndSpecificFilesFromVersion({
 		userId: session?.user.id,
 		scopeName,
 		registryName: name,
-		version
+		version,
+		specificFileNames: [itemJsonName]
 	});
 
-	if (manifestFile === null) error(404);
+	if (bundle === null) error(404);
+
+	const { manifest: manifestFile, files } = bundle;
 
 	const manifest = parseManifest({ content: manifestFile.content, version: manifestFile.version });
 
@@ -28,26 +33,16 @@ export async function GET({ locals, params, setHeaders }) {
 
 		if (item === undefined) error(404);
 
-		// figure out which files we need from the manifest
+		const itemJson = files.find((f) => f.name === itemJsonName);
 
-		const files = await getFiles({
-			userId: session?.user.id ?? null,
-			scopeName,
-			registryName: name,
-			version,
-			fileNames: [`${item.name}.json`]
-		});
+		if (itemJson === undefined) error(404);
 
-		if (files === null) error(404);
-
-		const archive = archiver('zip', { zlib: { level: 9 } });
+		const archive = archiver('zip', { zlib: { level: 6 } });
 
 		const chunks: Buffer[] = [];
 		archive.on('data', (chunk) => chunks.push(chunk));
 
-		for (const file of files) {
-			archive.append(file.content, { name: file.name });
-		}
+		archive.append(itemJson.content, { name: itemJson.name });
 
 		await archive.finalize();
 

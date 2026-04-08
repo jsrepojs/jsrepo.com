@@ -33,7 +33,7 @@
 	<div class="container">
 		<div class="flex flex-wrap justify-between gap-6">
 			<span class="text-muted-foreground order-last block text-center text-sm md:order-first">
-				© 2025 jsrepo, All rights reserved
+				© 2026 jsrepo, All rights reserved
 			</span>
 			<div class="order-first flex flex-wrap justify-center gap-6 text-sm md:order-last">
 				{#each links as link (link.href)}

@@ -37,7 +37,7 @@ import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
-import { consume, extractFirstOf, extractSpecific } from '$lib/ts/tarz';
+import { consume, extractFirstOf, extractManifestAndSpecific, extractSpecific } from '$lib/ts/tarz';
 import Stream, { PassThrough } from 'stream';
 import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
@@ -589,110 +589,21 @@ type GetFilesOptions = {
 	readonlyAccess?: boolean;
 };
 
-export async function getFiles({
-	userId,
-	scopeName,
-	registryName,
-	version,
-	fileNames = [],
-	readonlyAccess = false
-}: GetFilesOptions): Promise<{ name: string; version?: 'v2' | 'v3'; content: string }[]> {
-	const isTag = !semver.valid(version);
-
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
-
-	const result = await db
-		.select({
-			tarball: tables.version.tarball
-		})
-		.from(tables.scope)
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
-		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
-		.where(
-			and(
-				eq(lower(tables.scope.name), scopeName.toLowerCase()),
-				eq(lower(tables.registry.name), registryName.toLowerCase()),
-				eq(isTag ? tables.version.tag : tables.version.version, version),
-
-				checkAccessQuery({ userOrgMember, readonlyAccess })
-			)
-		);
-
-	if (result.length === 0) return [];
-
-	const tarballKey = result[0].tarball;
-
-	const s3Response = await storage.getObject(tarballKey);
-
-	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
-
-	const expectsManifestFile = fileNames.includes('registry:manifest');
-
-	fileNames = fileNames.filter((f) => f !== 'registry:manifest');
-
-	fileNames = [
-		...fileNames,
-		...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])
-	];
-
-	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
-
-	return files.flatMap((file) => {
-		const og = fileNames.find((f) => f === file.name);
-
-		if (!og && fileNames.length > 0) return [];
-
-		if (file.name === 'registry.json' || file.name === 'jsrepo-manifest.json') {
-			return {
-				name: file.name,
-				version: file.name === 'registry.json' ? 'v3' : 'v2',
-				content: file.content
-			};
-		}
-
-		return [{ name: file.name, content: file.content }];
-	});
-}
-
-export async function getManifestFile({
-	userId,
-	scopeName,
-	registryName,
-	version,
-	readonlyAccess = false
-}: {
+type VersionTarballAccessOptions = {
 	userId?: string | null;
 	scopeName: string;
 	registryName: string;
 	version: string;
-	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
-}): Promise<{ name: string; version: 'v2' | 'v3'; content: string } | null> {
+};
+
+async function getVersionTarballKey({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	readonlyAccess = false
+}: VersionTarballAccessOptions): Promise<string | null> {
 	const isTag = !semver.valid(version);
 
 	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
@@ -741,7 +652,82 @@ export async function getManifestFile({
 
 	if (result.length === 0) return null;
 
-	const tarballKey = result[0].tarball;
+	return result[0].tarball;
+}
+
+export async function getFiles({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	fileNames = [],
+	readonlyAccess = false
+}: GetFilesOptions): Promise<{ name: string; version?: 'v2' | 'v3'; content: string }[]> {
+	const tarballKey = await getVersionTarballKey({
+		userId,
+		scopeName,
+		registryName,
+		version,
+		readonlyAccess
+	});
+
+	if (tarballKey === null) return [];
+
+	const s3Response = await storage.getObject(tarballKey);
+
+	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
+
+	const expectsManifestFile = fileNames.includes('registry:manifest');
+
+	fileNames = fileNames.filter((f) => f !== 'registry:manifest');
+
+	fileNames = [
+		...fileNames,
+		...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])
+	];
+
+	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
+
+	return files.flatMap((file) => {
+		const og = fileNames.find((f) => f === file.name);
+
+		if (!og && fileNames.length > 0) return [];
+
+		if (file.name === 'registry.json' || file.name === 'jsrepo-manifest.json') {
+			return {
+				name: file.name,
+				version: file.name === 'registry.json' ? 'v3' : 'v2',
+				content: file.content
+			};
+		}
+
+		return [{ name: file.name, content: file.content }];
+	});
+}
+
+export async function getManifestFile({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	readonlyAccess = false
+}: {
+	userId?: string | null;
+	scopeName: string;
+	registryName: string;
+	version: string;
+	/** Set this to true if you are not returning file contents */
+	readonlyAccess?: boolean;
+}): Promise<{ name: string; version: 'v2' | 'v3'; content: string } | null> {
+	const tarballKey = await getVersionTarballKey({
+		userId,
+		scopeName,
+		registryName,
+		version,
+		readonlyAccess
+	});
+
+	if (tarballKey === null) return null;
 
 	const s3Response = await storage.getObject(tarballKey);
 
@@ -758,6 +744,56 @@ export async function getManifestFile({
 		name: manifestFile.name,
 		version: manifestFile.name === 'registry.json' ? 'v3' : 'v2',
 		content: manifestFile.content
+	};
+}
+
+/** Single DB + S3 round trip to read the manifest plus named files from the version tarball. */
+export async function getManifestAndSpecificFilesFromVersion({
+	userId,
+	scopeName,
+	registryName,
+	version,
+	readonlyAccess = false,
+	specificFileNames
+}: {
+	userId?: string | null;
+	scopeName: string;
+	registryName: string;
+	version: string;
+	readonlyAccess?: boolean;
+	specificFileNames: string[];
+}): Promise<{
+	manifest: { name: string; version: 'v2' | 'v3'; content: string };
+	files: { name: string; content: string }[];
+} | null> {
+	const tarballKey = await getVersionTarballKey({
+		userId,
+		scopeName,
+		registryName,
+		version,
+		readonlyAccess
+	});
+
+	if (tarballKey === null) return null;
+
+	const s3Response = await storage.getObject(tarballKey);
+
+	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
+
+	const { manifest, files } = await extractManifestAndSpecific(
+		s3Response.Body as Stream,
+		specificFileNames
+	);
+
+	if (manifest === null) return null;
+
+	return {
+		manifest: {
+			name: manifest.name,
+			version: manifest.name === 'registry.json' ? 'v3' : 'v2',
+			content: manifest.content
+		},
+		files
 	};
 }
 
@@ -998,6 +1034,22 @@ export async function getOrg({
 		...org,
 		members
 	} satisfies FullOrg;
+}
+
+/** Org row only — no member/user joins (e.g. `/[org]` before redirect). Tabs use `members.length`; may read 0 until navigation completes. */
+export async function getOrgShellByName(name: string): Promise<FullOrg | null> {
+	const row = await db
+		.select()
+		.from(tables.org)
+		.where(eq(lower(tables.org.name), name.toLowerCase()))
+		.limit(1);
+
+	if (row.length === 0) return null;
+
+	return {
+		...row[0],
+		members: []
+	};
 }
 
 export async function isScopeOwner(userId: string, scopeName: string): Promise<boolean> {
