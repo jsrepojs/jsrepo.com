@@ -1,0 +1,2 @@
+CREATE INDEX "registry_id_idx" ON "registry_review" USING btree ("registry_id");--> statement-breakpoint
+CREATE INDEX "user_stripe_seller_account_id_idx" ON "user" USING btree ("stripe_seller_account_id");
