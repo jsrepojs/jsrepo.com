@@ -15,6 +15,13 @@
       "when": 1775735314664,
       "tag": "0001_lame_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775738625551,
+      "tag": "0002_org_marketplace_indexes",
+      "breakpoints": true
     }
   ]
 }
