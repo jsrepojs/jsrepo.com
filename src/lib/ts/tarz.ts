@@ -171,10 +171,7 @@ export async function extractManifestAndSpecific(
 
 			const name = header.name;
 
-			if (
-				manifest === null &&
-				(name === 'registry.json' || name === 'jsrepo-manifest.json')
-			) {
+			if (manifest === null && (name === 'registry.json' || name === 'jsrepo-manifest.json')) {
 				const chunks: Buffer[] = [];
 				entryStream.on('data', (chunk) => chunks.push(chunk));
 				entryStream.on('end', () => {

@@ -1,11 +1,8 @@
-import { defineConfig } from "jsrepo";
-import prettier from "@jsrepo/transform-prettier";
+import { defineConfig } from 'jsrepo';
+import prettier from '@jsrepo/transform-prettier';
 
 export default defineConfig({
-	registries: [
-		"@ieedan/std",
-		"@ieedan/shadcn-svelte-extras"
-	],
+	registries: ['@ieedan/std', '@ieedan/shadcn-svelte-extras'],
 	paths: {
 		ui: '$lib/components/ui',
 		component: '$lib/components',
@@ -14,5 +11,5 @@ export default defineConfig({
 		util: '$lib/utils',
 		lib: '$lib'
 	},
-	transforms: [prettier()],
+	transforms: [prettier()]
 });

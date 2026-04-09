@@ -7,7 +7,7 @@ services:
     container_name: jsrepo-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
