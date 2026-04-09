@@ -23,7 +23,10 @@ import { parseManifest, type RegistryManifest } from '$lib/ts/registry/manifest-
 
 const WEEKLY_DOWNLOADS_CACHE_TTL_S = 60 * 60 * 24; // 1 day
 
-async function getWeeklyDownloadsCached(scopeName: string, registryName: string): Promise<WeeklyDownloads[]> {
+async function getWeeklyDownloadsCached(
+	scopeName: string,
+	registryName: string
+): Promise<WeeklyDownloads[]> {
 	const key = `weekly-downloads:v1:${scopeName.toLowerCase()}:${registryName.toLowerCase()}`;
 
 	try {

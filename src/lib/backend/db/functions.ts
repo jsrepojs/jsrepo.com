@@ -215,25 +215,24 @@ function registryReadAccessInnerOr(userIdRef: string | typeof tables.user.id): S
 }
 
 function registryReadAccessAnonymous(readonlyAccess: boolean): SQL {
-	return (readonlyAccess
-		? or(
-				eq(tables.registry.access, 'public'),
-				and(
-					eq(tables.registry.access, 'marketplace'),
-					eq(tables.registry.listOnMarketplace, true)
+	return (
+		readonlyAccess
+			? or(
+					eq(tables.registry.access, 'public'),
+					and(
+						eq(tables.registry.access, 'marketplace'),
+						eq(tables.registry.listOnMarketplace, true)
+					)
 				)
-			)
-		: eq(tables.registry.access, 'public'))!;
+			: eq(tables.registry.access, 'public')
+	)!;
 }
 
 function registryReadAccessForKnownUser(userId: string, readonlyAccess: boolean): SQL {
 	return or(
 		eq(tables.registry.access, 'public'),
 		readonlyAccess
-			? and(
-					eq(tables.registry.access, 'marketplace'),
-					eq(tables.registry.listOnMarketplace, true)
-				)
+			? and(eq(tables.registry.access, 'marketplace'), eq(tables.registry.listOnMarketplace, true))
 			: undefined,
 		registryReadAccessInnerOr(userId)
 	)!;
@@ -246,10 +245,7 @@ function registryReadAccessForUserColumn(
 	return or(
 		eq(tables.registry.access, 'public'),
 		readonlyAccess
-			? and(
-					eq(tables.registry.access, 'marketplace'),
-					eq(tables.registry.listOnMarketplace, true)
-				)
+			? and(eq(tables.registry.access, 'marketplace'), eq(tables.registry.listOnMarketplace, true))
 			: undefined,
 		and(isNotNull(userIdCol), registryReadAccessInnerOr(userIdCol))
 	)!;
@@ -460,9 +456,7 @@ export async function getVersion({
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
-				userId !== undefined
-					? registryAccessWhere({ userId, readonlyAccess: true })
-					: undefined
+				userId !== undefined ? registryAccessWhere({ userId, readonlyAccess: true }) : undefined
 			)
 		);
 
@@ -676,8 +670,7 @@ async function getVersionTarballKey({
 		eq(versionCol, version)
 	);
 
-	const uid =
-		userId != null && userId !== '' ? userId : null;
+	const uid = userId != null && userId !== '' ? userId : null;
 
 	const result = await db
 		.select({
