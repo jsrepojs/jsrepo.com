@@ -18,7 +18,36 @@ import { reviewSchema } from '$lib/components/site/registry-view/types';
 import type { Action } from './$types';
 import assert from 'assert';
 import * as promise from '$lib/ts/promises';
+import { redis } from '$lib/ts/redis';
 import { parseManifest, type RegistryManifest } from '$lib/ts/registry/manifest-v3';
+
+const WEEKLY_DOWNLOADS_CACHE_TTL_S = 60 * 60 * 24; // 1 day
+
+async function getWeeklyDownloadsCached(scopeName: string, registryName: string): Promise<WeeklyDownloads[]> {
+	const key = `weekly-downloads:v1:${scopeName.toLowerCase()}:${registryName.toLowerCase()}`;
+
+	try {
+		const cached = await redis.get<string>(key);
+		if (cached != null && cached !== '') {
+			return JSON.parse(cached) as WeeklyDownloads[];
+		}
+	} catch {
+		// Redis miss or bad payload — load from DB
+	}
+
+	const data = await getWeeklyDownloadsForLastYear({
+		scope: scopeName,
+		registry: registryName
+	});
+
+	try {
+		await redis.set(key, JSON.stringify(data), { ex: WEEKLY_DOWNLOADS_CACHE_TTL_S });
+	} catch {
+		// ignore cache write failures
+	}
+
+	return data;
+}
 
 export type Options = {
 	scopeName: string;
@@ -46,10 +75,7 @@ export async function getInfo({
 		'getRegistry - registryPromise'
 	);
 
-	const weeklyDownloads = getWeeklyDownloadsForLastYear({
-		scope: scopeName,
-		registry: registryName
-	});
+	const weeklyDownloads = getWeeklyDownloadsCached(scopeName, registryName);
 
 	const promises = promise.allTimed(
 		[
