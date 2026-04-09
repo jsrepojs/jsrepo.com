@@ -48,7 +48,8 @@ export const user = pgTable(
 		return [
 			index('user_email_idx').on(table.email),
 			index('user_username_idx').on(table.username),
-			index('user_stripe_customer_id_idx').on(table.stripeCustomerId)
+			index('user_stripe_customer_id_idx').on(table.stripeCustomerId),
+			index('user_stripe_seller_account_id_idx').on(table.stripeSellerAccountId)
 		];
 	}
 ).enableRLS();
@@ -257,7 +258,10 @@ export const marketplacePurchase = pgTable(
 			index('marketplace_purchase_reference_id_idx').on(table.referenceId),
 			index('marketplace_purchase_registry_id_idx').on(table.registryId),
 			index('marketplace_purchase_status_idx').on(table.status),
-			index('marketplace_stripe_customer_id_idx').on(table.stripeCustomerId)
+			index('marketplace_stripe_customer_id_idx').on(table.stripeCustomerId),
+			index('marketplace_purchase_registry_reference_paid_idx')
+				.on(table.registryId, table.referenceId)
+				.where(sql`${table.status} = 'paid'`)
 		];
 	}
 ).enableRLS();
@@ -280,6 +284,7 @@ export const registryReview = pgTable(
 	},
 	(table) => {
 		return [
+			index('registry_id_idx').on(table.registryId),
 			sql`CONSTRAINT valid_rating CHECK (${table.rating} >= 1 AND ${table.rating} <= 5)`,
 			index('registry_review_rating_idx').on(table.rating),
 			index('registry_review_user_id_idx').on(table.userId)
@@ -338,6 +343,8 @@ export const orgMember = pgTable(
 		return [
 			index('org_member_org_id_idx').on(table.orgId),
 			index('org_member_user_id_idx').on(table.userId),
+			index('org_member_org_id_user_id_idx').on(table.orgId, table.userId),
+			index('org_member_user_id_org_id_idx').on(table.userId, table.orgId),
 			index('org_member_role_idx').on(table.role)
 		];
 	}

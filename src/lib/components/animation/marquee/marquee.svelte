@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	export let pauseOnHover: boolean = false;
 	export let vertical: boolean = false;
 	export let repeat: number = 4;

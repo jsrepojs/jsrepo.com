@@ -3,7 +3,7 @@
 -->
 
 <script lang="ts">
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		class?: string;

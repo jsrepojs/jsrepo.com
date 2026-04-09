@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { RegistryRatings } from '$lib/backend/db/functions';
 	import { Skeleton } from '$lib/components/ui/skeleton';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import ReviewStars from './review-stars.svelte';
 
 	type Props = {

@@ -3,7 +3,7 @@
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import * as Popover from '$lib/components/ui/popover';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { Ellipsis } from '@lucide/svelte';
 
 	let { data, children } = $props();

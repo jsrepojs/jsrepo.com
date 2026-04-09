@@ -1,0 +1,3 @@
+CREATE INDEX "marketplace_purchase_registry_reference_paid_idx" ON "marketplace_purchase" USING btree ("registry_id","reference_id") WHERE "marketplace_purchase"."status" = 'paid';--> statement-breakpoint
+CREATE INDEX "org_member_org_id_user_id_idx" ON "org_members" USING btree ("org_id","user_id");--> statement-breakpoint
+CREATE INDEX "org_member_user_id_org_id_idx" ON "org_members" USING btree ("user_id","org_id");

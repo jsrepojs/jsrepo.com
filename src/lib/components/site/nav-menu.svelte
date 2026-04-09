@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { Button } from '$lib/components/ui/button';
 	import { LightSwitch } from '$lib/components/ui/light-switch';
 	import * as Icons from '$lib/components/icons';

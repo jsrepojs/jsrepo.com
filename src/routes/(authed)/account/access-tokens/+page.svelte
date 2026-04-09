@@ -4,7 +4,7 @@
 	import { toRelative } from '$lib/ts/dates';
 	import { ChevronLeft, Plus, X } from '@lucide/svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { cn } from '$lib/utils/utils.js';
+	import { cn } from '$lib/utils.js';
 	import { onMount } from 'svelte';
 	import { newTokenContext } from '$lib/context.svelte.js';
 	import { Snippet } from '$lib/components/ui/snippet/index.js';

@@ -3,7 +3,7 @@
 -->
 
 <script lang="ts">
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { tv, type VariantProps } from 'tailwind-variants';
 	import { highlighter, type SupportedLanguage } from './shiki';
 	import DOMPurify from 'isomorphic-dompurify';

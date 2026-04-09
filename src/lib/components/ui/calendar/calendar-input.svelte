@@ -5,7 +5,7 @@
 	import type { WithoutChildrenOrChild, Calendar as CalendarPrimitive } from 'bits-ui';
 	import Calendar from './calendar.svelte';
 	import { buttonVariants } from '../button';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	let {
 		ref = $bindable(null),

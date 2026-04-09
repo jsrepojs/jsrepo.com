@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn, type WithElementRef, type WithoutChildren } from '$lib/utils/utils.js';
+	import { cn, type WithElementRef, type WithoutChildren } from '$lib/utils.js';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { getPayloadConfigFromPayload, useChart, type TooltipPayload } from './chart-utils.js';
 	import { getTooltipContext, Tooltip as TooltipPrimitive } from 'layerchart';
@@ -33,7 +33,7 @@
 		hideIndicator?: boolean;
 		labelClassName?: string;
 		labelFormatter?: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-		((value: any, payload: TooltipPayload[]) => string | number | Snippet) | null;
+			((value: any, payload: TooltipPayload[]) => string | number | Snippet) | null;
 		formatter?: Snippet<
 			[
 				{

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { active, type Options } from '$lib/actions/active.svelte';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import type { HTMLAnchorAttributes } from 'svelte/elements';
 
 	let {

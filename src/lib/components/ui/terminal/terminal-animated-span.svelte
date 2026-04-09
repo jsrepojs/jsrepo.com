@@ -3,7 +3,7 @@
 -->
 
 <script lang="ts">
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { onDestroy } from 'svelte';
 	import { useAnimation } from './terminal.svelte.js';
 	import type { TerminalAnimationProps } from './types';

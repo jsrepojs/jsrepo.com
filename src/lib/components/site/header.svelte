@@ -10,7 +10,7 @@
 	import { IsMobile } from '$lib/hooks/is-mobile.svelte';
 	import * as Icons from '$lib/components/icons';
 	import { shouldShowSearch } from '$lib/context.svelte';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	let menuOpen = $state(false);
 	let search = $state(page.url.searchParams.get('q') ?? '');

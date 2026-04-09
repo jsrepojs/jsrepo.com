@@ -7,7 +7,7 @@
 	import { resetMode, setMode } from 'mode-watcher';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		variant?: 'outline' | 'ghost';

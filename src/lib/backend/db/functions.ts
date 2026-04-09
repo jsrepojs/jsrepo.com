@@ -2,6 +2,7 @@ import {
 	aliasedTable,
 	and,
 	eq,
+	exists,
 	ilike,
 	inArray,
 	isNotNull,
@@ -148,6 +149,152 @@ export async function createScope(record: {
 	return result[0]?.id ?? null;
 }
 
+const accessCheckOne = sql`1`;
+
+/** EXISTS helpers — correlate on outer `scope` / `registry` rows (no join fan-out). */
+function existsOrgMembershipForScope(userIdRef: string | typeof tables.user.id) {
+	return exists(
+		db
+			.select({ _: accessCheckOne })
+			.from(tables.orgMember)
+			.where(
+				and(eq(tables.orgMember.orgId, tables.scope.orgId), eq(tables.orgMember.userId, userIdRef))
+			)
+	);
+}
+
+function existsPaidIndividualPurchase(userIdRef: string | typeof tables.user.id) {
+	return exists(
+		db
+			.select({ _: accessCheckOne })
+			.from(tables.marketplacePurchase)
+			.where(
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+					eq(tables.marketplacePurchase.status, 'paid'),
+					eq(tables.marketplacePurchase.referenceId, userIdRef)
+				)
+			)
+	);
+}
+
+function existsPaidOrgPurchase(userIdRef: string | typeof tables.user.id) {
+	return exists(
+		db
+			.select({ _: accessCheckOne })
+			.from(tables.marketplacePurchase)
+			.innerJoin(
+				tables.orgMember,
+				and(
+					eq(tables.orgMember.orgId, tables.marketplacePurchase.referenceId),
+					eq(tables.orgMember.userId, userIdRef)
+				)
+			)
+			.where(
+				and(
+					eq(tables.marketplacePurchase.registryId, tables.registry.id),
+					eq(tables.marketplacePurchase.status, 'paid')
+				)
+			)
+	);
+}
+
+function marketplaceLicensedAccess(userIdRef: string | typeof tables.user.id) {
+	return and(
+		eq(tables.registry.access, 'marketplace'),
+		or(existsPaidIndividualPurchase(userIdRef), existsPaidOrgPurchase(userIdRef))
+	);
+}
+
+function registryReadAccessInnerOr(userIdRef: string | typeof tables.user.id): SQL {
+	return or(
+		and(isNotNull(tables.scope.userId), eq(tables.scope.userId, userIdRef)),
+		existsOrgMembershipForScope(userIdRef),
+		marketplaceLicensedAccess(userIdRef)
+	)!;
+}
+
+function registryReadAccessAnonymous(readonlyAccess: boolean): SQL {
+	return (
+		readonlyAccess
+			? or(
+					eq(tables.registry.access, 'public'),
+					and(
+						eq(tables.registry.access, 'marketplace'),
+						eq(tables.registry.listOnMarketplace, true)
+					)
+				)
+			: eq(tables.registry.access, 'public')
+	)!;
+}
+
+function registryReadAccessForKnownUser(userId: string, readonlyAccess: boolean): SQL {
+	return or(
+		eq(tables.registry.access, 'public'),
+		readonlyAccess
+			? and(eq(tables.registry.access, 'marketplace'), eq(tables.registry.listOnMarketplace, true))
+			: undefined,
+		registryReadAccessInnerOr(userId)
+	)!;
+}
+
+function registryReadAccessForUserColumn(
+	userIdCol: typeof tables.user.id,
+	readonlyAccess: boolean
+): SQL {
+	return or(
+		eq(tables.registry.access, 'public'),
+		readonlyAccess
+			? and(eq(tables.registry.access, 'marketplace'), eq(tables.registry.listOnMarketplace, true))
+			: undefined,
+		and(isNotNull(userIdCol), registryReadAccessInnerOr(userIdCol))
+	)!;
+}
+
+function registrySettingsAccessForUserRef(userIdRef: string | typeof tables.user.id): SQL {
+	return or(
+		and(isNotNull(tables.scope.userId), eq(tables.scope.userId, userIdRef)),
+		existsOrgMembershipForScope(userIdRef)
+	)!;
+}
+
+function registrySettingsAccessForUserColumn(userIdCol: typeof tables.user.id): SQL {
+	return and(isNotNull(userIdCol), registrySettingsAccessForUserRef(userIdCol))!;
+}
+
+/**
+ * Registry visibility for API reads (tarballs, registry page, search, scope listings).
+ * Uses EXISTS instead of widening joins on `org_members` / `marketplace_purchase`.
+ *
+ * @param userId — `null` / missing / `''` => treat as anonymous (public + optional marketplace listing).
+ */
+export function registryAccessWhere(options: {
+	userId: string | null | undefined;
+	readonlyAccess?: boolean;
+	hasSettingsAccess?: boolean;
+}): SQL {
+	const { userId, readonlyAccess = false, hasSettingsAccess = false } = options;
+	const uid = userId != null && userId !== '' ? userId : null;
+
+	if (hasSettingsAccess) {
+		if (uid === null) return sql`false`;
+		return registrySettingsAccessForUserRef(uid);
+	}
+
+	if (uid === null) return registryReadAccessAnonymous(readonlyAccess);
+	return registryReadAccessForKnownUser(uid, readonlyAccess);
+}
+
+/** When the viewer id comes from a joined `user` row (session / API key). */
+export function registryAccessWhereForUserColumn(
+	userIdCol: typeof tables.user.id,
+	options: { readonlyAccess?: boolean; hasSettingsAccess?: boolean } = {}
+): SQL {
+	const { readonlyAccess = false, hasSettingsAccess = false } = options;
+	if (hasSettingsAccess) return registrySettingsAccessForUserColumn(userIdCol);
+	return registryReadAccessForUserColumn(userIdCol, readonlyAccess);
+}
+
 export async function getRegistry({
 	scopeName,
 	registryName,
@@ -170,7 +317,6 @@ export async function getRegistry({
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
 	const linkedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	// Aggregate dailyRegistryFetch in a subquery to avoid double-counting when other joins create multiple rows
 	const monthlyFetchesSubquery = db
@@ -205,36 +351,12 @@ export async function getRegistry({
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.leftJoin(
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
 		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
 		.leftJoin(
 			linkedStripeAccount,
 			eq(linkedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
@@ -248,28 +370,10 @@ export async function getRegistry({
 							eq(lower(tables.registry.name), registryName!.toLowerCase())
 						),
 
-				checkAccessQuery({ userOrgMember, readonlyAccess: true })
+				registryAccessWhere({ userId, readonlyAccess: true })
 			)
 		)
-		.groupBy(
-			tables.registry.id,
-			tables.registry.name,
-			tables.registry.scopeId,
-			tables.registry.createdAt,
-			tables.scope.id,
-			tables.scope.name,
-			tables.scope.orgId,
-			tables.org.id,
-			tables.org.name,
-			tables.version.id,
-			tables.version.registryId,
-			tables.version.tag,
-			tables.version.createdAt,
-			tables.version.releasedById,
-			releasedBy.id,
-			linkedStripeAccount.id,
-			monthlyFetchesSubquery.monthlyFetches
-		);
+		.limit(1);
 
 	if (registries.length === 0) return null;
 
@@ -314,19 +418,21 @@ type GetVersionOptions = {
 	userId: string | null | undefined;
 };
 
+export type GetVersionRow = tables.Version & {
+	scope: tables.Scope;
+	registry: tables.Registry;
+	releasedBy: Pick<tables.User, 'id' | 'name' | 'image' | 'createdAt'>;
+};
+
 export async function getVersion({
 	scopeName,
 	registryName,
 	version,
 	userId
-}: GetVersionOptions): Promise<
-	| (tables.Version & { scope: tables.Scope; registry: tables.Registry; releasedBy: tables.User })
-	| null
-> {
+}: GetVersionOptions): Promise<GetVersionRow | null> {
 	const isTag = !semver.valid(version);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 
 	const result = await db
 		.select({
@@ -344,44 +450,19 @@ export async function getVersion({
 		.innerJoin(tables.registry, eq(tables.registry.id, tables.version.registryId))
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
-				userId !== undefined ? checkAccessQuery({ userOrgMember, readonlyAccess: true }) : undefined
+				userId !== undefined ? registryAccessWhere({ userId, readonlyAccess: true }) : undefined
 			)
 		);
 
 	if (result.length === 0) return null;
 
-	return result[0];
+	return result[0] as GetVersionRow;
 }
 
 export async function createRegistry(
@@ -521,15 +602,11 @@ export async function getFileContentsFast({
 }): Promise<{ access: tables.RegistryAccess } | null> {
 	const isTag = !semver.valid(version);
 
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
-
 	const result = await db
 		.select({
 			access: tables.registry.access
 		})
 		.from(tables.scope)
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
 		.leftJoin(
@@ -541,35 +618,13 @@ export async function getFileContentsFast({
 			tables.user,
 			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
 		)
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
 				eq(lower(tables.registry.name), registryName.toLowerCase()),
 				eq(isTag ? tables.version.tag : tables.version.version, version),
 
-				checkAccessQuery({ userOrgMember })
+				registryAccessWhereForUserColumn(tables.user.id, { readonlyAccess: false })
 			)
 		);
 
@@ -605,50 +660,27 @@ async function getVersionTarballKey({
 	readonlyAccess = false
 }: VersionTarballAccessOptions): Promise<string | null> {
 	const isTag = !semver.valid(version);
+	const scopeNameLower = scopeName.toLowerCase();
+	const registryNameLower = registryName.toLowerCase();
+	const versionCol = isTag ? tables.version.tag : tables.version.version;
 
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
+	const baseWhere = and(
+		eq(lower(tables.scope.name), scopeNameLower),
+		eq(lower(tables.registry.name), registryNameLower),
+		eq(versionCol, version)
+	);
+
+	const uid = userId != null && userId !== '' ? userId : null;
 
 	const result = await db
 		.select({
 			tarball: tables.version.tarball
 		})
 		.from(tables.scope)
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
 		.innerJoin(tables.version, eq(tables.registry.id, tables.version.registryId))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
-		.where(
-			and(
-				eq(lower(tables.scope.name), scopeName.toLowerCase()),
-				eq(lower(tables.registry.name), registryName.toLowerCase()),
-				eq(isTag ? tables.version.tag : tables.version.version, version),
-
-				checkAccessQuery({ userOrgMember, readonlyAccess })
-			)
-		);
+		.where(and(baseWhere, registryAccessWhere({ userId: uid, readonlyAccess })))
+		.limit(1);
 
 	if (result.length === 0) return null;
 
@@ -853,8 +885,6 @@ export async function listMyOrganizations(userId: string) {
  * @param scopeName
  */
 export async function getScopeRegistries(userId: string | null, scopeName: string) {
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
-
 	const result = await db
 		.select({
 			id: tables.registry.id,
@@ -864,38 +894,11 @@ export async function getScopeRegistries(userId: string | null, scopeName: strin
 			createdAt: tables.registry.createdAt
 		})
 		.from(tables.scope)
-		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
 		.where(
 			and(
 				eq(lower(tables.scope.name), scopeName.toLowerCase()),
-
-				// access check
-				checkAccessQuery({ userOrgMember, readonlyAccess: true })
+				registryAccessWhere({ userId, readonlyAccess: true })
 			)
 		);
 
@@ -909,100 +912,6 @@ export async function nameIsBanned(name: string) {
 		.where(ilike(tables.commonNameBan.name, name));
 
 	return banned.length > 0;
-}
-
-/** Checks if the user has access to the registry
- *
- * You need to join the following tables `tables.user`, `tables.scope`,
- * `tables.registry`, `tables.orgMember`, `tables.marketplacePurchase`.
- */
-function checkAccessQuery({
-	userOrgMember,
-	readonlyAccess = false,
-	hasSettingsAccess = false
-}: {
-	userOrgMember: typeof tables.orgMember;
-	/** User can view the registry even if they don't have access to it.
-	 * This is just for marketplace listing. This should only be used if `hasSettingsAccess` is false */
-	readonlyAccess?: boolean;
-	/** Readonly access means that a user can view the contents of the registry
-	 * regardless of whether or not they are a part of its ownership */
-	hasSettingsAccess?: boolean;
-}) {
-	if (!hasSettingsAccess) {
-		return or(
-			eq(tables.registry.access, 'public'),
-
-			// access to view the registry
-			readonlyAccess
-				? // registry is willfully listed on the marketplace
-					and(
-						eq(tables.registry.access, 'marketplace'),
-						eq(tables.registry.listOnMarketplace, true)
-					)
-				: undefined,
-
-			or(
-				// registry owners always have access
-				or(
-					// User owned scope
-					and(
-						isNotNull(tables.scope.userId),
-
-						// check if we own the scope
-						eq(tables.scope.userId, tables.user.id)
-					),
-
-					// Org owned scope
-					and(
-						isNotNull(tables.scope.orgId),
-
-						// check if we are part of the organization
-						eq(tables.orgMember.userId, tables.user.id)
-					)
-				),
-
-				// rules for users that purchased from the marketplace
-				and(
-					eq(tables.registry.access, 'marketplace'),
-
-					eq(tables.marketplacePurchase.registryId, tables.registry.id),
-					eq(tables.marketplacePurchase.status, 'paid'),
-
-					or(
-						// owns the individual license
-						eq(tables.user.id, tables.marketplacePurchase.referenceId),
-
-						// is part of licensed org
-						and(
-							eq(userOrgMember.userId, tables.user.id),
-
-							eq(userOrgMember.orgId, tables.marketplacePurchase.referenceId)
-						)
-					)
-				)
-			)
-		);
-	} else {
-		// only grant access to the scope owner or org members regardless of the access level
-		return or(
-			// User owned scope
-			and(
-				isNotNull(tables.scope.userId),
-
-				// check if we own the scope
-				eq(tables.scope.userId, tables.user.id)
-			),
-
-			// Org owned scope
-			and(
-				isNotNull(tables.scope.orgId),
-
-				// check if we are part of the organization
-				eq(tables.orgMember.userId, tables.user.id)
-			)
-		);
-	}
 }
 
 export async function getOrg({
@@ -1612,7 +1521,6 @@ export async function searchRegistries({
 	const thirtyDaysAgo = new Date(Date.now() - DAY * 30).toISOString().slice(0, 10);
 
 	const releasedBy = aliasedTable(tables.user, 'released_by');
-	const userOrgMember = aliasedTable(tables.orgMember, 'user_org_member');
 	const connectedStripeAccount = aliasedTable(tables.user, 'linked_stripe_account');
 
 	const matchQuery = sql`(
@@ -1664,8 +1572,8 @@ export async function searchRegistries({
 		ownedById ? eq(tables.scope.userId, ownedById) : undefined,
 		lang ? eq(tables.registry.metaPrimaryLanguage, lang) : undefined,
 		typeSql ? typeSql : undefined,
-		checkAccessQuery({
-			userOrgMember,
+		registryAccessWhere({
+			userId,
 			readonlyAccess: true,
 			hasSettingsAccess
 		})
@@ -1710,58 +1618,12 @@ export async function searchRegistries({
 			eq(connectedStripeAccount.stripeSellerAccountId, tables.registry.stripeConnectAccountId)
 		)
 		.leftJoin(
-			tables.orgMember,
-			and(eq(tables.orgMember.orgId, tables.org.id), eq(tables.orgMember.userId, userId ?? ''))
-		)
-		.leftJoin(
 			tables.version,
 			and(eq(tables.version.registryId, tables.registry.id), eq(tables.version.tag, 'latest'))
 		)
 		.leftJoin(releasedBy, eq(releasedBy.id, tables.version.releasedById))
 		.leftJoin(monthlyFetchesSubquery, eq(monthlyFetchesSubquery.registryId, tables.registry.id))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
-		.where(whereClause)
-		.groupBy(
-			tables.registry.id,
-			tables.registry.name,
-			tables.registry.scopeId,
-			tables.registry.createdAt,
-			tables.scope.id,
-			tables.scope.name,
-			tables.scope.orgId,
-			tables.org.id,
-			tables.org.name,
-			tables.version.id,
-			tables.version.registryId,
-			tables.version.tag,
-			tables.version.createdAt,
-			tables.version.releasedById,
-			releasedBy.id,
-			connectedStripeAccount.id,
-			monthlyFetchesSubquery.monthlyFetches
-		);
+		.where(whereClause);
 
 	if (orderBy) {
 		// @ts-expect-error wrong
@@ -1784,30 +1646,6 @@ export async function searchRegistries({
 		.from(tables.registry)
 		.innerJoin(tables.scope, eq(tables.scope.id, tables.registry.scopeId))
 		.leftJoin(tables.org, eq(tables.org.id, tables.scope.orgId))
-		.leftJoin(tables.orgMember, eq(tables.orgMember.orgId, tables.org.id))
-		.leftJoin(tables.user, eq(tables.user.id, userId ?? ''))
-		.leftJoin(
-			userOrgMember,
-
-			and(
-				// user is the org member
-				eq(userOrgMember.userId, tables.user.id)
-			)
-		)
-		.leftJoin(
-			tables.marketplacePurchase,
-			and(
-				eq(tables.marketplacePurchase.registryId, tables.registry.id),
-
-				or(
-					// purchase for org
-					eq(tables.marketplacePurchase.referenceId, userOrgMember.orgId),
-
-					// purchase for user
-					eq(tables.marketplacePurchase.referenceId, tables.user.id)
-				)
-			)
-		)
 		.where(whereClause);
 
 	const [data, countResult] = await Promise.all([dataQuery, countQuery]);
