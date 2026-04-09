@@ -12,7 +12,7 @@
 	import { page } from '$app/state';
 	import { UseQuery } from '$lib/hooks/use-query.svelte';
 	import type { PurchaseRegistryRequest } from '../../../../routes/api/stripe/connect/registries/purchase/+server';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import * as Select from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import type { CreateRegistryPricesRequest } from '../../../../routes/api/scopes/[scope=scope]/[name]/marketplace/prices/+server';

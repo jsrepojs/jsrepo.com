@@ -7,7 +7,7 @@
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		open?: boolean;

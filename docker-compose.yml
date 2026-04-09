@@ -1,0 +1,19 @@
+# Local Postgres for development. Start: docker compose up -d
+# Set DATABASE_URL (see .env.example) to match POSTGRES_* below.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jsrepo-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: jsrepo
+    volumes:
+      - jsrepo_pgdata:/var/lib/postgresql/data
+
+volumes:
+  jsrepo_pgdata:

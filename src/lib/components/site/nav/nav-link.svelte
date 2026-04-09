@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { active } from '$lib/actions/active.svelte';
 	import { Badge } from '$lib/components/ui/badge';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { ArrowUpRight } from '@lucide/svelte';
 	import type { HTMLAnchorAttributes } from 'svelte/elements';
 

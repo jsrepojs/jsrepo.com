@@ -2,7 +2,7 @@
 	import { UseQuery } from '$lib/hooks/use-query.svelte.js';
 	import { goto } from '$app/navigation';
 	import { activeElement } from 'runed';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { Download, LoaderCircle, Search } from '@lucide/svelte';
 	import type { RegistryDetails } from '$lib/backend/db/functions';
 	import { shortcut } from '$lib/actions/shortcut.svelte';

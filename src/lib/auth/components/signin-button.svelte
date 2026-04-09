@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, type ButtonProps } from '$lib/components/ui/button';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	let { class: className, children, ...rest }: ButtonProps = $props();
 </script>

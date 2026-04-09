@@ -4,7 +4,7 @@
 
 <script lang="ts">
 	import { Window } from '$lib/components/ui/window';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import type { WithChildren } from 'bits-ui';
 	import { useTerminalRoot } from './terminal.svelte.js';
 	import { onMount } from 'svelte';

@@ -9,7 +9,7 @@
 	import { Download, File } from '@lucide/svelte';
 	import { ChevronRight } from '@lucide/svelte';
 	import type { RegistryViewPageData } from './types';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	let { data, hasLicense }: { data: RegistryViewPageData; hasLicense: boolean } = $props();
 </script>

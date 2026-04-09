@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import * as List from '$lib/components/site/list';
 	import { Ellipsis, Flag, FileArchive, Check } from '@lucide/svelte';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 	import { FileIcon } from '$lib/components/ui/file-icon';
 	import { Snippet } from '$lib/components/ui/snippet';
 	import * as Tabs from '$lib/components/site/tabs';

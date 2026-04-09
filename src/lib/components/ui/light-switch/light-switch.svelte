@@ -6,7 +6,7 @@
 	import { Sun, Moon } from '@lucide/svelte';
 	import { toggleMode } from 'mode-watcher';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		variant?: 'outline' | 'ghost';

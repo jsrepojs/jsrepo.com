@@ -1,4 +1,4 @@
-import { building, dev } from '$app/environment';
+import { dev } from '$app/environment';
 import { auth } from '$lib/auth';
 import { posthog } from '$lib/ts/posthog';
 import { StopWatch } from '$lib/ts/stopwatch';
@@ -32,7 +32,7 @@ const analytics: Handle = async ({ event, resolve }) => {
 const betterAuth: Handle = async ({ event, resolve }) => {
 	event.locals.auth = () => auth.api.getSession({ headers: event.request.headers });
 
-	return svelteKitHandler({ event, resolve, auth, building });
+	return svelteKitHandler({ event, resolve, auth });
 };
 
 export const handle = sequence(analytics, betterAuth);

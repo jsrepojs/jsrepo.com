@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { mode } from 'mode-watcher';
 	import type { Props } from '.';
-	import { cn } from '$lib/utils/utils';
+	import { cn } from '$lib/utils';
 
 	let { class: className, ...rest }: Props = $props();
 </script>
