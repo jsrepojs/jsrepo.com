@@ -18,7 +18,7 @@
 	<List.List>
 		{#if data.manifest.manifestVersion === 'v2'}
 			{#each data.manifest.categories as category (category)}
-				{#each category.blocks.filter((b) => b.list) as block (block.name)}
+				{#each category.blocks.filter((b) => b.list) as block (block)}
 					{@const primaryLanguage = determinePrimaryLanguage(...block.files)}
 					<Collapsible.Root>
 						<List.Item class="hover:bg-card p-0">
@@ -70,7 +70,7 @@
 								<div>
 									<span class="text-muted-foreground font-medium">Files</span>
 									<ul>
-										{#each block.files as file (file)}
+										{#each block.files as file, i (i)}
 											{@const ext = parseFileExtension(file)}
 											<li class="flex place-items-center gap-1">
 												<div class="flex size-4 place-items-center justify-center">
@@ -88,7 +88,7 @@
 								<div>
 									<span class="text-muted-foreground font-medium">Remote Dependencies</span>
 									<ul>
-										{#each [...block.dependencies, ...block.devDependencies] as dep (dep)}
+										{#each [...block.dependencies, ...block.devDependencies] as dep, i (i)}
 											<li>{dep}</li>
 										{/each}
 									</ul>
@@ -96,7 +96,7 @@
 								<div>
 									<span class="text-muted-foreground font-medium">Local Dependencies</span>
 									<ul>
-										{#each block.localDependencies as dep (dep)}
+										{#each block.localDependencies as dep, i (i)}
 											<li>{dep}</li>
 										{/each}
 									</ul>
@@ -107,7 +107,7 @@
 				{/each}
 			{/each}
 		{:else}
-			{#each data.manifest.items.filter((i) => i.add === 'when-added') as item (item.name)}
+			{#each data.manifest.items.filter((i) => i.add === 'when-added') as item (item)}
 				{@const primaryLanguage = determinePrimaryLanguage(...item.files.map((f) => f.path))}
 				<Collapsible.Root>
 					<List.Item class="hover:bg-card p-0">
@@ -163,7 +163,7 @@
 							<div>
 								<span class="text-muted-foreground font-medium">Files</span>
 								<ul>
-									{#each item.files as file (file)}
+									{#each item.files as file, i (i)}
 										{@const ext = parseFileExtension(file.path)}
 										<li class="flex place-items-center gap-1">
 											<div class="flex size-4 place-items-center justify-center">
@@ -181,7 +181,7 @@
 							<div>
 								<span class="text-muted-foreground font-medium">Remote Dependencies</span>
 								<ul>
-									{#each [...(item.dependencies ?? []), ...(item.devDependencies ?? [])] as dep (dep.name)}
+									{#each [...(item.dependencies ?? []), ...(item.devDependencies ?? [])] as dep, i (i)}
 										<li>{dep.name}{dep.version ? `@${dep.version}` : ''}</li>
 									{/each}
 								</ul>
@@ -189,7 +189,7 @@
 							<div>
 								<span class="text-muted-foreground font-medium">Local Dependencies</span>
 								<ul>
-									{#each item.registryDependencies ?? [] as dep (dep)}
+									{#each item.registryDependencies ?? [] as dep, i (i)}
 										<li>{dep}</li>
 									{/each}
 								</ul>
