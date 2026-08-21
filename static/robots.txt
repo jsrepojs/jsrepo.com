@@ -1,7 +1,4 @@
 # https://www.robotstxt.org/robotstxt.html
 
-# API routes are not content. Registry pages render one download link per
-# block/item, so crawlers following them fan out into thousands of requests
-# that each pull a version tarball from S3 and zip it in memory.
 User-agent: *
 Disallow: /api/
