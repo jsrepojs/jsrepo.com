@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as List from '$lib/components/site/list';
 	import { parsePackageName } from '$lib/ts/parse-package-name';
+	import { remoteDependencyKey } from './registry-view.svelte.js';
 	import type { RegistryInfo } from './types';
 
 	type Props = {
@@ -26,7 +27,7 @@
 						</List.Item>
 					{/each}
 				{:else}
-					{#each registryInfo.dependencies as dependency (dependency)}
+					{#each registryInfo.dependencies as dependency (remoteDependencyKey(dependency))}
 						<List.Item class="flex place-items-center justify-between">
 							{#if dependency.ecosystem === 'js'}
 								<List.Link href="https://npmjs.com/package/{dependency.name}" target="_blank">
