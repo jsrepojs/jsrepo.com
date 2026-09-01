@@ -21,7 +21,11 @@ import assert from 'assert';
 import * as promise from '$lib/ts/promises';
 import { redis } from '$lib/ts/redis';
 import { parseManifest, type RegistryManifest } from '$lib/ts/registry/manifest-v3';
-import { extractManifestAndSpecific } from '$lib/ts/tarz';
+import {
+	extractManifestAndSpecific,
+	isManifestFileName,
+	manifestVersionFromFileName
+} from '$lib/ts/tarz';
 
 const WEEKLY_DOWNLOADS_CACHE_TTL_S = 60 * 60 * 24; // 1 day
 
@@ -108,7 +112,7 @@ async function getRenderedVersion({
 		`@${scopeName}/${registryName}@${version} - extract`
 	);
 
-	if (manifest === null) return null;
+	if (manifest === null || !isManifestFileName(manifest.name)) return null;
 
 	let readme = files.find((f) => f.name === 'README.md')?.content ?? null;
 
@@ -124,7 +128,7 @@ async function getRenderedVersion({
 		readme,
 		manifest: {
 			content: manifest.content,
-			version: manifest.name === 'registry.json' ? 'v3' : 'v2'
+			version: manifestVersionFromFileName(manifest.name)
 		}
 	};
 

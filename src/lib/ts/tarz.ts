@@ -133,10 +133,18 @@ export async function extractFirstOf(stream: Stream, fileNames: string[]): Promi
 	});
 }
 
+/** Registry manifest file names. `registry.json` is written by jsrepo v3, `jsrepo-manifest.json` by v2. */
 export const MANIFEST_FILE_NAMES = ['registry.json', 'jsrepo-manifest.json'] as const;
 
-export function isManifestFileName(name: string): boolean {
-	return name === 'registry.json' || name === 'jsrepo-manifest.json';
+export type ManifestFileName = (typeof MANIFEST_FILE_NAMES)[number];
+
+export function isManifestFileName(name: string): name is ManifestFileName {
+	return (MANIFEST_FILE_NAMES as readonly string[]).includes(name);
+}
+
+/** Which version of the registry format a manifest file name belongs to */
+export function manifestVersionFromFileName(name: ManifestFileName): 'v2' | 'v3' {
+	return name === 'registry.json' ? 'v3' : 'v2';
 }
 
 export type ExtractManifestOptions = {

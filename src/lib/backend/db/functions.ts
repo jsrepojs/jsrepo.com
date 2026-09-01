@@ -44,7 +44,8 @@ import {
 	extractManifestAndSpecific,
 	extractSpecific,
 	isManifestFileName,
-	MANIFEST_FILE_NAMES
+	MANIFEST_FILE_NAMES,
+	manifestVersionFromFileName
 } from '$lib/ts/tarz';
 import Stream, { PassThrough, type Readable } from 'stream';
 import * as array from '$lib/ts/array';
@@ -763,14 +764,22 @@ export async function openVersionTarball(
 
 type ExtractedFile = { name: string; version?: 'v2' | 'v3'; content: string };
 
-function toExtractedFile(file: { name: string; content: string }): ExtractedFile {
-	if (isManifestFileName(file.name)) {
-		return {
-			name: file.name,
-			version: file.name === 'registry.json' ? 'v3' : 'v2',
-			content: file.content
-		};
+type ManifestFile = { name: string; version: 'v2' | 'v3'; content: string };
+
+function toManifestFile(file: { name: string; content: string }): ManifestFile {
+	if (!isManifestFileName(file.name)) {
+		throw new Error(`'${file.name}' is not a registry manifest`);
 	}
+
+	return {
+		name: file.name,
+		version: manifestVersionFromFileName(file.name),
+		content: file.content
+	};
+}
+
+function toExtractedFile(file: { name: string; content: string }): ExtractedFile {
+	if (isManifestFileName(file.name)) return toManifestFile(file);
 
 	return { name: file.name, content: file.content };
 }
@@ -832,7 +841,7 @@ export async function getManifestFile({
 	version: string;
 	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
-}): Promise<{ name: string; version: 'v2' | 'v3'; content: string } | null> {
+}): Promise<ManifestFile | null> {
 	const opened = await openVersionTarball({
 		userId,
 		scopeName,
@@ -847,11 +856,7 @@ export async function getManifestFile({
 
 	if (manifestFile === null) return null;
 
-	return {
-		name: manifestFile.name,
-		version: manifestFile.name === 'registry.json' ? 'v3' : 'v2',
-		content: manifestFile.content
-	};
+	return toManifestFile(manifestFile);
 }
 
 /**
@@ -874,15 +879,11 @@ export async function getManifestAndSpecificFilesFromVersion({
 	version: string;
 	readonlyAccess?: boolean;
 	specificFileNames?: string[];
-	pickFromManifest?: (manifest: {
-		name: string;
-		version: 'v2' | 'v3';
-		content: string;
-	}) => string[];
+	pickFromManifest?: (manifest: ManifestFile) => string[];
 }): Promise<{
 	access: tables.RegistryAccess;
 	tarball: string;
-	manifest: { name: string; version: 'v2' | 'v3'; content: string };
+	manifest: ManifestFile;
 	files: { name: string; content: string }[];
 } | null> {
 	const opened = await openVersionTarball({
@@ -896,12 +897,7 @@ export async function getManifestAndSpecificFilesFromVersion({
 	if (opened === null) return null;
 
 	const { manifest, files } = await extractManifestAndSpecific(opened.body, specificFileNames, {
-		pickFromManifest: pickFromManifest
-			? (m) =>
-					pickFromManifest(
-						toExtractedFile(m) as { name: string; version: 'v2' | 'v3'; content: string }
-					)
-			: undefined
+		pickFromManifest: pickFromManifest ? (m) => pickFromManifest(toManifestFile(m)) : undefined
 	});
 
 	if (manifest === null) return null;
@@ -909,11 +905,7 @@ export async function getManifestAndSpecificFilesFromVersion({
 	return {
 		access: opened.access,
 		tarball: opened.tarball,
-		manifest: {
-			name: manifest.name,
-			version: manifest.name === 'registry.json' ? 'v3' : 'v2',
-			content: manifest.content
-		},
+		manifest: toManifestFile(manifest),
 		files
 	};
 }
@@ -1780,7 +1772,7 @@ export async function postFileFetch({
 	fileName
 }: TrackFetchOptions) {
 	if (!(await posthog.isFeatureEnabled('trackAllFileFetches', distinctId))) {
-		if (fileName !== 'jsrepo-manifest.json' && fileName !== 'registry.json') return;
+		if (!isManifestFileName(fileName)) return;
 	}
 
 	if (!(await posthog.isFeatureEnabled('trackFetches', distinctId))) return;
