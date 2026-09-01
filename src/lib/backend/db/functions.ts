@@ -38,8 +38,15 @@ import { resend, SUPPORT_EMAIL } from '$lib/ts/resend';
 import { auth } from '$lib/auth';
 import { PUBLIC_STORAGE_BUCKET } from '$env/static/public';
 import { storage } from '../s3';
-import { consume, extractFirstOf, extractManifestAndSpecific, extractSpecific } from '$lib/ts/tarz';
-import Stream, { PassThrough } from 'stream';
+import {
+	consume,
+	extractFirstOf,
+	extractManifestAndSpecific,
+	extractSpecific,
+	isManifestFileName,
+	MANIFEST_FILE_NAMES
+} from '$lib/ts/tarz';
+import Stream, { PassThrough, type Readable } from 'stream';
 import * as array from '$lib/ts/array';
 import type { Pack } from 'tar-stream';
 import { createGzip } from 'zlib';
@@ -613,7 +620,10 @@ export async function getFileContentsFast({
 			tables.apikey,
 			and(eq(tables.apikey.key, apiKey ?? ''), eq(tables.apikey.enabled, true))
 		)
-		.leftJoin(tables.session, eq(tables.session.token, sessionToken ?? ''))
+		.leftJoin(
+			tables.session,
+			and(eq(tables.session.token, sessionToken ?? ''), gt(tables.session.expiresAt, new Date()))
+		)
 		.leftJoin(
 			tables.user,
 			or(eq(tables.user.id, tables.session.userId), eq(tables.user.id, tables.apikey.userId))
@@ -652,13 +662,20 @@ type VersionTarballAccessOptions = {
 	readonlyAccess?: boolean;
 };
 
-async function getVersionTarballKey({
+type VersionTarballAccess = {
+	versionId: number;
+	/** Storage key of the tarball this version was published with */
+	tarball: string;
+	access: tables.RegistryAccess;
+};
+
+async function getVersionTarballAccess({
 	userId,
 	scopeName,
 	registryName,
 	version,
 	readonlyAccess = false
-}: VersionTarballAccessOptions): Promise<string | null> {
+}: VersionTarballAccessOptions): Promise<VersionTarballAccess | null> {
 	const isTag = !semver.valid(version);
 	const scopeNameLower = scopeName.toLowerCase();
 	const registryNameLower = registryName.toLowerCase();
@@ -674,7 +691,9 @@ async function getVersionTarballKey({
 
 	const result = await db
 		.select({
-			tarball: tables.version.tarball
+			versionId: tables.version.id,
+			tarball: tables.version.tarball,
+			access: tables.registry.access
 		})
 		.from(tables.scope)
 		.innerJoin(tables.registry, eq(tables.scope.id, tables.registry.scopeId))
@@ -684,18 +703,88 @@ async function getVersionTarballKey({
 
 	if (result.length === 0) return null;
 
-	return result[0].tarball;
+	return result[0];
 }
 
-export async function getFiles({
+export type OpenedVersionTarball = VersionTarballAccess & {
+	/** gzipped tar stream */
+	body: Stream;
+};
+
+function destroyBody(body: unknown) {
+	if (body && typeof (body as Readable).destroy === 'function') {
+		(body as Readable).destroy();
+	}
+}
+
+/** Releases an opened tarball without reading it */
+export function closeVersionTarball(opened: OpenedVersionTarball) {
+	destroyBody(opened.body);
+}
+
+/**
+ * Resolves access to a registry version and opens its tarball.
+ *
+ * The tarball key is derived from the URL params (`registries/@scope/name/v/<version>.tgz`, the same key
+ * `uploadArchive` writes for both the version and its tag) so the S3 request can be started at the same
+ * time as the access check instead of after it. Nothing is returned unless the access check passes.
+ */
+export async function openVersionTarball(
+	options: VersionTarballAccessOptions
+): Promise<OpenedVersionTarball | null> {
+	const expectedKey = storage.getRegistryTarballKey({
+		scope: options.scopeName,
+		registry: options.registryName,
+		version: options.version
+	});
+
+	const [access, s3Response] = await Promise.all([
+		getVersionTarballAccess(options),
+		storage.getObject(expectedKey)
+	]);
+
+	if (access === null) {
+		destroyBody(s3Response?.Body);
+		return null;
+	}
+
+	let body = s3Response?.Body ?? null;
+
+	// fall back to the key stored on the version in case the tarball lives somewhere else
+	if (body === null && access.tarball !== expectedKey) {
+		const fallback = await storage.getObject(access.tarball);
+		body = fallback?.Body ?? null;
+	}
+
+	if (body === null) throw new Error(`Could not find file '${access.tarball}'`);
+
+	return { ...access, body: body as Stream };
+}
+
+type ExtractedFile = { name: string; version?: 'v2' | 'v3'; content: string };
+
+function toExtractedFile(file: { name: string; content: string }): ExtractedFile {
+	if (isManifestFileName(file.name)) {
+		return {
+			name: file.name,
+			version: file.name === 'registry.json' ? 'v3' : 'v2',
+			content: file.content
+		};
+	}
+
+	return { name: file.name, content: file.content };
+}
+
+/** Like {@link getFiles} but also reports the registry access level. Returns null when the version doesn't exist or the user can't read it. */
+export async function getFilesWithAccess({
 	userId,
 	scopeName,
 	registryName,
 	version,
 	fileNames = [],
 	readonlyAccess = false
-}: GetFilesOptions): Promise<{ name: string; version?: 'v2' | 'v3'; content: string }[]> {
-	const tarballKey = await getVersionTarballKey({
+}: GetFilesOptions): Promise<{ access: tables.RegistryAccess; files: ExtractedFile[] } | null> {
+	const opened = await openVersionTarball({
 		userId,
 		scopeName,
 		registryName,
@@ -703,38 +792,31 @@ export async function getFiles({
 		readonlyAccess
 	});
 
-	if (tarballKey === null) return [];
-
-	const s3Response = await storage.getObject(tarballKey);
-
-	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
+	if (opened === null) return null;
 
 	const expectsManifestFile = fileNames.includes('registry:manifest');
 
-	fileNames = fileNames.filter((f) => f !== 'registry:manifest');
+	const specificFileNames = fileNames.filter((f) => f !== 'registry:manifest');
 
-	fileNames = [
-		...fileNames,
-		...(expectsManifestFile ? ['registry.json', 'jsrepo-manifest.json'] : [])
-	];
+	if (expectsManifestFile) {
+		// one pass that stops as soon as the manifest and the named files have been read
+		const { manifest, files } = await extractManifestAndSpecific(opened.body, specificFileNames);
 
-	const files = await extractSpecific(s3Response?.Body as Stream, ...fileNames);
+		return {
+			access: opened.access,
+			files: [...(manifest ? [manifest] : []), ...files].map(toExtractedFile)
+		};
+	}
 
-	return files.flatMap((file) => {
-		const og = fileNames.find((f) => f === file.name);
+	const files = await extractSpecific(opened.body, ...specificFileNames);
 
-		if (!og && fileNames.length > 0) return [];
+	return { access: opened.access, files: files.map(toExtractedFile) };
+}
 
-		if (file.name === 'registry.json' || file.name === 'jsrepo-manifest.json') {
-			return {
-				name: file.name,
-				version: file.name === 'registry.json' ? 'v3' : 'v2',
-				content: file.content
-			};
-		}
+export async function getFiles(options: GetFilesOptions): Promise<ExtractedFile[]> {
+	const result = await getFilesWithAccess(options);
 
-		return [{ name: file.name, content: file.content }];
-	});
+	return result?.files ?? [];
 }
 
 export async function getManifestFile({
@@ -751,7 +833,7 @@ export async function getManifestFile({
 	/** Set this to true if you are not returning file contents */
 	readonlyAccess?: boolean;
 }): Promise<{ name: string; version: 'v2' | 'v3'; content: string } | null> {
-	const tarballKey = await getVersionTarballKey({
+	const opened = await openVersionTarball({
 		userId,
 		scopeName,
 		registryName,
@@ -759,16 +841,9 @@ export async function getManifestFile({
 		readonlyAccess
 	});
 
-	if (tarballKey === null) return null;
+	if (opened === null) return null;
 
-	const s3Response = await storage.getObject(tarballKey);
-
-	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
-
-	const manifestFile = await extractFirstOf(s3Response?.Body as Stream, [
-		'registry.json',
-		'jsrepo-manifest.json'
-	]);
+	const manifestFile = await extractFirstOf(opened.body, [...MANIFEST_FILE_NAMES]);
 
 	if (manifestFile === null) return null;
 
@@ -779,26 +854,38 @@ export async function getManifestFile({
 	};
 }
 
-/** Single DB + S3 round trip to read the manifest plus named files from the version tarball. */
+/**
+ * Single DB + S3 round trip (run concurrently) and a single pass over the tarball to read the manifest
+ * plus named files. `pickFromManifest` lets the caller decide which extra files to read once the
+ * manifest is known without a second trip to storage.
+ */
 export async function getManifestAndSpecificFilesFromVersion({
 	userId,
 	scopeName,
 	registryName,
 	version,
 	readonlyAccess = false,
-	specificFileNames
+	specificFileNames = [],
+	pickFromManifest
 }: {
 	userId?: string | null;
 	scopeName: string;
 	registryName: string;
 	version: string;
 	readonlyAccess?: boolean;
-	specificFileNames: string[];
+	specificFileNames?: string[];
+	pickFromManifest?: (manifest: {
+		name: string;
+		version: 'v2' | 'v3';
+		content: string;
+	}) => string[];
 }): Promise<{
+	access: tables.RegistryAccess;
+	tarball: string;
 	manifest: { name: string; version: 'v2' | 'v3'; content: string };
 	files: { name: string; content: string }[];
 } | null> {
-	const tarballKey = await getVersionTarballKey({
+	const opened = await openVersionTarball({
 		userId,
 		scopeName,
 		registryName,
@@ -806,20 +893,22 @@ export async function getManifestAndSpecificFilesFromVersion({
 		readonlyAccess
 	});
 
-	if (tarballKey === null) return null;
+	if (opened === null) return null;
 
-	const s3Response = await storage.getObject(tarballKey);
-
-	if (s3Response === null) throw new Error(`Could not find file '${tarballKey}'`);
-
-	const { manifest, files } = await extractManifestAndSpecific(
-		s3Response.Body as Stream,
-		specificFileNames
-	);
+	const { manifest, files } = await extractManifestAndSpecific(opened.body, specificFileNames, {
+		pickFromManifest: pickFromManifest
+			? (m) =>
+					pickFromManifest(
+						toExtractedFile(m) as { name: string; version: 'v2' | 'v3'; content: string }
+					)
+			: undefined
+	});
 
 	if (manifest === null) return null;
 
 	return {
+		access: opened.access,
+		tarball: opened.tarball,
 		manifest: {
 			name: manifest.name,
 			version: manifest.name === 'registry.json' ? 'v3' : 'v2',
