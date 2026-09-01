@@ -33,14 +33,20 @@ export async function zipFiles(
  */
 export function zipDownloadHeaders({
 	access,
-	version
+	version,
+	fileName
 }: {
 	access: RegistryAccess;
 	version: string;
+	/** Name the browser should save the zip as */
+	fileName: string;
 }): Record<string, string> {
+	// keep the header well formed regardless of what ends up in a name
+	const safeName = fileName.replace(/[^A-Za-z0-9@._-]/g, '_');
+
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/zip',
-		'Content-Disposition': 'attachment;'
+		'Content-Disposition': `attachment; filename="${safeName}"`
 	};
 
 	if (access === 'public' && !isTag(version)) {

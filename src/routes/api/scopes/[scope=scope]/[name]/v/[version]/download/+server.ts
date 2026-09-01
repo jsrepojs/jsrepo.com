@@ -20,7 +20,9 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const zip = await zipFiles(result.files);
 
-	setHeaders(zipDownloadHeaders({ access: result.access, version }));
+	setHeaders(
+		zipDownloadHeaders({ access: result.access, version, fileName: `${scopeName}_${name}.zip` })
+	);
 
 	return new Response(zip);
 }

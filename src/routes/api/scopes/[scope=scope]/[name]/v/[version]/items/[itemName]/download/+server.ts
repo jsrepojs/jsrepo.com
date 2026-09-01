@@ -40,7 +40,7 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const zip = await zipFiles([itemJson]);
 
-	setHeaders(zipDownloadHeaders({ access, version }));
+	setHeaders(zipDownloadHeaders({ access, version, fileName: `${itemName}.zip` }));
 
 	return new Response(zip);
 }

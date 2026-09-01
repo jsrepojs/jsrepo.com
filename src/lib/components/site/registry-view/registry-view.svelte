@@ -32,6 +32,7 @@
 	import { getRegistryInfo } from './registry-view.svelte.js';
 	import Dependencies from './dependencies.svelte';
 	import ItemsView from './items-view.svelte';
+	import { downloadFile } from '$lib/ts/download';
 
 	let { data }: { data: RegistryViewPageData } = $props();
 
@@ -263,8 +264,11 @@
 							<Button
 								variant="outline"
 								disabled={data.registry.access === 'marketplace' && !hasLicense}
-								download="@{data.scopeName}/{data.registryName}.zip"
-								href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/download"
+								onclick={() =>
+									downloadFile(
+										`/api/scopes/@${data.scopeName}/${data.registryName}/v/${data.version.version}/blocks/download`,
+										`${data.scopeName}_${data.registryName}.zip`
+									)}
 							>
 								<FileArchive class="text-muted-foreground size-5" />
 								Download
@@ -273,8 +277,11 @@
 							<Button
 								variant="outline"
 								disabled={data.registry.access === 'marketplace' && !hasLicense}
-								download="@{data.scopeName}/{data.registryName}.zip"
-								href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/download"
+								onclick={() =>
+									downloadFile(
+										`/api/scopes/@${data.scopeName}/${data.registryName}/v/${data.version.version}/download`,
+										`${data.scopeName}_${data.registryName}.zip`
+									)}
 							>
 								<FileArchive class="text-muted-foreground size-5" />
 								Download

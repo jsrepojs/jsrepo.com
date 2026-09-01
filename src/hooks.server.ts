@@ -20,7 +20,9 @@ const analytics: Handle = async ({ event, resolve }) => {
 		distinctId: event.getClientAddress(),
 		properties: {
 			route_id: event.route.id,
-			duration: sw.elapsed()
+			duration: sw.elapsed(),
+			// lets us tell crawler traffic apart from real visitors
+			user_agent: event.request.headers.get('user-agent')
 		}
 	});
 

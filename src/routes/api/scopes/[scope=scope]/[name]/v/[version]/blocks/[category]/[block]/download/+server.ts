@@ -56,7 +56,7 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const zip = await zipFiles(files);
 
-	setHeaders(zipDownloadHeaders({ access, version }));
+	setHeaders(zipDownloadHeaders({ access, version, fileName: `${category}_${blockName}.zip` }));
 
 	return new Response(zip);
 }
