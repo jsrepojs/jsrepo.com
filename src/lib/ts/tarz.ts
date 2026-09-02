@@ -60,21 +60,16 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 		const tex = tar.extract();
 
 		/** null means everything */
-		let need = fileNames.length > 0 ? [...fileNames] : null;
+		const need = fileNames.length > 0 ? new Set(fileNames) : null;
 
 		const files: File[] = [];
 
 		tex.on('entry', (header, stream, next) => {
-			let index: number = -1;
-			if (need !== null) {
-				index = fileNames.indexOf(header.name);
-
-				// we don't need this file
-				if (index === -1) {
-					stream.resume();
-					stream.on('end', next);
-					return;
-				}
+			// we don't need this file
+			if (need !== null && !need.has(header.name)) {
+				stream.resume();
+				stream.on('end', next);
+				return;
 			}
 
 			const chunks: Buffer[] = [];
@@ -82,12 +77,10 @@ export async function extractSpecific(stream: Stream, ...fileNames: string[]): P
 			stream.on('end', () => {
 				files.push({ name: header.name, content: Buffer.concat(chunks).toString() });
 
-				if (need !== null) {
-					need = [...fileNames.slice(0, index), ...fileNames.slice(index + 1)];
-				}
+				need?.delete(header.name);
 
 				// continue if we need everything or we need more
-				if (need === null || need.length > 0) {
+				if (need === null || need.size > 0) {
 					next();
 					return;
 				}
@@ -140,10 +133,35 @@ export async function extractFirstOf(stream: Stream, fileNames: string[]): Promi
 	});
 }
 
+/** Registry manifest file names. `registry.json` is written by jsrepo v3, `jsrepo-manifest.json` by v2. */
+export const MANIFEST_FILE_NAMES = ['registry.json', 'jsrepo-manifest.json'] as const;
+
+export type ManifestFileName = (typeof MANIFEST_FILE_NAMES)[number];
+
+export function isManifestFileName(name: string): name is ManifestFileName {
+	return (MANIFEST_FILE_NAMES as readonly string[]).includes(name);
+}
+
+/** Which version of the registry format a manifest file name belongs to */
+export function manifestVersionFromFileName(name: ManifestFileName): 'v2' | 'v3' {
+	return name === 'registry.json' ? 'v3' : 'v2';
+}
+
+export type ExtractManifestOptions = {
+	/**
+	 * Called once the manifest has been read. Returns additional file names to collect.
+	 *
+	 * Entries that stream past before the manifest is reached are buffered so that a single
+	 * pass over the tarball is enough regardless of entry order.
+	 */
+	pickFromManifest?: (manifest: File) => string[];
+};
+
 /** One pass: first matching registry manifest (registry.json or jsrepo-manifest.json) plus requested paths. */
 export async function extractManifestAndSpecific(
 	stream: Stream,
-	specificNames: string[]
+	specificNames: string[],
+	{ pickFromManifest }: ExtractManifestOptions = {}
 ): Promise<{ manifest: File | null; files: File[] }> {
 	return new Promise((res, rej) => {
 		const tex = tar.extract();
@@ -151,15 +169,23 @@ export async function extractManifestAndSpecific(
 		let manifest: File | null = null;
 		const files: File[] = [];
 		const needSpecific = new Set(specificNames);
+		/** Entries seen before the manifest that may be needed once we know what to pick */
+		const pending = pickFromManifest !== undefined ? new Map<string, File>() : null;
 
 		const tryEarlyExit = (entryStream: Readable) => {
 			if (manifest === null) return false;
-			if (specificNames.length > 0 && needSpecific.size > 0) return false;
+			if (needSpecific.size > 0) return false;
 
 			res({ manifest, files });
 			entryStream.destroy();
 			tex.destroy();
 			return true;
+		};
+
+		const readEntry = (entryStream: Readable, onDone: (content: string) => void) => {
+			const chunks: Buffer[] = [];
+			entryStream.on('data', (chunk) => chunks.push(chunk));
+			entryStream.on('end', () => onDone(Buffer.concat(chunks).toString()));
 		};
 
 		tex.on('entry', (header, entryStream, next) => {
@@ -171,23 +197,43 @@ export async function extractManifestAndSpecific(
 
 			const name = header.name;
 
-			if (manifest === null && (name === 'registry.json' || name === 'jsrepo-manifest.json')) {
-				const chunks: Buffer[] = [];
-				entryStream.on('data', (chunk) => chunks.push(chunk));
-				entryStream.on('end', () => {
-					manifest = { name, content: Buffer.concat(chunks).toString() };
+			if (manifest === null && isManifestFileName(name)) {
+				readEntry(entryStream, (content) => {
+					manifest = { name, content };
+
+					if (pickFromManifest !== undefined) {
+						for (const picked of pickFromManifest(manifest)) {
+							needSpecific.add(picked);
+						}
+					}
+
+					// drain anything we buffered while waiting on the manifest
+					if (pending !== null) {
+						for (const [pendingName, file] of pending) {
+							if (needSpecific.delete(pendingName)) files.push(file);
+						}
+						pending.clear();
+					}
+
 					if (!tryEarlyExit(entryStream)) next();
 				});
 				return;
 			}
 
 			if (needSpecific.has(name)) {
-				const chunks: Buffer[] = [];
-				entryStream.on('data', (chunk) => chunks.push(chunk));
-				entryStream.on('end', () => {
-					files.push({ name, content: Buffer.concat(chunks).toString() });
+				readEntry(entryStream, (content) => {
+					files.push({ name, content });
 					needSpecific.delete(name);
 					if (!tryEarlyExit(entryStream)) next();
+				});
+				return;
+			}
+
+			// we don't know what we need yet so hold on to it
+			if (manifest === null && pending !== null) {
+				readEntry(entryStream, (content) => {
+					pending.set(name, { name, content });
+					next();
 				});
 				return;
 			}

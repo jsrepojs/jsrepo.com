@@ -1,6 +1,6 @@
-import { getFiles } from '$lib/backend/db/functions.js';
+import { getFilesWithAccess } from '$lib/backend/db/functions.js';
+import { zipDownloadHeaders, zipFiles } from '$lib/backend/download.js';
 import { error } from '@sveltejs/kit';
-import archiver from 'archiver';
 
 export async function GET({ locals, params, setHeaders }) {
 	const session = await locals.auth();
@@ -9,30 +9,20 @@ export async function GET({ locals, params, setHeaders }) {
 
 	const scopeName = scope.slice(1);
 
-	const files = await getFiles({
+	const result = await getFilesWithAccess({
 		userId: session?.user.id ?? null,
 		scopeName,
 		registryName: name,
 		version
 	});
 
-	if (files === null) error(404);
+	if (result === null) error(404);
 
-	const archive = archiver('zip', { zlib: { level: 6 } });
+	const zip = await zipFiles(result.files);
 
-	const chunks: Buffer[] = [];
-	archive.on('data', (chunk) => chunks.push(chunk));
+	setHeaders(
+		zipDownloadHeaders({ access: result.access, version, fileName: `${scopeName}_${name}.zip` })
+	);
 
-	for (const file of files) {
-		archive.append(file.content, { name: file.name });
-	}
-
-	await archive.finalize();
-
-	setHeaders({
-		'Content-Type': 'application/zip',
-		'Content-Disposition': 'attachment;'
-	});
-
-	return new Response(Buffer.concat(chunks));
+	return new Response(zip);
 }

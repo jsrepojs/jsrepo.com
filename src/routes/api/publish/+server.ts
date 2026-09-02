@@ -16,6 +16,8 @@ import { manifestSchema, validateAndScore, type Manifest } from '$lib/ts/registr
 import { NAME_REGEX } from '$lib/ts/registry/name.js';
 import { extract, streamToBuffer } from '$lib/ts/tarz';
 import { error, json } from '@sveltejs/kit';
+import { waitUntil } from '@vercel/functions';
+import { warmRenderedVersion } from '$lib/backend/rendered-version.js';
 import assert from 'node:assert';
 import * as v from 'valibot';
 import semver from 'semver';
@@ -339,6 +341,11 @@ export async function POST({ request }) {
 	if (!result) {
 		error(500, 'error publishing to jsrepo.com');
 	}
+
+	// render the README and cache it now so the first visitor doesn't pay for it
+	waitUntil(
+		warmRenderedVersion({ scopeName, registryName, version: manifest.version, userId: user.id })
+	);
 
 	posthog.capture({
 		event: 'publish-registry',

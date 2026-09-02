@@ -10,6 +10,7 @@
 	import { ChevronRight } from '@lucide/svelte';
 	import type { RegistryViewPageData } from './types';
 	import { cn } from '$lib/utils';
+	import { downloadFile } from '$lib/ts/download';
 
 	let { data, hasLicense }: { data: RegistryViewPageData; hasLicense: boolean } = $props();
 </script>
@@ -46,8 +47,12 @@
 										variant="ghost"
 										size="icon"
 										disabled={data.registry.access === 'marketplace' && !hasLicense}
-										download="{category.name}_{block.name}.zip"
-										href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/blocks/{category.name}/{block.name}/download"
+										aria-label="Download {category.name}/{block.name}"
+										onclick={() =>
+											downloadFile(
+												`/api/scopes/@${data.scopeName}/${data.registryName}/v/${data.version.version}/blocks/${category.name}/${block.name}/download`,
+												`${category.name}_${block.name}.zip`
+											)}
 									>
 										<Download class="text-muted-foreground size-5" />
 									</Button>
@@ -135,8 +140,12 @@
 									variant="ghost"
 									size="icon"
 									disabled={data.registry.access === 'marketplace' && !hasLicense}
-									download="{item.name}.zip"
-									href="/api/scopes/@{data.scopeName}/{data.registryName}/v/{data.versionParam}/items/{item.name}/download"
+									aria-label="Download {item.name}"
+									onclick={() =>
+										downloadFile(
+											`/api/scopes/@${data.scopeName}/${data.registryName}/v/${data.version.version}/items/${item.name}/download`,
+											`${item.name}.zip`
+										)}
 								>
 									<Download class="text-muted-foreground size-5" />
 								</Button>

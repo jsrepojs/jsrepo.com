@@ -1,6 +1,5 @@
 import {
 	canLeaveReview,
-	getFiles,
 	getRegistry,
 	getVersions,
 	getWeeklyDownloadsForLastYear,
@@ -9,8 +8,6 @@ import {
 	type WeeklyDownloads
 } from '$lib/backend/db/functions';
 import * as tables from '$lib/backend/db/schema';
-import DOMPurify from 'isomorphic-dompurify';
-import { rehype } from '$lib/ts/markdown';
 import { fail } from '@sveltejs/kit';
 import { message, superValidate } from 'sveltekit-superforms';
 import { valibot } from 'sveltekit-superforms/adapters';
@@ -20,6 +17,7 @@ import assert from 'assert';
 import * as promise from '$lib/ts/promises';
 import { redis } from '$lib/ts/redis';
 import { parseManifest, type RegistryManifest } from '$lib/ts/registry/manifest-v3';
+import { getRenderedVersion } from '$lib/backend/rendered-version';
 
 const WEEKLY_DOWNLOADS_CACHE_TTL_S = 60 * 60 * 24; // 1 day
 
@@ -30,8 +28,10 @@ async function getWeeklyDownloadsCached(
 	const key = `weekly-downloads:v1:${scopeName.toLowerCase()}:${registryName.toLowerCase()}`;
 
 	try {
-		const cached = await redis.get<string>(key);
-		if (cached != null && cached !== '') {
+		// the client deserializes JSON for us, older entries may still be stored as a string
+		const cached = await redis.get<WeeklyDownloads[] | string>(key);
+		if (Array.isArray(cached)) return cached;
+		if (typeof cached === 'string' && cached !== '') {
 			return JSON.parse(cached) as WeeklyDownloads[];
 		}
 	} catch {
@@ -44,7 +44,7 @@ async function getWeeklyDownloadsCached(
 	});
 
 	try {
-		await redis.set(key, JSON.stringify(data), { ex: WEEKLY_DOWNLOADS_CACHE_TTL_S });
+		await redis.set(key, data, { ex: WEEKLY_DOWNLOADS_CACHE_TTL_S });
 	} catch {
 		// ignore cache write failures
 	}
@@ -83,14 +83,7 @@ export async function getInfo({
 	const promises = promise.allTimed(
 		[
 			getVersions(scopeName, registryName),
-			getFiles({
-				userId,
-				scopeName,
-				registryName,
-				version,
-				readonlyAccess: true,
-				fileNames: ['README.md', 'registry:manifest']
-			})
+			getRenderedVersion({ scopeName, registryName, version, userId })
 		],
 		`@${scopeName}/${registryName} - getInfo - promises`
 	);
@@ -100,23 +93,17 @@ export async function getInfo({
 	// here we'd return 404 because the registry doesn't exist or the user doesn't have access
 	if (!registry) return null;
 
-	const [versions, files] = await promises;
+	const [versions, rendered] = await promises;
 
-	let readme = files.find((f) => f.name === 'README.md')?.content ?? null;
-	const manifest = files.find((f) => f.version !== undefined);
-
-	if (manifest === undefined) return null;
+	if (rendered === null) return null;
 	if (!versions || versions.length === 0) return null;
 
-	if (readme !== null) {
-		const html = (await rehype(readme)).toString();
-
-		readme = DOMPurify.sanitize(html);
-	}
-
 	return {
-		readme,
-		manifest: parseManifest({ content: manifest.content, version: manifest.version! }),
+		readme: rendered.readme,
+		manifest: parseManifest({
+			content: rendered.manifest.content,
+			version: rendered.manifest.version
+		}),
 		registry,
 		versions,
 		weeklyDownloads
